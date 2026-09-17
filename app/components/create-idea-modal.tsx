@@ -22,57 +22,6 @@ function Label({
   );
 }
 
-function Input({
-  type,
-  id,
-  value,
-  onChange,
-}: {
-  type: string;
-  id: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
-  return (
-    <input
-      type={type}
-      id={id}
-      value={value}
-      name={id}
-      onChange={onChange}
-      className="mt-1 block w-full rounded-md border focus:outline-none border-white/20 bg-white/5 px-3 py-1 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
-    />
-  );
-}
-
-function Select({
-  id,
-  value,
-  onChange,
-  options,
-}: {
-  id: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  options: { label: string; value: string }[];
-}) {
-  return (
-    <select
-      id={id}
-      value={value}
-      name={id}
-      onChange={onChange}
-      className="mt-1 block w-full rounded-md border-white/20 bg-white/5 px-3 py-2 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
 function Textarea({
   id,
   value,

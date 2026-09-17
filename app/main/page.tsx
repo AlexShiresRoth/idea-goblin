@@ -26,14 +26,14 @@ export default async function Main() {
 
   return (
     <main className="flex flex-col gap-4 items-center w-full h-screen">
-      <div className="flex flex-col w-11/12 py-10 h-full">
+      <div className="flex flex-col w-11/12 py-10 h-full overflow-auto">
         <div className="flex md:flex-row flex-col md:items-end gap-8 border-b border-white/20 pb-4">
           <h1 className="text-5xl font-bold">Idea Goblin</h1>
           <CreateIdeaModal type="inline" />
         </div>
         <div
           data-testid="buckets-container"
-          className="buckets-container flex flex-wrap items-start justify-start md:gap-8 gap-2 mt-10 border border-white/20 rounded-lg p-8"
+          className="buckets-container flex flex-col md:flex-row md:flex-wrap items-start justify-start md:gap-8 gap-2 mt-10 border border-white/20 rounded-lg p-8 overflow-y-scroll"
         >
           {buckets.map((bucket) => (
             <Bucket key={bucket.id} bucket={bucket} />
