@@ -91,6 +91,7 @@ function Textarea({
       name={id}
       onChange={onChange}
       rows={rows}
+      required
       className="mt-1 block w-full rounded-md border focus:outline-none border-white/20 bg-white/5 px-3 py-1 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
     />
   );
@@ -164,7 +165,7 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="p-4 rounded-lg border border-white/20 w-3/4 md:w-1/3">
+    <div className="p-4 rounded-lg border border-white/20 w-11/12 md:w-1/3 bg-black">
       <div className="flex justify-between items-center border-b border-white/20 pb-4">
         <h2 className="text-2xl font-bold">New Idea</h2>
         <button onClick={onClose}>
@@ -197,21 +198,34 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-export default function CreateIdeaModal() {
+export default function CreateIdeaModal({
+  type,
+}: {
+  type: "floating" | "inline";
+}) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div>
-      {!isOpen && (
+      {type === "inline" && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-10 right-10 bg-green-500 text-black rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
+          className="md:flex hidden items-center text-sm gap-2 bg-white/10 hover:bg-white/20 transition-colors rounded-md p-2 hover:cursor-pointer"
         >
-          <PlusIcon className="w-5 h-5" />
+          <PlusIcon className="w-4 h-4" />
+          New Idea
+        </button>
+      )}
+      {!isOpen && type === "floating" && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-12 md:bottom-15 right-7 md:right-25 bg-green-500 text-black rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
+        >
+          <PlusIcon className="w-6 h-6" />
         </button>
       )}
       {isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center w-screen h-screen z-50">
+        <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-50">
           <CreateIdeaForm onClose={() => setIsOpen(false)} />
         </div>
       )}

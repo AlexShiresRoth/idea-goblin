@@ -234,6 +234,13 @@ export async function POST(request: Request) {
 
     const { description } = payload;
 
+    if (!description || description.length < 3) {
+      return NextResponse.json(
+        { error: "Description is required" },
+        { status: 400 },
+      );
+    }
+
     const response = await generateIdeaResponse(description);
 
     let idea: Idea;
