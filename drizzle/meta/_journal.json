@@ -15,6 +15,20 @@
       "when": 1789514319574,
       "tag": "0001_wandering_union_jack",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789605212316,
+      "tag": "0002_melodic_dreaming_celestial",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789607614704,
+      "tag": "0003_wandering_hannibal_king",
+      "breakpoints": true
     }
   ]
 }
