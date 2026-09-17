@@ -1,0 +1,2 @@
+ALTER TABLE "idea_buckets" ADD COLUMN "profile_id" uuid NOT NULL;--> statement-breakpoint
+ALTER TABLE "idea_buckets" ADD CONSTRAINT "idea_buckets_profile_id_profiles_user_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."profiles"("user_id") ON DELETE cascade ON UPDATE no action;

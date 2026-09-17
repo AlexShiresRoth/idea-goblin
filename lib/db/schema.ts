@@ -1,14 +1,25 @@
 import {
   integer,
+  pgSchema,
   pgTable,
   serial,
   text,
   timestamp,
+  uuid,
   vector,
 } from "drizzle-orm/pg-core";
 
+const authSchema = pgSchema("auth");
+
+export const authUsers = authSchema.table("users", {
+  id: uuid("id").primaryKey(),
+});
+
 export const profileTable = pgTable("profiles", {
-  id: serial("id").primaryKey(),
+  id: uuid("user_id")
+    .primaryKey()
+    .notNull()
+    .references(() => authUsers.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   email: text("email").notNull(),
   activeIdeasAmt: integer("active_ideas_amt").notNull().default(2),
@@ -20,6 +31,9 @@ export const ideaBucketsTable = pgTable("idea_buckets", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
+  profileId: uuid("profile_id")
+    .notNull()
+    .references(() => profileTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -38,12 +52,16 @@ export const ideasTable = pgTable("ideas", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   status: text("status").notNull().default("incubating"),
-  profileId: integer("profile_id")
+  profileId: uuid("profile_id")
     .notNull()
     .references(() => profileTable.id, { onDelete: "cascade" }),
   category: text("category").notNull(),
+  type: text("type").notNull().default("idea"),
   description: text("description").notNull(),
   embedding: vector("embedding", { dimensions: 1536 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export type Idea = typeof ideasTable.$inferSelect;
+export type IdeaBucket = typeof ideaBucketsTable.$inferSelect;

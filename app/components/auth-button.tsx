@@ -7,7 +7,7 @@ import { createClient } from "@/lib/auth/supabase-client";
 const supabase = createClient();
 
 export async function signIn(provider: "github" | "google") {
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
       redirectTo: `${window.location.origin}/auth/callback?next=/main`,
@@ -17,7 +17,6 @@ export async function signIn(provider: "github" | "google") {
     console.error("Error signing in", error);
     return null;
   }
-  console.log("data", data);
 }
 
 export default function AuthButton({
@@ -31,10 +30,11 @@ export default function AuthButton({
     <button
       onClick={() =>
         startTransition(async () => {
-          console.log(provider.value);
           await signIn(provider.value);
         })
       }
+      className="hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:cursor-pointer px-4 py-2 rounded-md"
+      disabled={isPending}
     >
       {isPending ? "Signing in..." : `Sign in with ${provider.label}`}
     </button>
