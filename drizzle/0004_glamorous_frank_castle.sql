@@ -1,0 +1,1 @@
+ALTER TABLE "idea_buckets" ADD COLUMN "theme" text NOT NULL DEFAULT '';

@@ -45,7 +45,7 @@ export default function Ideas({
         <div className="flex flex-col gap-2">
           <div className="flex flex-col p-4 border-b border-white/20">
             <div className="mb-2">
-              <p className="text-xs text-green-500">Bucket {bucket.id}</p>
+              <p className="text-xs text-green-500">{bucket.theme}</p>
             </div>
             <h2 className="text-xl">{bucket.name}</h2>
             <p className="text-sm text-white/50">{bucket.description}</p>

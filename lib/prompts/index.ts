@@ -79,7 +79,8 @@ export async function findRelevantBucket(
             - If no existing bucket is sufficiently relevant, recommend creating a new bucket.
             - Never invent an ID for a new bucket.
             - relevanceScore represents confidence that the idea belongs to the selected existing bucket.
-            - A new bucket should have a concise name and description representing the broader concept, not merely repeat the idea's title.
+            - A new bucket should have a concise name, theme, and description representing the broader concept, not merely repeat the idea's title. 
+            The theme should be one to two words, examples: App, Product, Game Development, Music Production, and so on.
                     `.trim(),
       },
       {
@@ -138,6 +139,10 @@ export async function findRelevantBucket(
               type: ["string", "null"],
             },
 
+            newBucketTheme: {
+              type: ["string", "null"],
+            },
+
             reasoning: {
               type: "string",
               maxLength: 300,
@@ -150,6 +155,7 @@ export async function findRelevantBucket(
             "relevanceScore",
             "newBucketName",
             "newBucketDescription",
+            "newBucketTheme",
             "reasoning",
           ],
 

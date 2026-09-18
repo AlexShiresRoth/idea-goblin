@@ -31,6 +31,7 @@ export const ideaBucketsTable = pgTable("idea_buckets", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
+  theme: text("theme").notNull().default(""),
   profileId: uuid("profile_id")
     .notNull()
     .references(() => profileTable.id, { onDelete: "cascade" }),

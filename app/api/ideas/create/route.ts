@@ -24,6 +24,7 @@ type BucketResponse = {
   relevanceScore: number;
   newBucketName: string | null;
   newBucketDescription: string | null;
+  newBucketTheme: string | null;
   reasoning: string;
 };
 
@@ -155,6 +156,7 @@ export async function POST(request: Request) {
         const newBucket = await createIdeaBucket({
           name: bucket.newBucketName as string,
           description: bucket.newBucketDescription as string,
+          theme: bucket.newBucketTheme as string,
           profileId: profile[0].id,
           createdAt: new Date(),
           updatedAt: new Date(),
