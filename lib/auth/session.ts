@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 import "server-only";
 import { createServerClient } from "./client";
 
@@ -15,6 +16,7 @@ export async function getSession() {
 
     return user;
   } catch (error) {
+    unstable_rethrow(error);
     console.error(error);
     return null;
   }
