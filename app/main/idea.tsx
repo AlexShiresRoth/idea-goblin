@@ -5,6 +5,8 @@ import { useState } from "react";
 
 export default function Idea({ idea }: { idea: Idea }) {
   const [expanded, setExpanded] = useState(false);
+
+  console.log(idea);
   return (
     <div
       className="flex flex-col border-b border-white/20 hover:cursor-pointer hover:bg-white/5 transition-colors"

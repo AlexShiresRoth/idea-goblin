@@ -22,57 +22,6 @@ function Label({
   );
 }
 
-function Input({
-  type,
-  id,
-  value,
-  onChange,
-}: {
-  type: string;
-  id: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) {
-  return (
-    <input
-      type={type}
-      id={id}
-      value={value}
-      name={id}
-      onChange={onChange}
-      className="mt-1 block w-full rounded-md border focus:outline-none border-white/20 bg-white/5 px-3 py-1 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
-    />
-  );
-}
-
-function Select({
-  id,
-  value,
-  onChange,
-  options,
-}: {
-  id: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  options: { label: string; value: string }[];
-}) {
-  return (
-    <select
-      id={id}
-      value={value}
-      name={id}
-      onChange={onChange}
-      className="mt-1 block w-full rounded-md border-white/20 bg-white/5 px-3 py-2 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
 function Textarea({
   id,
   value,
@@ -92,7 +41,7 @@ function Textarea({
       onChange={onChange}
       rows={rows}
       required
-      className="mt-1 block w-full rounded-md border focus:outline-none border-white/20 bg-white/5 px-3 py-1 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
+      className="mt-1 block w-full rounded-md border focus:outline-none border-white/10 bg-white/10 px-3 py-1 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
     />
   );
 }
@@ -110,7 +59,7 @@ function Button({
     <button
       type={type}
       disabled={isLoading}
-      className="bg-green-500 text-black rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
+      className="bg-green-500 text-sm text-black font-semibold rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
     >
       {children}
     </button>
@@ -134,8 +83,6 @@ function Counter({
   );
 }
 
-const IDEA_TYPES = ["idea", "project", "product", "service", "other"] as const;
-
 function CreateIdeaForm({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [description, setDescription] = useState("");
@@ -143,6 +90,10 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (description.length === 0) {
+      setError("Description is required");
+      return;
+    }
     try {
       e.preventDefault();
       setIsLoading(true);
@@ -168,7 +119,7 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
     <div className="p-4 rounded-lg border border-white/20 w-11/12 md:w-1/3 bg-black">
       <div className="flex justify-between items-center border-b border-white/20 pb-4">
         <h2 className="text-2xl font-bold">New Idea</h2>
-        <button onClick={onClose}>
+        <button onClick={onClose} className="hover:cursor-pointer">
           <XIcon className="w-4 h-4" />
         </button>
       </div>
@@ -188,7 +139,7 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
           />
         </div>
 
-        <div>
+        <div className="flex justify-end">
           <Button type="submit" isLoading={isLoading}>
             {isLoading ? "Creating..." : "Create Idea"}
           </Button>
@@ -219,7 +170,7 @@ export default function CreateIdeaModal({
       {!isOpen && type === "floating" && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-12 md:bottom-15 right-7 md:right-25 bg-green-500 text-black rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
+          className="fixed bottom-12 md:bottom-15 right-5 md:right-15 bg-green-500 text-black rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
         >
           <PlusIcon className="w-6 h-6" />
         </button>
