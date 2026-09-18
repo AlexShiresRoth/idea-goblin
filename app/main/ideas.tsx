@@ -22,7 +22,7 @@ export default function Ideas({
       className={clsx(
         expanded
           ? "fixed w-screen h-screen top-0 left-0 bg-black/80 z-50 flex flex-col items-center justify-center"
-          : "flex bg-black flex-1 w-full h-fit flex-col gap-4 border border-white/20 rounded-lg items-start max-w-lg hover:bg-black/60 hover:border-white/50 transition-colors cursor-pointer",
+          : "flex bg-black md:flex-1 w-full h-fit flex-col gap-4 border border-white/20 rounded-lg items-start max-w-lg hover:bg-black/60 hover:border-white/50 transition-colors cursor-pointer",
       )}
     >
       {expanded && (
@@ -43,7 +43,12 @@ export default function Ideas({
         )}
       >
         <div className="flex flex-col gap-2">
-          <div className="flex flex-col p-4 border-b border-white/20">
+          <div
+            className={clsx(
+              "flex flex-col p-4",
+              expanded ? "border-b border-white/20" : "",
+            )}
+          >
             <div className="mb-2">
               <p className="text-xs text-green-500">{bucket.theme}</p>
             </div>

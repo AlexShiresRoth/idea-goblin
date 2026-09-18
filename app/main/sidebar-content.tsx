@@ -1,11 +1,9 @@
-"use client";
+import SignoutButton from "./signout-button";
 
-export default function SidebarContent({ name }: { name: string }) {
+export default function SidebarContent() {
   return (
-    <aside className="hidden min-h-full md:flex flex-col gap-4 border-r border-white/20 py-10">
-      <div className="w-full p-2 border-b border-white/20">
-        <p className="text-sm">{name}</p>
-      </div>
-    </aside>
+    <div className="w-full p-4 px-4 flex border-r border-white/10 flex-col gap-2">
+      <SignoutButton />
+    </div>
   );
 }

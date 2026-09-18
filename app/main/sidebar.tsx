@@ -1,12 +1,15 @@
 import { getSession } from "@/lib/auth";
-import SidebarContent from "./sidebar-content";
 
-export default async function Sidebar() {
+type Props = {
+  children: React.ReactNode;
+};
+
+export default async function Sidebar({ children }: Props) {
   const session = await getSession();
 
   if (!session) {
     return null;
   }
 
-  return <SidebarContent name={session.user_metadata?.name} />;
+  return <aside className="hidden md:flex flex-1">{children}</aside>;
 }
