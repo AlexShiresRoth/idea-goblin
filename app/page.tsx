@@ -1,13 +1,27 @@
 import { getSession } from "@/lib/auth";
 import { siteConfig } from "@/lib/site";
-import { connection } from "next/server";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import AuthButton from "./components/auth-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+// TODO handle these error pages
+export default async function Home({ searchParams }: PageProps<"/">) {
   await connection();
+
+  const { code, error, error_description } = await searchParams;
+  if (typeof error === "string" || typeof error_description === "string") {
+    const reason =
+      typeof error_description === "string" ? error_description : error;
+    redirect(
+      `/auth/auth-code-error?reason=${encodeURIComponent(String(reason))}`,
+    );
+  }
+  if (typeof code === "string" && code) {
+    redirect(`/auth/callback?code=${encodeURIComponent(code)}`);
+  }
+
   const session = await getSession();
 
   if (session) {
@@ -35,7 +49,6 @@ export default async function Home() {
           }}
         />
         <h1>Welcome to Idea Goblin.</h1>
-        <p>{siteConfig.tagline}</p>
         <AuthButton provider={{ value: "github", label: "Github" }} />
       </main>
     </div>

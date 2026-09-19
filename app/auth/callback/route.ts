@@ -1,31 +1,85 @@
-import { createServerClient } from "@/lib/auth";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+function safeNext(next: string | null) {
+  // Only same-origin absolute paths; "//evil.com" is protocol-relative.
+  if (next && next.startsWith("/") && !next.startsWith("//")) {
+    return next;
+  }
+  return "/main";
+}
+
+function baseUrl(request: Request) {
+  const { origin } = new URL(request.url);
+  // Behind the load balancer `request.url` is the internal deployment host, so
+  // prefer the host the browser actually used — the session cookies we are
+  // about to set are scoped to it.
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  if (process.env.NODE_ENV === "development" || !forwardedHost) {
+    return origin;
+  }
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  return `${forwardedProto}://${forwardedHost}`;
+}
+
+function errorRedirect(base: string, reason: string) {
+  const url = new URL("/auth/auth-code-error", base);
+  url.searchParams.set("reason", reason);
+  return NextResponse.redirect(url);
+}
+
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const base = baseUrl(request);
+
+  const providerError =
+    searchParams.get("error_description") ?? searchParams.get("error");
+  if (providerError) {
+    return errorRedirect(base, providerError);
+  }
+
   const code = searchParams.get("code");
-  // if "next" is in param, use it as the redirect URL
-  let next = searchParams.get("next") ?? "/";
-  if (!next.startsWith("/")) {
-    // if "next" is not a relative URL, use the default
-    next = "/";
+
+  if (!code) {
+    return errorRedirect(base, "missing_code");
   }
-  if (code) {
-    const supabase = await createServerClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      const forwardedHost = request.headers.get("x-forwarded-host"); // original origin before load balancer
-      const isLocalEnv = process.env.NODE_ENV === "development";
-      if (isLocalEnv) {
-        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-        return NextResponse.redirect(`${origin}${next}`);
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`);
-      } else {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-    }
+
+  const cookieStore = await cookies();
+  const response = NextResponse.redirect(
+    new URL(safeNext(searchParams.get("next")), base),
+  );
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet, headers) {
+          // Write to both the cookie store and the response: a `NextResponse`
+          // we construct ourselves is not guaranteed to pick up mutations made
+          // through `next/headers`, and losing these is a silent failed login.
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+            response.cookies.set(name, value, options);
+          });
+          if (headers) {
+            Object.entries(headers).forEach(([key, value]) =>
+              response.headers.set(key, value),
+            );
+          }
+        },
+      },
+    },
+  );
+
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    return errorRedirect(base, error.message);
   }
-  // return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+
+  return response;
 }
