@@ -5,6 +5,21 @@ import { XIcon } from "lucide-react";
 import { useState } from "react";
 import IdeaComponent from "./idea";
 
+function timeAgo(date: Date) {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const diffInMinutes = Math.floor(diff / (1000 * 60));
+  const diffInHours = Math.floor(diff / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diff / (1000 * 60 * 60 * 24));
+  return diffInDays > 0
+    ? `${diffInDays}d`
+    : diffInHours > 0
+      ? `${diffInHours}h`
+      : diffInMinutes > 0
+        ? `${diffInMinutes}m`
+        : `${diffInSeconds}s`;
+}
+
 export default function Ideas({
   ideas,
   bucket,
@@ -49,8 +64,11 @@ export default function Ideas({
               expanded ? "border-b border-white/20" : "",
             )}
           >
-            <div className="mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <p className="text-xs text-green-500">{bucket.theme}</p>
+              <p className="text-xs text-white/50">
+                {timeAgo(bucket.createdAt)}
+              </p>
             </div>
             <h2 className="text-xl">{bucket.name}</h2>
             <p className="text-sm text-white/50">{bucket.description}</p>
