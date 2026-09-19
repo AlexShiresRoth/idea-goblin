@@ -21,12 +21,12 @@ export default function Ideas({
       data-bucket-id={bucket.id}
       className={clsx(
         expanded
-          ? "fixed w-screen h-screen top-0 left-0 bg-black/80 z-50 flex flex-col items-center justify-center"
+          ? "fixed w-screen h-screen top-0 left-0 bg-black/80 z-50 flex flex-col items-center py-8"
           : "flex bg-black md:flex-1 w-full h-fit flex-col gap-4 border border-white/20 rounded-lg items-start max-w-lg hover:bg-black/60 hover:border-white/50 transition-colors cursor-pointer",
       )}
     >
       {expanded && (
-        <div className="flex w-3/4 md:w-1/3 items-center my-2 justify-end">
+        <div className="flex w-11/12 md:w-1/3 items-center my-2 justify-end">
           <button
             onClick={() => setExpanded(!expanded)}
             className="flex items-center gap-2"
@@ -38,7 +38,7 @@ export default function Ideas({
       <div
         className={clsx(
           expanded
-            ? "flex flex-col w-3/4 md:w-1/3  bg-black border border-white/20 rounded-lg"
+            ? "flex flex-col w-11/12 md:w-1/3  bg-black border border-white/20 rounded-lg overflow-y-auto"
             : "",
         )}
       >
