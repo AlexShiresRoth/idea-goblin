@@ -22,7 +22,7 @@ export default function Idea({ idea }: { idea: Idea }) {
             <MinusIcon className="w-4 h-4" />
           )}
         </button>
-        <div className="flex flex-col p-4">
+        <div className="flex flex-col p-4 gap-2">
           <p className="text-sm">{idea.title}</p>
           {expanded && (
             <div className="flex flex-col">

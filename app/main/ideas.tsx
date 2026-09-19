@@ -5,6 +5,22 @@ import { XIcon } from "lucide-react";
 import { useState } from "react";
 import IdeaComponent from "./idea";
 
+function timeAgo(date: Date) {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const diffInMinutes = Math.floor(diff / (1000 * 60));
+  const diffInHours = Math.floor(diff / (1000 * 60 * 60));
+  const diffInDays = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const diffInSeconds = Math.floor(diff / 1000);
+  return diffInDays > 0
+    ? `${diffInDays}d`
+    : diffInHours > 0
+      ? `${diffInHours}h`
+      : diffInMinutes > 0
+        ? `${diffInMinutes}m`
+        : `${diffInSeconds}s`;
+}
+
 export default function Ideas({
   ideas,
   bucket,
@@ -21,12 +37,12 @@ export default function Ideas({
       data-bucket-id={bucket.id}
       className={clsx(
         expanded
-          ? "fixed w-screen h-screen top-0 left-0 bg-black/80 z-50 flex flex-col items-center justify-center"
+          ? "fixed w-screen h-screen top-0 left-0 bg-black/80 z-50 flex flex-col items-center py-8"
           : "flex bg-black md:flex-1 w-full h-fit flex-col gap-4 border border-white/20 rounded-lg items-start max-w-lg hover:bg-black/60 hover:border-white/50 transition-colors cursor-pointer",
       )}
     >
       {expanded && (
-        <div className="flex w-3/4 md:w-1/3 items-center my-2 justify-end">
+        <div className="flex w-11/12 md:w-1/3 items-center my-2 justify-end">
           <button
             onClick={() => setExpanded(!expanded)}
             className="flex items-center gap-2"
@@ -38,7 +54,7 @@ export default function Ideas({
       <div
         className={clsx(
           expanded
-            ? "flex flex-col w-3/4 md:w-1/3  bg-black border border-white/20 rounded-lg"
+            ? "flex flex-col w-11/12 md:w-1/3  bg-black border border-white/20 rounded-lg overflow-y-auto"
             : "",
         )}
       >
@@ -49,8 +65,11 @@ export default function Ideas({
               expanded ? "border-b border-white/20" : "",
             )}
           >
-            <div className="mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <p className="text-xs text-green-500">{bucket.theme}</p>
+              <p className="text-xs text-white/50">
+                {timeAgo(bucket.createdAt)}
+              </p>
             </div>
             <h2 className="text-xl">{bucket.name}</h2>
             <p className="text-sm text-white/50">{bucket.description}</p>
