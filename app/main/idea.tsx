@@ -8,7 +8,7 @@ export default function Idea({ idea }: { idea: Idea }) {
 
   return (
     <div
-      className="flex flex-col border-b border-white/20 hover:cursor-pointer hover:bg-white/5 transition-colors"
+      className="flex flex-col border-b border-white/20 hover:cursor-pointer hover:bg-white/5 transition-colors min-w-xl"
       onClick={() => setExpanded(!expanded)}
     >
       <div className="flex items-center gap-4">
