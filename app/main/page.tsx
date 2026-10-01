@@ -29,9 +29,10 @@ export default async function Main() {
           <div className="flex flex-col p-4 h-full overflow-auto gap-4 flex-1">
             <div
               data-testid="buckets-container"
-              className="buckets-container flex flex-col md:flex-row md:flex-wrap items-start justify-start md:gap-8 gap-2 border border-white/20 rounded-lg p-8 overflow-y-scroll"
+              className="buckets-container colums-1 md:columns-xs content-start border border-white/20 rounded-lg p-8 overflow-y-scroll"
             >
-              {buckets.map((bucket) => (
+              {/* css columns goes from right to left */}
+              {buckets.reverse().map((bucket) => (
                 <Bucket key={bucket.id} bucket={bucket} />
               ))}
             </div>
