@@ -65,4 +65,5 @@ export const ideasTable = pgTable("ideas", {
 });
 
 export type Idea = typeof ideasTable.$inferSelect;
+export type IdeaView = Omit<Idea, "embedding">;
 export type IdeaBucket = typeof ideaBucketsTable.$inferSelect;
