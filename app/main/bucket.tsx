@@ -1,9 +1,12 @@
-import { getIdeas } from "@/lib/api/";
-import { IdeaBucket } from "@/lib/db/schema";
-import Ideas from "./ideas";
+import { IdeaBucket, IdeaView } from "@/lib/db/schema";
+import Ideas from "./ideas-bucket";
 
-export default async function Bucket({ bucket }: { bucket: IdeaBucket }) {
-  const ideas = await getIdeas(bucket.id);
-
+export default function Bucket({
+  bucket,
+  ideas,
+}: {
+  bucket: IdeaBucket;
+  ideas: IdeaView[];
+}) {
   return <Ideas ideas={ideas} bucket={bucket} />;
 }

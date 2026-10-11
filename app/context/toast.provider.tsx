@@ -1,29 +1,28 @@
 "use client";
 
-import { createContext, useEffect, useState } from "react";
+import { createContext, Dispatch, SetStateAction, useState } from "react";
 
 export type Toast = {
+  id: number;
   message: string;
   type: "success" | "error" | "warning" | "info";
 };
 
 type ToastContextType = {
   toasts: Toast[];
-  setToast: (toast: Toast[]) => void;
+  setToasts: Dispatch<SetStateAction<Toast[]>>;
 };
 
 export const ToastContext = createContext<ToastContextType>({
   toasts: [],
-  setToast: () => {},
+  setToasts: () => {},
 });
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToast] = useState<Toast[]>([]);
-
-  useEffect(() => {}, [toasts]);
+  const [toasts, setToasts] = useState<Toast[]>([]);
 
   return (
-    <ToastContext.Provider value={{ setToast, toasts }}>
+    <ToastContext.Provider value={{ setToasts, toasts }}>
       {children}
     </ToastContext.Provider>
   );

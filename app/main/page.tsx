@@ -1,4 +1,4 @@
-import { getIdeaBuckets } from "@/lib/api/";
+import { getIdeaBuckets, getIdeasForBuckets } from "@/lib/api/";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import CreateIdeaModal from "../components/create-idea-modal";
@@ -19,6 +19,8 @@ export default async function Main() {
   }
 
   const buckets = await getIdeaBuckets(session.id);
+  const ideasByBucket = await getIdeasForBuckets(buckets.map((bucket) => bucket.id));
+  const orderedBuckets = [...buckets].reverse();
 
   return (
     <ToastProvider>
@@ -36,8 +38,12 @@ export default async function Main() {
                   className="buckets-container colums-1 md:columns-xs content-start border border-white/20 rounded-lg p-8 overflow-y-scroll"
                 >
                   {/* css columns goes from right to left */}
-                  {buckets.reverse().map((bucket) => (
-                    <Bucket key={bucket.id} bucket={bucket} />
+                  {orderedBuckets.map((bucket) => (
+                    <Bucket
+                      key={bucket.id}
+                      bucket={bucket}
+                      ideas={ideasByBucket.get(bucket.id) ?? []}
+                    />
                   ))}
                 </div>
                 <CreateIdeaModal type="floating" />

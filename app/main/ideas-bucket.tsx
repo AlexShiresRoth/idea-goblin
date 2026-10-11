@@ -1,8 +1,10 @@
 "use client";
-import { IdeaBucket, type Idea } from "@/lib/db/schema";
+import { IdeaBucket, type IdeaView } from "@/lib/db/schema";
 import clsx from "clsx";
-import { XIcon } from "lucide-react";
-import { useState } from "react";
+import { Loader2Icon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useContext, useState } from "react";
+import { ToastContext } from "../context/toast.provider";
 import IdeaComponent from "./idea";
 
 function timeAgo(date: Date) {
@@ -21,14 +23,44 @@ function timeAgo(date: Date) {
         : `${diffInSeconds}s`;
 }
 
-export default function Ideas({
+export default function IdeasBucket({
   ideas,
   bucket,
 }: {
-  ideas: Idea[];
+  ideas: IdeaView[];
   bucket: IdeaBucket;
 }) {
+  const router = useRouter();
+  const { setToasts } = useContext(ToastContext);
   const [expanded, setExpanded] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  async function deleteBucket(bucketId: number) {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/buckets/delete`, {
+        method: "DELETE",
+        body: JSON.stringify({ bucketId }),
+      });
+      if (response.ok) {
+        setExpanded(false);
+      }
+    } catch (error) {
+      console.error(error);
+      setToasts([
+        { id: bucket.id, message: "Error deleting bucket", type: "error" },
+      ]);
+    } finally {
+      setIsDeleting(false);
+      setToasts([
+        {
+          id: bucket.id,
+          message: `Deleted bucket: ${bucket.name}`,
+          type: "success",
+        },
+      ]);
+      router.refresh();
+    }
+  }
 
   return (
     <div
@@ -46,9 +78,9 @@ export default function Ideas({
         <div className="flex w-11/12 md:w-1/3 items-center my-2 justify-end">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-2"
+            className="flex items-center p-2 rounded bg-white/10 text-sm hover:cursor-pointer hover:text-white/80 transition-colors"
           >
-            <XIcon className="w-6 h-6" /> Close
+            <XIcon className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -76,11 +108,39 @@ export default function Ideas({
             <p className="text-sm text-white/50">{bucket.description}</p>
           </div>
         </div>
+
         <div className={clsx(expanded ? "flex flex-col" : "hidden")}>
           {ideas.map((idea) => (
             <IdeaComponent key={idea.id} idea={idea} />
           ))}
         </div>
+
+        {expanded && (
+          <div className="flex justify-end gap-2">
+            <button
+              disabled={isDeleting}
+              className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-orange-300/80 transition-colors"
+            >
+              <SparklesIcon className="w-3 h-3" />
+              Refine
+            </button>
+            <button
+              disabled={isDeleting}
+              onClick={() => !isDeleting && deleteBucket(bucket.id)}
+              className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-red-500/80 transition-colors"
+            >
+              <Trash2Icon className="w-3 h-3" />{" "}
+              {isDeleting ? (
+                <>
+                  <Loader2Icon className="w-3 h-3 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
