@@ -19,23 +19,25 @@ export default async function Main() {
   }
 
   const buckets = await getIdeaBuckets(session.id);
-  const ideasByBucket = await getIdeasForBuckets(buckets.map((bucket) => bucket.id));
-  const orderedBuckets = [...buckets].reverse();
+  const ideasByBucket = await getIdeasForBuckets(
+    buckets.map((bucket) => bucket.id),
+  );
+  const orderedBuckets = [...buckets];
 
   return (
     <ToastProvider>
       <ToastWrapper>
         <main className="flex flex-col items-center h-screen">
-          <Header name={session.user_metadata?.name} />
+          <Header />
           <div className="flex w-full h-full">
             <Sidebar>
-              <SidebarContent />
+              <SidebarContent name={session.user_metadata?.name} />
             </Sidebar>
             <Container>
               <div className="flex flex-col p-4 h-full overflow-auto gap-4 flex-1">
                 <div
                   data-testid="buckets-container"
-                  className="buckets-container colums-1 md:columns-xs content-start border border-white/20 rounded-lg p-8 overflow-y-scroll"
+                  className="buckets-container colums-1 md:columns-xs content-start border border-white/20 rounded-lg p-4 overflow-y-scroll"
                 >
                   {/* css columns goes from right to left */}
                   {orderedBuckets.map((bucket) => (

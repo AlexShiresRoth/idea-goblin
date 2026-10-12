@@ -101,7 +101,7 @@ export default function IdeasBucket({
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs text-green-500">{bucket.theme}</p>
               <p className="text-xs text-white/50">
-                {timeAgo(bucket.createdAt)}
+                {timeAgo(bucket.updatedAt)}
               </p>
             </div>
             <h2 className="text-xl">{bucket.name}</h2>

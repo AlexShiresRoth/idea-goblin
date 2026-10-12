@@ -3,7 +3,7 @@
 import { createContext, Dispatch, SetStateAction, useState } from "react";
 
 export type Toast = {
-  id: number;
+  id: number | string;
   message: string;
   type: "success" | "error" | "warning" | "info";
 };

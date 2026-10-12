@@ -50,6 +50,17 @@ async function createIdeaBucketLink(ideaId: number, bucketId: number) {
   return newLink;
 }
 
+async function updateIdeaBucket(buckedId: number) {
+  const updatedBucket = await db
+    .update(ideaBucketsTable)
+    .set({
+      updatedAt: new Date(),
+    })
+    .where(eq(ideaBucketsTable.id, buckedId))
+    .returning();
+  return updatedBucket;
+}
+
 async function createProfile(session: Session) {
   const newProfile = await db
     .insert(profileTable)
@@ -165,6 +176,7 @@ export async function POST(request: Request) {
         break;
       case "use_existing":
         await createIdeaBucketLink(newIdea[0].id, bucket.bucketId as number);
+        await updateIdeaBucket(bucket.bucketId as number);
         break;
     }
 

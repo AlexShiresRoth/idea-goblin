@@ -3,7 +3,9 @@
 import clsx from "clsx";
 import { PlusIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { ToastContext } from "../context/toast.provider";
+import ActionButton from "./action-button";
 
 function Label({
   children,
@@ -84,14 +86,20 @@ function Counter({
 }
 
 function CreateIdeaForm({ onClose }: { onClose: () => void }) {
+  const { setToasts } = useContext(ToastContext);
   const router = useRouter();
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     if (description.length === 0) {
-      setError("Description is required");
+      setToasts([
+        {
+          id: "description-required",
+          message: "Description is required",
+          type: "error",
+        },
+      ]);
       return;
     }
     try {
@@ -107,10 +115,23 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
       onClose();
     } catch (error) {
       console.error(error);
-      setError("Failed to create idea");
+      setToasts([
+        {
+          id: "failed-to-create-idea",
+          message: "Failed to create idea",
+          type: "error",
+        },
+      ]);
     } finally {
       onClose();
       setIsLoading(false);
+      setToasts([
+        {
+          id: "idea-created",
+          message: "Idea created successfully",
+          type: "success",
+        },
+      ]);
       router.refresh();
     }
   }
@@ -159,13 +180,10 @@ export default function CreateIdeaModal({
   return (
     <div>
       {type === "inline" && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="md:flex hidden items-center text-sm gap-2 bg-white/10 hover:bg-white/20 transition-colors rounded-md p-2 hover:cursor-pointer"
-        >
-          <PlusIcon className="w-4 h-4" />
-          New Idea
-        </button>
+        <ActionButton action={() => setIsOpen(true)}>
+          <PlusIcon className="w-3 h-3" />
+          <span>New Idea</span>
+        </ActionButton>
       )}
       {!isOpen && type === "floating" && (
         <button
