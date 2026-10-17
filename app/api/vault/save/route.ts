@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     await db.insert(analysisResultsTable).values({
       profileId: session.user.id,
       analysisType,
-      analysisData: data.analysisData,
+      analysisData: data,
     });
 
     return new Response("Analysis result saved", { status: 200 });

@@ -164,6 +164,8 @@ function AnalysisResultConditional<T>({
 }
 
 // TODO I think we should break apart the reasoning into 3 pieces
+// TODO - need to set saved, so we don't allow to resave
+// TODO refactor this monster
 function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
   const { setToasts } = useContext(ToastContext);
   const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(null);
