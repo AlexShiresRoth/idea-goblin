@@ -1,5 +1,6 @@
 import {
   integer,
+  jsonb,
   pgSchema,
   pgTable,
   serial,
@@ -64,6 +65,18 @@ export const ideasTable = pgTable("ideas", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const analysisResultsTable = pgTable("analysis_results", {
+  id: serial("id").primaryKey(),
+  profileId: uuid("profile_id")
+    .notNull()
+    .references(() => profileTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  analysisType: text("analysis_type").notNull(),
+  analysisData: jsonb("analysis_data").notNull(),
+});
+
 export type Idea = typeof ideasTable.$inferSelect;
 export type IdeaView = Omit<Idea, "embedding">;
 export type IdeaBucket = typeof ideaBucketsTable.$inferSelect;
+export type AnalysisResult = typeof analysisResultsTable.$inferSelect;

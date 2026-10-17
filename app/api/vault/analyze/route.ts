@@ -20,9 +20,19 @@ const AnalysisChoiceSchema = z.object({
   justifications: z.string(),
 });
 
+const ReasoningSchema = z.object({
+  main_idea: z.string(),
+  reasons: z.array(
+    z.object({
+      title: z.string(),
+      reasoning: z.string(),
+    }),
+  ),
+});
+
 const AnalysisSchema = z.object({
   choices: z.array(AnalysisChoiceSchema),
-  reasoning: z.string(),
+  reasoning: ReasoningSchema,
 });
 
 const ExecutionChoiceSchema = z.object({
@@ -30,7 +40,7 @@ const ExecutionChoiceSchema = z.object({
   feasibility: z.number(),
   estimated_effort: z.enum(["low", "medium", "high"]),
   recommendation: z.enum(["pursue", "park", "kill"]),
-  reasoning: z.string(),
+  reasoning: ReasoningSchema,
 });
 
 const ExecutionSchema = z.object({
@@ -47,7 +57,7 @@ const RefinementSuggestionSchema = z.object({
 
 const RefinementSchema = z.object({
   suggestions: z.array(RefinementSuggestionSchema),
-  reasoning: z.string(),
+  reasoning: ReasoningSchema,
 });
 
 type PathwayConfig = {
@@ -67,6 +77,9 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         are most worth pursuing.
         Score each idea from 0 to 100.
         Provide clear justifications.
+        Instead of a large paragraph of reasoning, provide a list of reasons for each idea, 
+        and a general summary of the reasoning.
+        Each reason should be a single sentence or two.
       `.trim(),
     response_schema: AnalysisSchema,
     itemsKey: "choices",

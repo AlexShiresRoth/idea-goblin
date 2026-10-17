@@ -13,7 +13,8 @@ import {
   Waypoints,
   XIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
+import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 
 type Pathway = {
@@ -88,7 +89,7 @@ function ResultItem({ choice }: { choice: AnalysisResult["choices"][number] }) {
         <div
           className={clsx(
             " flex items-center gap-1 border rounded p-1",
-            score > 75 &&
+            score >= 75 &&
               "border-green-500/40 bg-green-500/10 text-green-500/80",
             score > 50 &&
               score < 75 &&
@@ -164,9 +165,11 @@ function AnalysisResultConditional<T>({
 
 // TODO I think we should break apart the reasoning into 3 pieces
 function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
+  const { setToasts } = useContext(ToastContext);
   const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<unknown>(null);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [minMaxModal, setMinMaxModal] = useState(false);
@@ -180,7 +183,7 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
     setAnalyzing(true);
     setResult(null);
     setError(null);
-    setMinMaxModal(false);
+    setMinMaxModal(true);
     try {
       const response = await fetch("/api/vault/analyze", {
         method: "POST",
@@ -231,13 +234,46 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  const saveAnalysis = async () => {
+    if (!result || !selectedPathway) return;
+    setSaving(true);
+    try {
+      await fetch("/api/vault/save", {
+        method: "POST",
+        body: JSON.stringify({
+          data: result,
+          analysisType: selectedPathway?.id,
+        }),
+      });
+    } catch (err) {
+      console.error(err);
+      setError("Failed to save analysis");
+      setToasts([
+        {
+          message: "Failed to save analysis",
+          type: "error",
+          id: selectedPathway?.id,
+        },
+      ]);
+    } finally {
+      setSaving(false);
+      setToasts([
+        {
+          message: "Your analysis has been saved",
+          type: "success",
+          id: selectedPathway?.id,
+        },
+      ]);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
       <div
         className={clsx(
           "flex flex-col gap-4 p-8 rounded-lg border border-white/20 bg-black transition-all duration-300",
-          !minMaxModal && "md:w-full w-full min-h-screen",
-          minMaxModal && "md:w-1/2 w-11/12",
+          minMaxModal && "md:w-full w-full min-h-screen",
+          !minMaxModal && "md:w-1/2 w-11/12",
         )}
       >
         <div
@@ -310,24 +346,26 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
             <div className="flex items-center gap-2">
               <h2 className="text-2xl font-bold">{selectedPathway?.title}</h2>
               <ActionButton
+                disabled={!reasoning}
                 action={() => reasoning && setShowReasoning(!showReasoning)}
               >
                 <Brain className="w-3 h-3" /> Show Reasoning
               </ActionButton>
               <ActionButton
-                action={() => reasoning && setShowReasoning(!showReasoning)}
+                action={() => reasoning && saveAnalysis()}
+                disabled={saving}
               >
                 <SaveIcon className="w-3 h-3" />
-                Save Analysis
+                {saving ? "Saving..." : "Save Analysis"}
               </ActionButton>
               <ActionButton action={() => setMinMaxModal(!minMaxModal)}>
                 {minMaxModal ? (
                   <>
-                    <MaximizeIcon className="w-3 h-3" /> Maximize
+                    <MinimizeIcon className="w-3 h-3" /> Minimize
                   </>
                 ) : (
                   <>
-                    <MinimizeIcon className="w-3 h-3" /> Minimize
+                    <MaximizeIcon className="w-3 h-3" /> Maximize
                   </>
                 )}
               </ActionButton>
