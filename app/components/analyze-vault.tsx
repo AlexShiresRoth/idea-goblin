@@ -1,15 +1,19 @@
 "use client";
 import clsx from "clsx";
 import {
+  Brain,
   Ghost,
   Loader2,
+  MaximizeIcon,
+  MinimizeIcon,
   Route,
+  SaveIcon,
+  ScanHeart,
   SparklesIcon,
   Waypoints,
   XIcon,
 } from "lucide-react";
-import { useState } from "react";
-import z from "zod";
+import { useMemo, useState } from "react";
 import ActionButton from "./action-button";
 
 type Pathway = {
@@ -19,47 +23,35 @@ type Pathway = {
   icon: React.ReactNode;
 };
 
-const AnalysisResultSchema = z.object({
-  choices: z.array(
-    z.object({
-      main_idea: z.string(),
-      bucket_id: z.number(),
-      score: z.number(),
-      justifications: z.string(),
-    }),
-  ),
-  reasoning: z.string(),
-});
+type AnalysisResult = {
+  choices: {
+    main_idea: string;
+    bucket_id: number;
+    score: number;
+    justifications: string;
+  }[];
+  reasoning: string;
+};
 
-// TODO this is incorrect, we need to fix this
-const ExecutionResultSchema = z.object({
-  choices: z.array(
-    z.object({
-      main_idea: z.string(),
-      bucket_id: z.number(),
-      score: z.number(),
-      justification: z.string(),
-    }),
-  ),
-  reasoning: z.string(),
-});
+type ExecutionResult = {
+  choices: {
+    main_idea: string;
+    bucket_id: number;
+    score: number;
+    justification: string;
+  }[];
+  reasoning: string;
+};
 
-// TODO this is incorrect, we need to fix this
-const RefinementResultSchema = z.object({
-  suggestions: z.array(
-    z.object({
-      main_idea: z.string(),
-      bucket_id: z.number(),
-      score: z.number(),
-      justification: z.string(),
-    }),
-  ),
-  reasoning: z.string(),
-});
-
-type AnalysisResult = z.infer<typeof AnalysisResultSchema>;
-type ExecutionResult = z.infer<typeof ExecutionResultSchema>;
-type RefinementResult = z.infer<typeof RefinementResultSchema>;
+type RefinementResult = {
+  suggestions: {
+    main_idea: string;
+    bucket_id: number;
+    score: number;
+    justification: string;
+  }[];
+  reasoning: string;
+};
 
 const PATHWAYS: Pathway[] = [
   {
@@ -85,21 +77,49 @@ const PATHWAYS: Pathway[] = [
   },
 ];
 
+function ResultItem({ choice }: { choice: AnalysisResult["choices"][number] }) {
+  const score = choice.score;
+  return (
+    <div
+      key={choice.bucket_id}
+      className="p-4 border border-white/20 rounded-md flex flex-col items-start gap-2 max-w-sm animate-fade-in flex-1 min-w-xs"
+    >
+      <div className="flex items-center justify-between w-full gap-1">
+        <div
+          className={clsx(
+            " flex items-center gap-1 border rounded p-1",
+            score > 75 &&
+              "border-green-500/40 bg-green-500/10 text-green-500/80",
+            score > 50 &&
+              score < 75 &&
+              "border-yellow-500/40 bg-yellow-500/10 text-yellow-500/80",
+            score > 25 &&
+              score < 50 &&
+              "border-orange-500/40 bg-orange-500/10 text-orange-500/80",
+            score >= 0 &&
+              score < 25 &&
+              "border-red-500/40 bg-red-500/10 text-red-500/80",
+          )}
+        >
+          <span className="text-xl"> {choice.score}</span>
+        </div>
+        <span>
+          <ScanHeart className="w-3 h-3" />
+        </span>
+      </div>
+      <h2 className="text-lg font-bold">{choice.main_idea}</h2>
+      <p className="text-sm text-white/60">{choice.justifications}</p>
+    </div>
+  );
+}
+
 function AnalysisResult({ result }: { result: AnalysisResult }) {
   const sortedChoices = result.choices.sort((a, b) => b.score - a.score);
+
   return (
-    <div className="grid grid-cols-4 p-2 border border-white/20 rounded-md w-fit gap-4 overflow-auto max-h-60">
+    <div className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-md gap-4">
       {sortedChoices.map((choice) => {
-        return (
-          <div
-            key={choice.bucket_id}
-            className="p-2 border border-white/20 rounded-md flex flex-col gap-2 max-w-sm"
-          >
-            <span className="text-green-500">Score: {choice.score}</span>
-            <h2 className="text-lg font-bold">{choice.main_idea}</h2>
-            <p className="text-sm text-white/60">{choice.justifications}</p>
-          </div>
-        );
+        return <ResultItem key={choice.bucket_id} choice={choice} />;
       })}
     </div>
   );
@@ -142,17 +162,25 @@ function AnalysisResultConditional<T>({
   }
 }
 
+// TODO I think we should break apart the reasoning into 3 pieces
 function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
   const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showReasoning, setShowReasoning] = useState(false);
+  const [minMaxModal, setMinMaxModal] = useState(false);
+  const reasoning = useMemo(
+    () => (result as AnalysisResult)?.reasoning,
+    [result],
+  );
 
   async function startAnalysis() {
     if (!selectedPathway) return;
     setAnalyzing(true);
     setResult(null);
     setError(null);
+    setMinMaxModal(false);
     try {
       const response = await fetch("/api/vault/analyze", {
         method: "POST",
@@ -203,71 +231,115 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  console.log("RESULT", result);
   return (
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
-      <div className="flex flex-col gap-4 p-8 rounded-lg border border-white/20 bg-black md:w-1/2 w-11/12">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-bold">Analyze Vault</h2>
-          <p className="text-sm text-white/50">
-            Let the Goblin analyze your precious ideas and provide you with
-            personalized feedback.
-          </p>
-        </div>
-        <div className="md:grid grid-cols-3 gap-4 flex flex-col">
-          {PATHWAYS.map((pathway) => (
+      <div
+        className={clsx(
+          "flex flex-col gap-4 p-8 rounded-lg border border-white/20 bg-black transition-all duration-300",
+          !minMaxModal && "md:w-full w-full min-h-screen",
+          minMaxModal && "md:w-1/2 w-11/12",
+        )}
+      >
+        <div
+          className={clsx(
+            result != null &&
+              "hidden opacity-0 max-h-0 transition-all duration-300",
+          )}
+        >
+          <div className={clsx("flex flex-col gap-2")}>
+            <h2 className="text-2xl font-bold">Analyze Vault</h2>
+            <p className="text-sm text-white/50">
+              Let the Goblin analyze your precious ideas and provide you with
+              personalized feedback.
+            </p>
+          </div>
+          <div className="md:grid grid-cols-3 gap-4 flex flex-col">
+            {PATHWAYS.map((pathway) => (
+              <button
+                type="button"
+                onClick={() => setSelectedPathway(pathway)}
+                key={pathway.id}
+                className={clsx(
+                  "flex flex-col gap-2 p-4 border border-white/20 rounded-lg hover:border-white/50 transition-colors cursor-pointer",
+                  selectedPathway?.id === pathway.id && "border-white/50",
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  {pathway.icon}
+                  <h3 className="text-lg">{pathway.title}</h3>
+                </div>
+                <p className="text-sm text-white/50 text-left">
+                  {pathway.description}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex justify-between w-full mt-4 py-4 border-t border-white/20">
+            <button className="action-button" onClick={onClose}>
+              <XIcon className="w-3 h-3" />
+              <span>Cancel</span>
+            </button>
             <button
               type="button"
-              onClick={() => setSelectedPathway(pathway)}
-              key={pathway.id}
+              disabled={!selectedPathway || analyzing}
               className={clsx(
-                "flex flex-col gap-2 p-4 border border-white/20 rounded-lg hover:border-white/50 transition-colors cursor-pointer",
-                selectedPathway?.id === pathway.id && "border-white/50",
+                "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
+                selectedPathway
+                  ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
+                  : "opacity-50 cursor-not-allowed",
               )}
+              onClick={startAnalysis}
             >
-              <div className="flex items-center gap-2">
-                {pathway.icon}
-                <h3 className="text-lg">{pathway.title}</h3>
-              </div>
-              <p className="text-sm text-white/50 text-left">
-                {pathway.description}
-              </p>
+              {selectedPathway && !analyzing && <Route className="w-3 h-3" />}
+              {selectedPathway &&
+                !analyzing &&
+                `Start ${selectedPathway.title}`}
+              {!selectedPathway && !analyzing && "Select a pathway"}
+              {analyzing && (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" /> Analyzing...
+                </>
+              )}
             </button>
-          ))}
-        </div>
-
-        <div className="flex justify-between w-full mt-4 py-4 border-t border-white/20">
-          <button className="action-button" onClick={onClose}>
-            <XIcon className="w-3 h-3" />
-            <span>Cancel</span>
-          </button>
-          <button
-            type="button"
-            disabled={!selectedPathway || analyzing}
-            className={clsx(
-              "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
-              selectedPathway
-                ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
-                : "opacity-50 cursor-not-allowed",
-            )}
-            onClick={startAnalysis}
-          >
-            {selectedPathway && !analyzing && <Route className="w-3 h-3" />}
-            {selectedPathway && !analyzing && `Start ${selectedPathway.title}`}
-            {!selectedPathway && !analyzing && "Select a pathway"}
-            {analyzing && (
-              <>
-                <Loader2 className="w-3 h-3 animate-spin" /> Analyzing...
-              </>
-            )}
-          </button>
+          </div>
         </div>
         {error && <p className="text-sm text-red-400">{error}</p>}
         {result != null && (
-          <AnalysisResultConditional
-            result={result as AnalysisResult}
-            selectedPathway={selectedPathway?.id ?? ""}
-          />
+          <div className="flex flex-col gap-4 overflow-y-auto max-h-screen p-8">
+            <div className="flex items-center gap-2">
+              <h2 className="text-2xl font-bold">{selectedPathway?.title}</h2>
+              <ActionButton
+                action={() => reasoning && setShowReasoning(!showReasoning)}
+              >
+                <Brain className="w-3 h-3" /> Show Reasoning
+              </ActionButton>
+              <ActionButton
+                action={() => reasoning && setShowReasoning(!showReasoning)}
+              >
+                <SaveIcon className="w-3 h-3" />
+                Save Analysis
+              </ActionButton>
+              <ActionButton action={() => setMinMaxModal(!minMaxModal)}>
+                {minMaxModal ? (
+                  <>
+                    <MaximizeIcon className="w-3 h-3" /> Maximize
+                  </>
+                ) : (
+                  <>
+                    <MinimizeIcon className="w-3 h-3" /> Minimize
+                  </>
+                )}
+              </ActionButton>
+            </div>
+            {showReasoning && (
+              <p className="text-sm text-white/50">{reasoning}</p>
+            )}
+            <AnalysisResultConditional
+              result={result as AnalysisResult}
+              selectedPathway={selectedPathway?.id ?? ""}
+            />
+          </div>
         )}
       </div>
     </div>
