@@ -114,19 +114,6 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
       if (!response.ok) {
         throw new Error("Failed to create idea");
       }
-      onClose();
-    } catch (error) {
-      console.error(error);
-      setToasts([
-        {
-          id: "failed-to-create-idea",
-          message: "Failed to create idea",
-          type: "error",
-        },
-      ]);
-    } finally {
-      onClose();
-      setIsLoading(false);
       setToasts([
         {
           id: "idea-created",
@@ -139,6 +126,18 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
       } else {
         router.refresh();
       }
+    } catch (error) {
+      console.error(error);
+      setToasts([
+        {
+          id: "failed-to-create-idea",
+          message: "Failed to create idea",
+          type: "error",
+        },
+      ]);
+    } finally {
+      onClose();
+      setIsLoading(false);
     }
   }
   return (

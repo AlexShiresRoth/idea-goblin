@@ -56,3 +56,43 @@ export function mockDelete() {
   const from = vi.fn().mockReturnValue({ where });
   return { from, where };
 }
+
+// Chainable drizzle query that resolves to `result` whenever it is awaited,
+// whichever builder methods the code under test calls along the way.
+export function mockQuery(result: unknown) {
+  const query: Record<string, unknown> = {
+    then: (
+      onFulfilled: (value: unknown) => unknown,
+      onRejected?: (reason: unknown) => unknown,
+    ) => Promise.resolve(result).then(onFulfilled, onRejected),
+  };
+  for (const method of [
+    "from",
+    "where",
+    "orderBy",
+    "limit",
+    "innerJoin",
+    "set",
+    "values",
+    "returning",
+  ]) {
+    query[method] = vi.fn(() => query);
+  }
+  return query;
+}
+
+export async function readEvents(response: Response) {
+  const text = await response.text();
+  return text
+    .split("\n")
+    .filter(Boolean)
+    .map(
+      (line) =>
+        JSON.parse(line) as {
+          type: string;
+          data?: unknown;
+          message?: string;
+          cached?: boolean;
+        },
+    );
+}
