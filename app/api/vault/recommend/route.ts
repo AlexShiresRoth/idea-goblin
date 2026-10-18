@@ -32,8 +32,8 @@ export async function POST() {
     const days = Math.floor((Date.now() - bucket.updatedAt.getTime()) / DAY_MS);
     const reason =
       days > 0
-        ? `Only ${words} words of detail and untouched for ${days} day${days === 1 ? "" : "s"}. A good one to sharpen.`
-        : `Only ${words} words of detail. A good one to sharpen.`;
+        ? `Only ${words} words of detail and untouched for ${days} day${days === 1 ? "" : "s"}. The goblin says this one needs sharpening.`
+        : `Only ${words} words of detail. The goblin says this one needs sharpening.`;
 
     return NextResponse.json({
       bucketId: bucket.id,

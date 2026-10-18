@@ -41,7 +41,7 @@ export default function Idea({ idea }: { idea: IdeaView }) {
       setToasts([
         {
           id: idea.id,
-          message: `Deleted idea: ${idea.title}`,
+          message: `Deleted "${idea.title}". Off to the rubbish heap.`,
           type: "success",
         },
       ]);

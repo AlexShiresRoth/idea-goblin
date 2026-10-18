@@ -70,7 +70,7 @@ describe("IdeasBucket", () => {
     expect(setToasts).toHaveBeenCalledWith([
       {
         id: 10,
-        message: "Deleted bucket: Launch ideas",
+        message: 'Deleted "Launch ideas". Off to the rubbish heap.',
         type: "success",
       },
     ]);
@@ -140,7 +140,7 @@ describe("IdeasBucket", () => {
 
     await user.click(screen.getByLabelText("button"));
 
-    expect(screen.getByText("Loading versions...")).toBeInTheDocument();
+    expect(screen.getByText("Digging up old versions...")).toBeInTheDocument();
   });
 
   it("lists saved versions and restores one", async () => {

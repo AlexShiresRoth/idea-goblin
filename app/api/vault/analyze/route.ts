@@ -103,7 +103,8 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
     itemSchema: AnalysisChoiceSchema,
   },
   execution: {
-    user_content: "Evaluate which ideas are worth attention and which I can realistically execute.",
+    user_content:
+      "Evaluate which ideas are worth attention and which I can realistically execute.",
     system_content: `
         Score each idea independently on two 0-100 scales:
         - score: how worth attention it is (upside, fit, interest)
@@ -226,11 +227,11 @@ type StreamOptions = {
 
 function progressMessage(pathway: Pathway, count: number, total?: number) {
   if (pathway === "refinement") {
-    return `${count} improvement${count === 1 ? "" : "s"} drafted`;
+    return `${count} improvement${count === 1 ? "" : "s"} scratched out`;
   }
   return total
-    ? `${count} of ${total} buckets scored`
-    : `${count} bucket${count === 1 ? "" : "s"} scored`;
+    ? `${count} of ${total} buckets judged`
+    : `${count} bucket${count === 1 ? "" : "s"} judged`;
 }
 
 const NDJSON_HEADERS = {
@@ -262,7 +263,7 @@ function cachedStream(data: unknown, context: string) {
         encodeEvent({
           type: "status",
           step: "cached",
-          message: "Nothing changed since your last run",
+          message: "Already chewed on this one, nothing has changed",
         }),
       );
       controller.enqueue(encodeEvent({ type: "done", data, cached: true }));
@@ -292,7 +293,7 @@ function streamPathway({
 
       try {
         status("context", context);
-        status("thinking", "Goblin is thinking it over");
+        status("thinking", "The goblin is gnawing on it");
 
         const stream = client.responses.stream({
           model,
@@ -318,7 +319,7 @@ function streamPathway({
 
         for await (const event of stream) {
           if (event.type !== "response.output_text.delta") continue;
-          if (!text) status("writing", "Writing results");
+          if (!text) status("writing", "Scribbling it down");
           text += event.delta;
 
           const items = extractClosedItems(
@@ -336,7 +337,7 @@ function streamPathway({
           });
         }
 
-        status("saving", "Saving the run");
+        status("saving", "Stashing it in the hoard");
 
         const final = await stream.finalResponse();
         await recordRun({
@@ -423,7 +424,7 @@ export async function POST(request: Request) {
       const directions = focuses.map((option) => `- ${option.instruction}`);
       const userNote = note?.trim().slice(0, MAX_REFINEMENT_NOTE_LENGTH);
 
-      context = `Read "${bucket.name}" and ${ideas.length} idea${ideas.length === 1 ? "" : "s"} for context`;
+      context = `Rummaged through "${bucket.name}" and its ${ideas.length} idea${ideas.length === 1 ? "" : "s"}`;
       if (focuses.length > 0) {
         context += `, aiming for ${focuses
           .map((option) => option.label.toLowerCase())
@@ -460,7 +461,7 @@ export async function POST(request: Request) {
         return new Response("No idea buckets found", { status: 400 });
       }
 
-      context = `Read your ${buckets.length} most recent bucket${buckets.length === 1 ? "" : "s"}`;
+      context = `Rummaged through your ${buckets.length} most recent bucket${buckets.length === 1 ? "" : "s"}`;
       total = buckets.length;
 
       model = AI_MODELS.rank;

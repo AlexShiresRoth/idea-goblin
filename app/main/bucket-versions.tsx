@@ -43,7 +43,7 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
       setToasts([
         {
           id: `restored-${version.id}`,
-          message: "Bucket restored. Previous state saved as a version.",
+          message: "Bucket restored. The goblin kept the newer one too.",
           type: "success",
         },
       ]);
@@ -72,12 +72,12 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
           className="flex items-center gap-2 text-sm text-white/50"
         >
           <Loader2Icon className="w-3 h-3 animate-spin" />
-          Loading versions...
+          Digging up old versions...
         </p>
       )}
       {!loading && versions.length === 0 && (
         <p className="text-sm text-white/40">
-          No versions yet. One is saved each time you apply a refinement.
+          No versions yet. The goblin stashes one each time you apply a refinement.
         </p>
       )}
       {versions.map((version) => (

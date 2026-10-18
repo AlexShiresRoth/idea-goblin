@@ -57,7 +57,7 @@ export default function IdeasBucket({
       setToasts([
         {
           id: bucket.id,
-          message: `Deleted bucket: ${bucket.name}`,
+          message: `Deleted "${bucket.name}". Off to the rubbish heap.`,
           type: "success",
         },
       ]);
@@ -108,7 +108,10 @@ export default function IdeasBucket({
               </p>
             </div>
             <h2 className="text-xl">{bucket.name}</h2>
-            <p className="text-sm text-white/50">{bucket.description}</p>
+            <p className="text-sm text-white/50">
+              {bucket.description.slice(0, 200)}
+              {bucket.description.length > 200 && "..."}
+            </p>
           </div>
         </div>
 

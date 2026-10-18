@@ -65,16 +65,20 @@ export function RefinementPicker({
           ) : (
             <SparklesIcon className="w-3 h-3" />
           )}
-          {recommending ? "Asking Goblin..." : "Let Goblin recommend"}
+          {recommending
+            ? "The goblin is sniffing around..."
+            : "Let Goblin recommend"}
         </button>
       )}
       {recommendReason && (
         <p className="text-sm text-white/60">{recommendReason}</p>
       )}
       {loading ? (
-        <p className="text-sm text-white/50">Loading buckets...</p>
+        <p className="text-sm text-white/50">Digging out your buckets...</p>
       ) : buckets.length === 0 ? (
-        <p className="text-sm text-white/50">No buckets in your vault yet.</p>
+        <p className="text-sm text-white/50">
+          The hoard is empty. Add an idea first.
+        </p>
       ) : (
         <div className="flex flex-col gap-2 max-h-[50vh] overflow-y-auto">
           {buckets.map((bucket) => (

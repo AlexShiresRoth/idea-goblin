@@ -67,7 +67,10 @@ export default async function AnalysisPage() {
   if (analysis.length === 0) {
     return (
       <div className="p-4 w-full h-full flex items-center justify-center">
-        <p className="text-sm text-white/50">No analysis results found</p>
+        <p className="text-sm text-white/50">
+          No saved analyses yet. Save one from Analyze Vault and the goblin
+          keeps it here.
+        </p>
       </div>
     );
   }

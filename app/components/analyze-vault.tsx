@@ -301,7 +301,7 @@ export function AnalyzeVaultModal({
       setToasts([
         {
           id: `saved-${selectedPathway.id}-${Date.now()}`,
-          message: `${selectedPathway.title} saved`,
+          message: `${selectedPathway.title} stashed in the hoard`,
           type: "success",
         },
       ]);
@@ -337,7 +337,7 @@ export function AnalyzeVaultModal({
       setToasts([
         {
           id: `applied-${refinement.bucket_id}`,
-          message: "Bucket updated. Previous version saved.",
+          message: "Bucket polished up. The old one is kept in its versions.",
           type: "success",
         },
       ]);
@@ -478,7 +478,7 @@ export function AnalyzeVaultModal({
               {analyzing && (
                 <span className="flex items-center gap-2 text-sm text-white/60">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  {steps.at(-1)?.message ?? "Starting..."}
+                  {steps.at(-1)?.message ?? "Waking the goblin..."}
                 </span>
               )}
               {result != null && (
@@ -533,19 +533,19 @@ export function AnalyzeVaultModal({
                   {analyzing && steps.length === 0 && (
                     <p className="flex items-center gap-2 text-sm text-white/60">
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      Starting...
+                      Waking the goblin...
                     </p>
                   )}
                   {analyzing && result == null && (
                     <p className="text-xs text-white/40 mt-3">
-                      Results will appear here as they land.
+                      Results drop in here as the goblin digs them up.
                     </p>
                   )}
                 </div>
               )}
               {cached && (
                 <p className="text-xs text-white/40">
-                  Nothing changed since your last run, so this is that result.
+                  Nothing changed since your last run, so the goblin handed back the same result.
                 </p>
               )}
               {showReasoning && reasoning && (
