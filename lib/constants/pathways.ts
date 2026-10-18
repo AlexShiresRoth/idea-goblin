@@ -20,6 +20,6 @@ export const PATHWAYSJSON: Record<
     id: "refinement",
     title: "Idea Refinement",
     description:
-      "Goblin will research similar ideas, uncover opportunities, and find ideas in your vault worth evolving.",
+      "Pick one idea, or let Goblin recommend one, then evolve it and keep versions as you go.",
   },
 };

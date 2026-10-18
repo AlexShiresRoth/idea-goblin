@@ -136,6 +136,7 @@ export async function POST(request: Request) {
       createdAt: new Date(),
       updatedAt: new Date(),
       embedding: idea.embedding,
+      parentId: null,
     });
 
     const buckets = await db

@@ -52,15 +52,13 @@ const ExecutionSchema = z.object({
   summary: z.string(),
 });
 
-const RefinementSuggestionSchema = z.object({
-  bucket_id: z.number(),
+const RefinementSchema = z.object({
+  idea_id: z.number(),
+  original_title: z.string(),
   original_idea: z.string(),
+  refined_title: z.string(),
   refined_idea: z.string(),
   improvements: z.array(z.string()),
-});
-
-const RefinementSchema = z.object({
-  suggestions: z.array(RefinementSuggestionSchema),
   reasoning: ReasoningSchema,
 });
 
@@ -68,7 +66,7 @@ type PathwayConfig = {
   user_content: string;
   system_content: string;
   response_schema: z.ZodSchema;
-  itemsKey: "choices" | "suggestions";
+  itemsKey: "choices" | "suggestions" | "improvements";
   itemSchema: z.ZodType;
 };
 
@@ -111,22 +109,24 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
     itemSchema: ExecutionChoiceSchema,
   },
   refinement: {
-    user_content: "Find opportunities to improve my ideas.",
+    user_content: "Refine this idea.",
     system_content: `
-        Identify ideas that could benefit from refinement.
-        Suggest improvements, narrower scopes,
-        or alternative directions.
-        Preserve the original intent of each idea.
+        Refine one idea at a time.
+        Preserve the original intent.
+        Suggest a sharper title, a clearer main idea,
+        and a short list of concrete improvements.
+        Offer a direction the user could add as a sub-idea
+        without replacing the original.
       `.trim(),
     response_schema: RefinementSchema,
-    itemsKey: "suggestions",
-    itemSchema: RefinementSuggestionSchema,
+    itemsKey: "improvements",
+    itemSchema: z.string(),
   },
 };
 
 function extractClosedItems(
   text: string,
-  arrayKey: "choices" | "suggestions",
+  arrayKey: "choices" | "suggestions" | "improvements",
   itemSchema: z.ZodType,
 ) {
   const keyIndex = text.indexOf(`"${arrayKey}"`);
@@ -186,6 +186,71 @@ function extractClosedItems(
   }
 
   return items;
+}
+
+function streamRefinement(
+  idea: {
+    id: number;
+    title: string;
+    description: string;
+    category: string;
+    type: string;
+    status: string;
+  },
+) {
+  const config = PATHWAY_PROMPTS.refinement;
+  const userContent = `
+    ${config.user_content}
+    idea_id: ${idea.id}
+    title: ${idea.title}
+    description: ${idea.description}
+    category: ${idea.category}
+    type: ${idea.type}
+    status: ${idea.status}
+  `;
+
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      const send = (event: {
+        type: string;
+        data?: unknown;
+        message?: string;
+      }) => {
+        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+      };
+
+      try {
+        const stream = client.responses.stream({
+          model: "gpt-6-astra",
+          input: [
+            {
+              role: "system",
+              content: config.system_content,
+            },
+            {
+              role: "user",
+              content: userContent,
+            },
+          ],
+          text: { format: zodTextFormat(config.response_schema, "refinement") },
+        });
+
+        const final = await stream.finalResponse();
+        if (final.output_parsed) {
+          send({ type: "done", data: final.output_parsed });
+        } else {
+          send({
+            type: "error",
+            message: "No structured response returned",
+          });
+        }
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
 }
 
 function streamAnalysis(
@@ -287,10 +352,37 @@ export async function POST(request: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { pathway } = (await request.json()) as { pathway: Pathway };
+    const { pathway, ideaId } = (await request.json()) as {
+      pathway: Pathway;
+      ideaId?: number;
+    };
 
     if (!pathway) {
       return new Response("Bad Request", { status: 400 });
+    }
+
+    if (pathway === "refinement") {
+      if (!ideaId) {
+        return new Response("Idea ID is required", { status: 400 });
+      }
+
+      const [idea] = await db
+        .select()
+        .from(ideasTable)
+        .where(eq(ideasTable.id, ideaId));
+
+      if (!idea || idea.profileId !== session.user.id) {
+        return new Response("Idea not found", { status: 404 });
+      }
+
+      return new Response(streamRefinement(idea), {
+        headers: {
+          "Content-Type": "application/x-ndjson; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "X-Accel-Buffering": "no",
+          "X-Content-Type-Options": "nosniff",
+        },
+      });
     }
 
     const ideaBuckets = await db

@@ -1,5 +1,6 @@
 import type { AnalysisPayload, PathwayId } from "@/lib/types";
 import {
+  type AnyPgColumn,
   integer,
   jsonb,
   pgSchema,
@@ -62,8 +63,21 @@ export const ideasTable = pgTable("ideas", {
   type: text("type").notNull().default("idea"),
   description: text("description").notNull(),
   embedding: vector("embedding", { dimensions: 1536 }),
+  parentId: integer("parent_id").references((): AnyPgColumn => ideasTable.id, {
+    onDelete: "cascade",
+  }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const ideaVersionsTable = pgTable("idea_versions", {
+  id: serial("id").primaryKey(),
+  ideaId: integer("idea_id")
+    .notNull()
+    .references(() => ideasTable.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const analysisResultsTable = pgTable("analysis_results", {
@@ -79,5 +93,6 @@ export const analysisResultsTable = pgTable("analysis_results", {
 
 export type Idea = typeof ideasTable.$inferSelect;
 export type IdeaView = Omit<Idea, "embedding">;
+export type IdeaVersion = typeof ideaVersionsTable.$inferSelect;
 export type IdeaBucket = typeof ideaBucketsTable.$inferSelect;
 export type AnalysisResult = typeof analysisResultsTable.$inferSelect;

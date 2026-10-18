@@ -4,9 +4,11 @@ import type {
   AnalysisPayload,
   AnalysisResult,
   ExecutionResult,
+  IdeaRefinementResult,
   PathwayId,
   RefinementResult,
 } from "@/lib/types";
+import { isIdeaRefinement } from "@/lib/types";
 import clsx from "clsx";
 import { ChevronDown, ScanHeart } from "lucide-react";
 import { useState } from "react";
@@ -159,7 +161,48 @@ function ExecutionChoices({ result }: { result: ExecutionResult }) {
   );
 }
 
+export function IdeaRefinementCard({
+  result,
+}: {
+  result: IdeaRefinementResult;
+}) {
+  return (
+    <div className="flex flex-col gap-4 p-4 border border-white/20 rounded-md">
+      <div className="flex flex-col gap-1">
+        <span className="text-xs uppercase tracking-wide text-white/40">
+          Original
+        </span>
+        <p className="text-sm text-white/60">{result.original_title}</p>
+        <p className="text-sm text-white/50">{result.original_idea}</p>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs uppercase tracking-wide text-white/40">
+          Refined
+        </span>
+        <h2 className="text-lg font-bold">{result.refined_title}</h2>
+        <p className="text-white/70">{result.refined_idea}</p>
+      </div>
+      {result.improvements.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {result.improvements.map((improvement, index) => (
+            <li
+              key={`${improvement}-${index}`}
+              className="text-sm text-white/60 rounded-lg bg-white/5 px-4 py-3 border-l-2 border-white/30"
+            >
+              {improvement}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function RefinementSuggestions({ result }: { result: RefinementResult }) {
+  if (isIdeaRefinement(result)) {
+    return <IdeaRefinementCard result={result} />;
+  }
+
   return (
     <div className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-md gap-4">
       {result.suggestions.map((suggestion) => {

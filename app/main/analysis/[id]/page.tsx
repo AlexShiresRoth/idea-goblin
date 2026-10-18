@@ -131,7 +131,9 @@ export default async function AnalysisPage({
           title={`Results · ${
             "suggestions" in analysisData
               ? analysisData.suggestions.length
-              : analysisData.choices.length
+              : "choices" in analysisData
+                ? analysisData.choices.length
+                : 1
           }`}
           defaultOpen
         >

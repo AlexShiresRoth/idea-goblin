@@ -40,7 +40,7 @@ export type ExecutionResult = {
   summary: string;
 };
 
-export type RefinementResult = {
+export type LegacyRefinementResult = {
   suggestions: {
     bucket_id: number;
     original_idea: string;
@@ -49,6 +49,24 @@ export type RefinementResult = {
   }[];
   reasoning: Reasoning;
 };
+
+export type IdeaRefinementResult = {
+  idea_id: number;
+  original_title: string;
+  original_idea: string;
+  refined_title: string;
+  refined_idea: string;
+  improvements: string[];
+  reasoning: Reasoning;
+};
+
+export type RefinementResult = LegacyRefinementResult | IdeaRefinementResult;
+
+export function isIdeaRefinement(
+  result: AnalysisPayload,
+): result is IdeaRefinementResult {
+  return "refined_idea" in result && "idea_id" in result;
+}
 
 export type AnalysisPayload =
   | AnalysisResult

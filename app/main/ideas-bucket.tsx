@@ -110,9 +110,15 @@ export default function IdeasBucket({
         </div>
 
         <div className={clsx(expanded ? "flex flex-col" : "hidden")}>
-          {ideas.map((idea) => (
-            <IdeaComponent key={idea.id} idea={idea} />
-          ))}
+          {ideas
+            .filter((idea) => idea.parentId == null)
+            .map((idea) => (
+              <IdeaComponent
+                key={idea.id}
+                idea={idea}
+                subIdeas={ideas.filter((child) => child.parentId === idea.id)}
+              />
+            ))}
         </div>
 
         {expanded && (
