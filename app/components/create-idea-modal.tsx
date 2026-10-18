@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { PlusIcon, XIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useContext, useState } from "react";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
@@ -88,6 +88,7 @@ function Counter({
 function CreateIdeaForm({ onClose }: { onClose: () => void }) {
   const { setToasts } = useContext(ToastContext);
   const router = useRouter();
+  const pathname = usePathname();
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -132,10 +133,13 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
           type: "success",
         },
       ]);
-      router.refresh();
+      if (pathname.split("/").pop() !== "main") {
+        router.push("/main");
+      } else {
+        router.refresh();
+      }
     }
   }
-
   return (
     <div className="p-4 rounded-lg border border-white/20 w-11/12 md:w-1/3 bg-black">
       <div className="flex justify-between items-center border-b border-white/20 pb-4">

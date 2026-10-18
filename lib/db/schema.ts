@@ -1,3 +1,4 @@
+import type { AnalysisPayload, PathwayId } from "@/lib/types";
 import {
   integer,
   jsonb,
@@ -72,8 +73,8 @@ export const analysisResultsTable = pgTable("analysis_results", {
     .references(() => profileTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  analysisType: text("analysis_type").notNull(),
-  analysisData: jsonb("analysis_data").notNull(),
+  analysisType: text("analysis_type").$type<PathwayId>().notNull(),
+  analysisData: jsonb("analysis_data").$type<AnalysisPayload>().notNull(),
 });
 
 export type Idea = typeof ideasTable.$inferSelect;

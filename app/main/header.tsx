@@ -18,16 +18,18 @@ export default function Header() {
   return (
     <header className="flex w-full items-center border-b border-white/10">
       <Sidebar>
-        <div className="flex items-center justify-center p-4 border-r border-white/10 flex-1">
-          <Link
-            href="/main"
-            className={clsx(
-              syneTactile.className,
-              "text-xl hover:text-primary transition-colors",
-            )}
-          >
-            Idea Goblin
-          </Link>
+        <div className="flex w-full items-center justify-center p-4 border-r border-white/10 flex-1">
+          <div className="flex w-11/12">
+            <Link
+              href="/main"
+              className={clsx(
+                syneTactile.className,
+                "text-xl hover:text-primary transition-colors",
+              )}
+            >
+              Idea Goblin
+            </Link>
+          </div>
         </div>
       </Sidebar>
       <Container>

@@ -1,4 +1,6 @@
 "use client";
+import { PATHWAYSJSON } from "@/lib/constants";
+import type { AnalysisPayload, Pathway, Reasoning } from "@/lib/types";
 import clsx from "clsx";
 import {
   Brain,
@@ -8,177 +10,63 @@ import {
   MinimizeIcon,
   Route,
   SaveIcon,
-  ScanHeart,
   SparklesIcon,
   Waypoints,
+  Wrench,
   XIcon,
 } from "lucide-react";
 import { useContext, useMemo, useState } from "react";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
+import { AnalysisResultConditional } from "./analysis-result-condition";
 
-type Pathway = {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-};
+const AnalysisPathway = PATHWAYSJSON.analysis;
+const ExecutionPathway = PATHWAYSJSON.execution;
+const RefinementPathway = PATHWAYSJSON.refinement;
 
-type AnalysisResult = {
-  choices: {
-    main_idea: string;
-    bucket_id: number;
-    score: number;
-    justifications: string;
-  }[];
-  reasoning: string;
-};
-
-type ExecutionResult = {
-  choices: {
-    main_idea: string;
-    bucket_id: number;
-    score: number;
-    justification: string;
-  }[];
-  reasoning: string;
-};
-
-type RefinementResult = {
-  suggestions: {
-    main_idea: string;
-    bucket_id: number;
-    score: number;
-    justification: string;
-  }[];
-  reasoning: string;
-};
+function getReasoningText(result: AnalysisPayload | null): string | undefined {
+  if (!result) return undefined;
+  if ("summary" in result) return result.summary;
+  return [
+    result.reasoning.main_idea,
+    ...result.reasoning.reasons.map(
+      (reason: Reasoning["reasons"][number]) =>
+        `${reason.title}: ${reason.reasoning}`,
+    ),
+  ].join("\n");
+}
 
 const PATHWAYS: Pathway[] = [
   {
-    id: "analysis",
-    title: "Idea Analysis",
-    description:
-      "Goblin will uncover patterns across your vault and identify the ideas most worth your attention.",
+    id: AnalysisPathway.id,
+    title: AnalysisPathway.title,
+    description: AnalysisPathway.description,
     icon: <Waypoints className="w-3 h-3" />,
   },
   {
-    id: "execution",
-    title: "Idea Execution",
-    description:
-      "Goblin will evaluate effort, complexity, and feasibility to find what you can realistically build, and what to kill.",
+    id: ExecutionPathway.id,
+    title: ExecutionPathway.title,
+    description: ExecutionPathway.description,
     icon: <Ghost className="w-3 h-3" />,
   },
   {
-    id: "refinement",
-    title: "Idea Refinement",
-    description:
-      "Goblin will research similar ideas, uncover opportunities, and find ideas in your vault worth evolving.",
-    icon: <Ghost className="w-3 h-3" />,
+    id: RefinementPathway.id,
+    title: RefinementPathway.title,
+    description: RefinementPathway.description,
+    icon: <Wrench className="w-3 h-3" />,
   },
 ];
 
-function ResultItem({ choice }: { choice: AnalysisResult["choices"][number] }) {
-  const score = choice.score;
-  return (
-    <div
-      key={choice.bucket_id}
-      className="p-4 border border-white/20 rounded-md flex flex-col items-start gap-2 max-w-sm animate-fade-in flex-1 min-w-xs"
-    >
-      <div className="flex items-center justify-between w-full gap-1">
-        <div
-          className={clsx(
-            " flex items-center gap-1 border rounded p-1",
-            score >= 75 &&
-              "border-green-500/40 bg-green-500/10 text-green-500/80",
-            score > 50 &&
-              score < 75 &&
-              "border-yellow-500/40 bg-yellow-500/10 text-yellow-500/80",
-            score > 25 &&
-              score < 50 &&
-              "border-orange-500/40 bg-orange-500/10 text-orange-500/80",
-            score >= 0 &&
-              score < 25 &&
-              "border-red-500/40 bg-red-500/10 text-red-500/80",
-          )}
-        >
-          <span className="text-xl"> {choice.score}</span>
-        </div>
-        <span>
-          <ScanHeart className="w-3 h-3" />
-        </span>
-      </div>
-      <h2 className="text-lg font-bold">{choice.main_idea}</h2>
-      <p className="text-sm text-white/60">{choice.justifications}</p>
-    </div>
-  );
-}
-
-function AnalysisResult({ result }: { result: AnalysisResult }) {
-  const sortedChoices = result.choices.sort((a, b) => b.score - a.score);
-
-  return (
-    <div className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-md gap-4">
-      {sortedChoices.map((choice) => {
-        return <ResultItem key={choice.bucket_id} choice={choice} />;
-      })}
-    </div>
-  );
-}
-
-function ExecutionResult({ result }: { result: ExecutionResult }) {
-  return (
-    <div>
-      {result.choices.map((choice) => {
-        return <div key={choice.bucket_id}> {choice.main_idea} </div>;
-      })}
-    </div>
-  );
-}
-
-function RefinementResult({ result }: { result: RefinementResult }) {
-  return (
-    <div>
-      {result.suggestions.map((suggestion) => {
-        return <div key={suggestion.bucket_id}> {suggestion.main_idea} </div>;
-      })}
-    </div>
-  );
-}
-
-function AnalysisResultConditional<T>({
-  result,
-  selectedPathway,
-}: {
-  result: T;
-  selectedPathway: Pathway["id"];
-}) {
-  switch (selectedPathway) {
-    case "analysis":
-      return <AnalysisResult result={result as AnalysisResult} />;
-    case "execution":
-      return <ExecutionResult result={result as ExecutionResult} />;
-    case "refinement":
-      return <RefinementResult result={result as RefinementResult} />;
-  }
-}
-
-// TODO I think we should break apart the reasoning into 3 pieces
-// TODO - need to set saved, so we don't allow to resave
-// TODO refactor this monster
 function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
   const { setToasts } = useContext(ToastContext);
   const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState<unknown>(null);
+  const [result, setResult] = useState<AnalysisPayload | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [minMaxModal, setMinMaxModal] = useState(false);
-  const reasoning = useMemo(
-    () => (result as AnalysisResult)?.reasoning,
-    [result],
-  );
+  const reasoning = useMemo(() => getReasoningText(result), [result]);
 
   async function startAnalysis() {
     if (!selectedPathway) return;
@@ -220,8 +108,7 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
           };
 
           if (event.type === "partial" || event.type === "done") {
-            setResult(event.data);
-            console.log(event.data);
+            setResult(event.data as AnalysisPayload);
           }
           if (event.type === "error") {
             setError(event.message ?? "Analysis failed");
@@ -282,6 +169,7 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
           className={clsx(
             result != null &&
               "hidden opacity-0 max-h-0 transition-all duration-300",
+            "flex flex-col gap-2",
           )}
         >
           <div className={clsx("flex flex-col gap-2")}>
@@ -375,10 +263,12 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
             {showReasoning && (
               <p className="text-sm text-white/50">{reasoning}</p>
             )}
-            <AnalysisResultConditional
-              result={result as AnalysisResult}
-              selectedPathway={selectedPathway?.id ?? ""}
-            />
+            {selectedPathway && (
+              <AnalysisResultConditional
+                result={result}
+                type={selectedPathway.id}
+              />
+            )}
           </div>
         )}
       </div>

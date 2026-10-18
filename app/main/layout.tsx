@@ -33,6 +33,7 @@ export default async function MainLayout({
   if (!session || !session.id) {
     redirect("/");
   }
+
   return (
     <ToastProvider>
       <ToastWrapper>

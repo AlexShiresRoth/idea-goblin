@@ -1,3 +1,3 @@
 export default function Container({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-8">{children}</div>;
+  return <section className="flex flex-8">{children}</section>;
 }
