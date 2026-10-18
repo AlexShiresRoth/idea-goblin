@@ -208,6 +208,10 @@ function extractClosedItems(
   return items;
 }
 
+// Progress steps the client shows while a run streams. Each status event
+// names one; a repeated step updates its message, e.g. a running count.
+type StatusStep = "context" | "cached" | "thinking" | "writing" | "saving";
+
 type StreamOptions = {
   pathway: Pathway;
   profileId: string;
@@ -215,7 +219,19 @@ type StreamOptions = {
   userContent: string;
   inputHash: string;
   limitOutput: boolean;
+  context: string;
+  // How many items the result should hold, when known up front.
+  total?: number;
 };
+
+function progressMessage(pathway: Pathway, count: number, total?: number) {
+  if (pathway === "refinement") {
+    return `${count} improvement${count === 1 ? "" : "s"} drafted`;
+  }
+  return total
+    ? `${count} of ${total} buckets scored`
+    : `${count} bucket${count === 1 ? "" : "s"} scored`;
+}
 
 const NDJSON_HEADERS = {
   "Content-Type": "application/x-ndjson; charset=utf-8",
@@ -224,18 +240,31 @@ const NDJSON_HEADERS = {
   "X-Content-Type-Options": "nosniff",
 };
 
-function encodeEvent(event: {
+type StreamEvent = {
   type: string;
+  step?: StatusStep;
   data?: unknown;
   message?: string;
   cached?: boolean;
-}) {
+};
+
+function encodeEvent(event: StreamEvent) {
   return new TextEncoder().encode(`${JSON.stringify(event)}\n`);
 }
 
-function cachedStream(data: unknown) {
+function cachedStream(data: unknown, context: string) {
   return new ReadableStream<Uint8Array>({
     start(controller) {
+      controller.enqueue(
+        encodeEvent({ type: "status", step: "context", message: context }),
+      );
+      controller.enqueue(
+        encodeEvent({
+          type: "status",
+          step: "cached",
+          message: "Nothing changed since your last run",
+        }),
+      );
       controller.enqueue(encodeEvent({ type: "done", data, cached: true }));
       controller.close();
     },
@@ -249,15 +278,22 @@ function streamPathway({
   userContent,
   inputHash,
   limitOutput,
+  context,
+  total,
 }: StreamOptions) {
   const config = PATHWAY_PROMPTS[pathway];
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (event: { type: string; data?: unknown; message?: string }) =>
+      const send = (event: StreamEvent) =>
         controller.enqueue(encodeEvent(event));
+      const status = (step: StatusStep, message: string) =>
+        send({ type: "status", step, message });
 
       try {
+        status("context", context);
+        status("thinking", "Goblin is thinking it over");
+
         const stream = client.responses.stream({
           model,
           input: [
@@ -282,6 +318,7 @@ function streamPathway({
 
         for await (const event of stream) {
           if (event.type !== "response.output_text.delta") continue;
+          if (!text) status("writing", "Writing results");
           text += event.delta;
 
           const items = extractClosedItems(
@@ -292,11 +329,14 @@ function streamPathway({
           if (items.length <= sentCount) continue;
 
           sentCount = items.length;
+          status("writing", progressMessage(pathway, sentCount, total));
           send({
             type: "partial",
             data: { [config.itemsKey]: items },
           });
         }
+
+        status("saving", "Saving the run");
 
         const final = await stream.finalResponse();
         await recordRun({
@@ -350,6 +390,8 @@ export async function POST(request: Request) {
     const config = PATHWAY_PROMPTS[pathway];
     let model: string;
     let userContent: string;
+    let context: string;
+    let total: number | undefined;
 
     if (pathway === "refinement") {
       if (!bucketId) {
@@ -375,10 +417,18 @@ export async function POST(request: Request) {
       );
 
       // Unknown focus ids are dropped; the note is capped to bound input.
-      const directions = REFINEMENT_FOCUSES.filter((option) =>
+      const focuses = REFINEMENT_FOCUSES.filter((option) =>
         focus?.includes(option.id),
-      ).map((option) => `- ${option.instruction}`);
+      );
+      const directions = focuses.map((option) => `- ${option.instruction}`);
       const userNote = note?.trim().slice(0, MAX_REFINEMENT_NOTE_LENGTH);
+
+      context = `Read "${bucket.name}" and ${ideas.length} idea${ideas.length === 1 ? "" : "s"} for context`;
+      if (focuses.length > 0) {
+        context += `, aiming for ${focuses
+          .map((option) => option.label.toLowerCase())
+          .join(", ")}`;
+      }
 
       model = AI_MODELS.refine;
       userContent = `
@@ -410,6 +460,9 @@ export async function POST(request: Request) {
         return new Response("No idea buckets found", { status: 400 });
       }
 
+      context = `Read your ${buckets.length} most recent bucket${buckets.length === 1 ? "" : "s"}`;
+      total = buckets.length;
+
       model = AI_MODELS.rank;
       userContent = `
     ${config.user_content}
@@ -421,7 +474,9 @@ export async function POST(request: Request) {
     const inputHash = hashInput(config.system_content, model, userContent);
     const cached = await findCachedResult(profileId, pathway, inputHash);
     if (cached) {
-      return new Response(cachedStream(cached), { headers: NDJSON_HEADERS });
+      return new Response(cachedStream(cached, context), {
+        headers: NDJSON_HEADERS,
+      });
     }
 
     if (await isRateLimited(profileId, pathway)) {
@@ -439,6 +494,8 @@ export async function POST(request: Request) {
       userContent,
       inputHash,
       limitOutput: pathway !== "refinement",
+      context,
+      total,
     });
 
     return new Response(stream, { headers: NDJSON_HEADERS });

@@ -90,6 +90,7 @@ export async function readEvents(response: Response) {
       (line) =>
         JSON.parse(line) as {
           type: string;
+          step?: string;
           data?: unknown;
           message?: string;
           cached?: boolean;

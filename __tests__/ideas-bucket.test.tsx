@@ -133,6 +133,16 @@ describe("IdeasBucket", () => {
     });
   });
 
+  it("shows a loading indicator while versions load", async () => {
+    vi.mocked(fetch).mockReturnValue(new Promise(() => {}));
+    const user = userEvent.setup();
+    renderBucket();
+
+    await user.click(screen.getByLabelText("button"));
+
+    expect(screen.getByText("Loading versions...")).toBeInTheDocument();
+  });
+
   it("lists saved versions and restores one", async () => {
     const version = {
       id: 4,

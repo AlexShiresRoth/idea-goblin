@@ -9,6 +9,7 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
   const router = useRouter();
   const { setToasts } = useContext(ToastContext);
   const [versions, setVersions] = useState<BucketVersion[]>([]);
+  const [loading, setLoading] = useState(true);
   const [versionsKey, setVersionsKey] = useState(0);
   const [restoringId, setRestoringId] = useState<number | null>(null);
 
@@ -21,6 +22,9 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
       })
       .catch(() => {
         if (!cancelled) setVersions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -59,11 +63,23 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
     }
   }
 
-  if (versions.length === 0) return null;
-
   return (
     <div className="flex flex-col gap-2 p-4 border-t border-white/20">
       <p className="text-xs uppercase tracking-wide text-white/40">Versions</p>
+      {loading && versions.length === 0 && (
+        <p
+          aria-live="polite"
+          className="flex items-center gap-2 text-sm text-white/50"
+        >
+          <Loader2Icon className="w-3 h-3 animate-spin" />
+          Loading versions...
+        </p>
+      )}
+      {!loading && versions.length === 0 && (
+        <p className="text-sm text-white/40">
+          No versions yet. One is saved each time you apply a refinement.
+        </p>
+      )}
       {versions.map((version) => (
         <div
           key={version.id}

@@ -75,7 +75,6 @@ export default async function AnalysisPage({
 
   const { analysisData, analysisType } = analysis;
 
-  console.log(analysisData);
   return (
     <div className="p-4 flex flex-col gap-4 flex-1 w-full min-w-0">
       <div className="flex items-center justify-between gap-3">

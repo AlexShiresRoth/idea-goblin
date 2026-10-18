@@ -108,12 +108,39 @@ describe("POST /api/vault/analyze", () => {
     );
   });
 
+  it("streams progress steps before the result", async () => {
+    const events = await readEvents(await analyze({ pathway: "execution" }));
+
+    expect(
+      events
+        .filter((event) => event.type === "status")
+        .map((event) => [event.step, event.message]),
+    ).toEqual([
+      ["context", "Read your 1 most recent bucket"],
+      ["thinking", "Goblin is thinking it over"],
+      ["writing", "Writing results"],
+      ["writing", "1 of 1 buckets scored"],
+      ["saving", "Saving the run"],
+    ]);
+    expect(events.at(-1)?.type).toBe("done");
+  });
+
   it("serves a cached result without calling the model", async () => {
     vi.mocked(findCachedResult).mockResolvedValue(executionResult);
 
     const events = await readEvents(await analyze({ pathway: "execution" }));
 
     expect(events).toEqual([
+      {
+        type: "status",
+        step: "context",
+        message: "Read your 1 most recent bucket",
+      },
+      {
+        type: "status",
+        step: "cached",
+        message: "Nothing changed since your last run",
+      },
       { type: "done", data: executionResult, cached: true },
     ]);
     expect(stream).not.toHaveBeenCalled();

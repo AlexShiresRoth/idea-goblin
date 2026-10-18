@@ -28,6 +28,7 @@ import { useRouter } from "next/navigation";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
+import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
 import { RefinementPicker } from "./refinement-picker";
 
 const ExecutionPathway = PATHWAYSJSON.execution;
@@ -100,11 +101,10 @@ export function AnalyzeVaultModal({
   const scoped = refineBucket != null;
   const router = useRouter();
   const { setToasts } = useContext(ToastContext);
-  const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(
-    () =>
-      scoped
-        ? (PATHWAYS.find((pathway) => pathway.id === "refinement") ?? null)
-        : null,
+  const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(() =>
+    scoped
+      ? (PATHWAYS.find((pathway) => pathway.id === "refinement") ?? null)
+      : null,
   );
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisPayload | null>(null);
@@ -128,6 +128,7 @@ export function AnalyzeVaultModal({
   const [recommending, setRecommending] = useState(false);
   const [recommendReason, setRecommendReason] = useState<string>();
   const [cached, setCached] = useState(false);
+  const [steps, setSteps] = useState<AnalysisStep[]>([]);
   const reasoning = useMemo(
     () => getReasoningText(result, selectedPathway?.id),
     [result, selectedPathway?.id],
@@ -203,6 +204,7 @@ export function AnalyzeVaultModal({
     setApplied(false);
     setError(null);
     setCached(false);
+    setSteps([]);
     setMinMaxModal(true);
     try {
       const response = await fetch("/api/vault/analyze", {
@@ -244,11 +246,23 @@ export function AnalyzeVaultModal({
         for (const line of lines) {
           if (!line) continue;
           const event = JSON.parse(line) as {
-            type: "partial" | "done" | "error";
+            type: "status" | "partial" | "done" | "error";
+            step?: string;
             data?: unknown;
             message?: string;
             cached?: boolean;
           };
+
+          if (event.type === "status" && event.step && event.message) {
+            const { step, message } = event;
+            setSteps((current) =>
+              current.some((item) => item.step === step)
+                ? current.map((item) =>
+                    item.step === step ? { ...item, message } : item,
+                  )
+                : [...current, { step, message, startedAt: Date.now() }],
+            );
+          }
 
           if (event.type === "partial" || event.type === "done") {
             setResult(event.data as AnalysisPayload);
@@ -348,9 +362,10 @@ export function AnalyzeVaultModal({
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
       <div
         className={clsx(
-          "flex flex-col gap-4 p-8 rounded-lg border border-white/20 bg-black transition-all duration-300",
-          minMaxModal && "md:w-full w-full min-h-screen",
-          !minMaxModal && "md:w-1/2 w-11/12",
+          "flex flex-col gap-4 rounded-lg border border-white/20 bg-black transition-all duration-300 min-h-0",
+          // Fixed heights so long results scroll inside the modal.
+          minMaxModal && "md:w-full w-full h-dvh p-8",
+          !minMaxModal && "md:w-1/2 w-11/12 max-h-[85dvh] p-6 md:p-8",
         )}
       >
         {error && <p className="text-sm text-red-400">{error}</p>}
@@ -457,18 +472,13 @@ export function AnalyzeVaultModal({
           </div>
         )}
         {runStarted && !pickingBucket && (
-          <div className="flex flex-col gap-4 overflow-y-auto max-h-screen">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col gap-4 flex-1 min-h-0">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <h2 className="text-2xl font-bold">{selectedPathway?.title}</h2>
               {analyzing && (
-                <span
-                  aria-live="polite"
-                  className="flex items-center gap-2 text-sm text-white/60"
-                >
+                <span className="flex items-center gap-2 text-sm text-white/60">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  {result
-                    ? "Streaming results..."
-                    : "Reading your vault..."}
+                  {steps.at(-1)?.message ?? "Starting..."}
                 </span>
               )}
               {result != null && (
@@ -512,31 +522,42 @@ export function AnalyzeVaultModal({
                 <XIcon className="w-3 h-3" /> Close
               </ActionButton>
             </div>
-            {analyzing && result == null && (
-              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-                <Loader2 className="w-6 h-6 animate-spin text-white/70" />
-                <p className="text-sm text-white/60">
-                  Goblin is working through your vault.
-                </p>
+            <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
+              {(analyzing || (error && steps.length > 0)) && (
+                <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+                  <AnalysisSteps
+                    steps={steps}
+                    running={analyzing}
+                    failed={error != null}
+                  />
+                  {analyzing && steps.length === 0 && (
+                    <p className="flex items-center gap-2 text-sm text-white/60">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Starting...
+                    </p>
+                  )}
+                  {analyzing && result == null && (
+                    <p className="text-xs text-white/40 mt-3">
+                      Results will appear here as they land.
+                    </p>
+                  )}
+                </div>
+              )}
+              {cached && (
                 <p className="text-xs text-white/40">
-                  Results will appear here as they land.
+                  Nothing changed since your last run, so this is that result.
                 </p>
-              </div>
-            )}
-            {cached && (
-              <p className="text-xs text-white/40">
-                Nothing changed since your last run, so this is that result.
-              </p>
-            )}
-            {showReasoning && reasoning && (
-              <p className="text-sm text-white/50">{reasoning}</p>
-            )}
-            {result != null && selectedPathway && (
-              <AnalysisResultConditional
-                result={result}
-                type={selectedPathway.id}
-              />
-            )}
+              )}
+              {showReasoning && reasoning && (
+                <p className="text-sm text-white/50">{reasoning}</p>
+              )}
+              {result != null && selectedPathway && (
+                <AnalysisResultConditional
+                  result={result}
+                  type={selectedPathway.id}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

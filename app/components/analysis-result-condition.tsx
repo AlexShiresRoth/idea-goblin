@@ -24,6 +24,86 @@ function scoreTone(score: number) {
   return "border-red-500/40 bg-red-500/10 text-red-500/80";
 }
 
+function scoreTextTone(score: number) {
+  if (score >= 75) return "text-green-500/90";
+  if (score > 50) return "text-yellow-500/90";
+  if (score > 25) return "text-orange-500/90";
+  return "text-red-500/90";
+}
+
+const effortLevel = { low: 1, medium: 2, high: 3 } as const;
+
+function MetricLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10px] uppercase tracking-wide text-white/40">
+      {children}
+    </span>
+  );
+}
+
+// Value leads, feasibility backs it up, effort is context: sized to match.
+function ExecutionMetrics({
+  choice,
+}: {
+  choice: ExecutionResult["choices"][number];
+}) {
+  const effort = effortLevel[choice.estimated_effort];
+
+  return (
+    <div className="grid grid-cols-3 gap-3 w-full pt-3 border-t border-white/10">
+      <div className="flex flex-col gap-1">
+        <MetricLabel>Value</MetricLabel>
+        {choice.score != null ? (
+          <span
+            className={clsx(
+              "text-3xl font-semibold leading-none",
+              scoreTextTone(choice.score),
+            )}
+          >
+            {choice.score}
+          </span>
+        ) : (
+          <span className="text-3xl leading-none text-white/30">–</span>
+        )}
+      </div>
+      <div className="flex flex-col gap-1">
+        <MetricLabel>Feasibility</MetricLabel>
+        <span className="text-lg leading-none text-white/80">
+          {choice.feasibility}
+        </span>
+        <div className="h-1 w-full max-w-20 rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full bg-white/50"
+            style={{
+              width: `${Math.min(100, Math.max(0, choice.feasibility))}%`,
+            }}
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <MetricLabel>Effort</MetricLabel>
+        <span className="text-sm capitalize leading-none text-white/60">
+          {choice.estimated_effort}
+        </span>
+        <div
+          className="flex gap-1"
+          aria-label={`${choice.estimated_effort} effort`}
+        >
+          {[1, 2, 3].map((level) => (
+            <span
+              key={level}
+              className={clsx(
+                "h-1.5 w-1.5 rounded-full",
+                level <= effort ? "bg-white/60" : "bg-white/15",
+              )}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ScoreChip({ value, label }: { value: number; label?: string }) {
   return (
     <div
@@ -117,21 +197,17 @@ export function ExecutionChoiceCard({
     choice.title && choice.main_idea ? choice.main_idea : undefined;
 
   return (
-    <div className={clsx("flex flex-col items-start gap-2", className)}>
-      <div className="flex items-center gap-2 flex-wrap">
-        {choice.score != null && (
-          <ScoreChip value={choice.score} label="value" />
-        )}
-        <ScoreChip value={choice.feasibility} label="feasibility" />
+    <div className={clsx("flex flex-col items-start gap-3", className)}>
+      <div className="flex flex-col gap-1">
+        <div className="flex items-start gap-2">
+          <span className="mt-1">
+            <RecommendationBadge recommendation={choice.recommendation} />
+          </span>
+          <h2 className="text-lg font-bold">{title}</h2>
+        </div>
+        {mainIdea && <p className="text-sm text-white/70">{mainIdea}</p>}
       </div>
-      <p className="text-sm capitalize text-white/70">
-        {choice.estimated_effort} effort
-      </p>
-      <div className="flex items-center gap-2">
-        <RecommendationBadge recommendation={choice.recommendation} />
-        <h2 className="text-lg font-bold">{title}</h2>
-      </div>
-      {mainIdea && <p className="text-white/70">{mainIdea}</p>}
+      <ExecutionMetrics choice={choice} />
       {choice.justifications && (
         <JustificationToggle justifications={choice.justifications} />
       )}
