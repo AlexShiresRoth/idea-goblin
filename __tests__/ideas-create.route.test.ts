@@ -56,17 +56,21 @@ function classifyAs(bucketId: number) {
   );
 }
 
-function create() {
+function create(options: Record<string, unknown> = {}) {
   return POST(
     new Request("http://localhost/api/ideas/create", {
       method: "POST",
-      body: JSON.stringify({ description: "A new idea for the vault" }),
+      body: JSON.stringify({
+        description: "A new idea for the vault",
+        ...options,
+      }),
     }),
   );
 }
 
 describe("POST /api/ideas/create", () => {
   const deleted = mockQuery(undefined);
+  let inserted: ReturnType<typeof mockQuery>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -77,9 +81,8 @@ describe("POST /api/ideas/create", () => {
     vi.mocked(db.select)
       .mockReturnValueOnce(mockQuery([{ id: userId }]) as never)
       .mockReturnValueOnce(mockQuery([makeBucket({ id: 10 })]) as never);
-    vi.mocked(db.insert).mockReturnValue(
-      mockQuery([makeIdea({ id: 77 })]) as never,
-    );
+    inserted = mockQuery([makeIdea({ id: 77 })]);
+    vi.mocked(db.insert).mockReturnValue(inserted as never);
     vi.mocked(db.delete).mockReturnValue(deleted as never);
   });
 
@@ -104,5 +107,55 @@ describe("POST /api/ideas/create", () => {
     });
     expect(db.delete).toHaveBeenCalledTimes(1);
     expect(touchBuckets).not.toHaveBeenCalled();
+  });
+
+  it("adds to a chosen bucket without calling the classifier", async () => {
+    const response = await create({ bucket: 10 });
+
+    expect(response.status).toBe(200);
+    expect(findRelevantBucket).not.toHaveBeenCalled();
+    expect(touchBuckets).toHaveBeenCalledWith([10]);
+  });
+
+  it("rejects a chosen bucket outside the user's vault before any model call", async () => {
+    const response = await create({ bucket: 999 });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Bucket not found",
+    });
+    expect(generateIdeaResponse).not.toHaveBeenCalled();
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
+  it("creates a named bucket without calling the classifier", async () => {
+    const response = await create({ bucket: "new", bucketName: "  Side quests " });
+
+    expect(response.status).toBe(200);
+    expect(findRelevantBucket).not.toHaveBeenCalled();
+    const values = vi.mocked(inserted.values as ReturnType<typeof vi.fn>).mock
+      .calls;
+    expect(values).toContainEqual([
+      expect.objectContaining({
+        name: "Side quests",
+        description: "A new idea for the vault",
+        theme: "app",
+      }),
+    ]);
+  });
+
+  it("names a new bucket after the idea when no name is given", async () => {
+    await create({ bucket: "new" });
+
+    const values = vi.mocked(inserted.values as ReturnType<typeof vi.fn>).mock
+      .calls;
+    expect(values).toContainEqual([expect.objectContaining({ name: "New" })]);
+  });
+
+  it("rejects an overly long bucket name", async () => {
+    const response = await create({ bucket: "new", bucketName: "x".repeat(101) });
+
+    expect(response.status).toBe(400);
+    expect(generateIdeaResponse).not.toHaveBeenCalled();
   });
 });

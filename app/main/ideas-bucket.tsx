@@ -4,7 +4,9 @@ import clsx from "clsx";
 import { Loader2Icon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useContext, useState } from "react";
+import { AnalyzeVaultModal } from "../components/analyze-vault";
 import { ToastContext } from "../context/toast.provider";
+import BucketVersions from "./bucket-versions";
 import IdeaComponent from "./idea";
 
 function timeAgo(date: Date) {
@@ -34,6 +36,7 @@ export default function IdeasBucket({
   const { setToasts } = useContext(ToastContext);
   const [expanded, setExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [refining, setRefining] = useState(false);
   async function deleteBucket(bucketId: number) {
     setIsDeleting(true);
     try {
@@ -110,22 +113,19 @@ export default function IdeasBucket({
         </div>
 
         <div className={clsx(expanded ? "flex flex-col" : "hidden")}>
-          {ideas
-            .filter((idea) => idea.parentId == null)
-            .map((idea) => (
-              <IdeaComponent
-                key={idea.id}
-                idea={idea}
-                subIdeas={ideas.filter((child) => child.parentId === idea.id)}
-              />
-            ))}
+          {ideas.map((idea) => (
+            <IdeaComponent key={idea.id} idea={idea} />
+          ))}
         </div>
+
+        {expanded && <BucketVersions bucketId={bucket.id} />}
 
         {expanded && (
           <div className="flex justify-end gap-2">
             <button
-              disabled={isDeleting}
-              className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-orange-300/80 transition-colors"
+              disabled={isDeleting || ideas.length === 0}
+              onClick={() => setRefining(true)}
+              className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-orange-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <SparklesIcon className="w-3 h-3" />
               Refine
@@ -148,6 +148,12 @@ export default function IdeasBucket({
           </div>
         )}
       </div>
+      {refining && (
+        <AnalyzeVaultModal
+          refineBucket={bucket}
+          onClose={() => setRefining(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { AuthGuard } from "../auth/auth-guard";
 import { db } from "../db";
 import { analysisResultsTable } from "../db/schema";
@@ -12,7 +12,8 @@ export async function getAnalysisResults() {
     const analysisResults = await db
       .select()
       .from(analysisResultsTable)
-      .where(eq(analysisResultsTable.profileId, session.user.id));
+      .where(eq(analysisResultsTable.profileId, session.user.id))
+      .orderBy(desc(analysisResultsTable.createdAt));
     return analysisResults;
   } catch (error) {
     console.error(error);

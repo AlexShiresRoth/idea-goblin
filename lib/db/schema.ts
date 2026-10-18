@@ -81,6 +81,28 @@ export const ideaVersionsTable = pgTable("idea_versions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export type BucketSnapshotIdea = {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  type: string;
+};
+
+// A bucket (the main idea) and the ideas in it at a point in time.
+export const bucketVersionsTable = pgTable("bucket_versions", {
+  id: serial("id").primaryKey(),
+  bucketId: integer("bucket_id")
+    .notNull()
+    .references(() => ideaBucketsTable.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  theme: text("theme").notNull(),
+  ideas: jsonb("ideas").$type<BucketSnapshotIdea[]>().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const analysisResultsTable = pgTable("analysis_results", {
   id: serial("id").primaryKey(),
   profileId: uuid("profile_id")
@@ -123,5 +145,6 @@ export type Idea = typeof ideasTable.$inferSelect;
 export type IdeaView = Omit<Idea, "embedding">;
 export type IdeaVersion = typeof ideaVersionsTable.$inferSelect;
 export type IdeaBucket = typeof ideaBucketsTable.$inferSelect;
+export type BucketVersion = typeof bucketVersionsTable.$inferSelect;
 export type AnalysisResult = typeof analysisResultsTable.$inferSelect;
 export type AiRun = typeof aiRunsTable.$inferSelect;

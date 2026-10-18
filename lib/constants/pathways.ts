@@ -20,6 +20,6 @@ export const PATHWAYSJSON: Record<
     id: "refinement",
     title: "Idea Refinement",
     description:
-      "Pick one idea, or let Goblin recommend one, then evolve it and keep versions as you go.",
+      "Pick a bucket, or let Goblin recommend one, then sharpen it using the ideas inside and keep versions as you go.",
   },
 };

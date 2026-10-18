@@ -7,7 +7,7 @@ import { db } from "../db";
 import { aiRunsTable } from "../db/schema";
 
 // Rank cheap, rewrite expensive. Ranking/classification runs on the mini
-// model; only single-idea refinement uses the premium one.
+// model; only bucket refinement uses the premium one.
 export const AI_MODELS = {
   rank: process.env.OPENAI_RANK_MODEL ?? "gpt-5.4-mini",
   refine: process.env.OPENAI_REFINE_MODEL ?? "gpt-6-astra",

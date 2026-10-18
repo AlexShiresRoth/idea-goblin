@@ -1,6 +1,7 @@
 import {
   AnalysisResultConditional,
   ExecutionChoiceCard,
+  RecommendationBadge,
 } from "@/app/components/analysis-result-condition";
 import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
 import { ExpandableSection } from "@/app/components/expandable-section";
@@ -10,9 +11,9 @@ import type { ExecutionResult, PathwayId, Reasoning } from "@/lib/types";
 import { Ghost, Waypoints, Wrench } from "lucide-react";
 
 const PathwayIcons: Record<PathwayId, React.ReactNode> = {
-  analysis: <Waypoints className="w-3 h-3" />,
-  execution: <Ghost className="w-3 h-3" />,
-  refinement: <Wrench className="w-3 h-3" />,
+  analysis: <Waypoints className="w-4 h-4" />,
+  execution: <Ghost className="w-4 h-4" />,
+  refinement: <Wrench className="w-4 h-4" />,
 };
 
 function AnalysisReasoning({
@@ -95,7 +96,9 @@ export default async function AnalysisPage({
               <span className="text-xs uppercase tracking-wide text-white/40">
                 Summary
               </span>
-              <p className="text-sm text-white/80">{analysisData.summary}</p>
+              <p className="text-sm text-white/70 max-w-3xl">
+                {analysisData.summary}
+              </p>
             </aside>
           )}
           {analysisData.choices.map((choice, index) => {
@@ -110,7 +113,10 @@ export default async function AnalysisPage({
               <ExpandableSection
                 key={choice.bucket_id}
                 title={title}
-                preview={preview !== title ? preview : choice.recommendation}
+                leading={
+                  <RecommendationBadge recommendation={choice.recommendation} />
+                }
+                preview={preview !== title ? preview : undefined}
               >
                 <ExecutionChoiceReasoning choice={choice} />
               </ExpandableSection>
@@ -137,7 +143,10 @@ export default async function AnalysisPage({
           }`}
           defaultOpen
         >
-          <AnalysisResultConditional result={analysisData} type={analysisType} />
+          <AnalysisResultConditional
+            result={analysisData}
+            type={analysisType}
+          />
         </ExpandableSection>
       )}
     </div>

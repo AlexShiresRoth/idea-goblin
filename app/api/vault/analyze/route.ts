@@ -9,8 +9,13 @@ import {
   responseUsage,
 } from "@/lib/ai";
 import { db } from "@/lib/db";
-import { ideaBucketsTable, ideasTable } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { getBucketIdeas } from "@/lib/api/buckets";
+import {
+  MAX_REFINEMENT_NOTE_LENGTH,
+  REFINEMENT_FOCUSES,
+} from "@/lib/constants";
+import { ideaBucketsTable } from "@/lib/db/schema";
+import { and, desc, eq } from "drizzle-orm";
 import { OpenAI } from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -19,6 +24,8 @@ const client = new OpenAI();
 type Pathway = "analysis" | "execution" | "refinement";
 
 const MAX_BUCKETS_PER_RUN = 8;
+// Context for a bucket refinement: its most recent ideas, capped to bound input.
+const MAX_IDEAS_PER_REFINEMENT = 30;
 // Includes hidden reasoning tokens; low effort + short fields stay well under.
 const RANK_MAX_OUTPUT_TOKENS = 4000;
 
@@ -62,11 +69,11 @@ const ExecutionSchema = z.object({
 });
 
 const RefinementSchema = z.object({
-  idea_id: z.number(),
-  original_title: z.string(),
-  original_idea: z.string(),
-  refined_title: z.string(),
-  refined_idea: z.string(),
+  bucket_id: z.number(),
+  original_name: z.string(),
+  original_description: z.string(),
+  refined_name: z.string(),
+  refined_description: z.string(),
   improvements: z.array(z.string()),
   reasoning: ReasoningSchema,
 });
@@ -118,14 +125,18 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
     itemSchema: ExecutionChoiceSchema,
   },
   refinement: {
-    user_content: "Refine this idea.",
+    user_content: "Refine this idea bucket.",
     system_content: `
-        Refine one idea at a time.
+        Refine one idea bucket. The bucket's name and description
+        are the main idea; the ideas listed in it are context.
         Preserve the original intent.
-        Suggest a sharper title, a clearer main idea,
+        Use the ideas to find what the main idea is really about,
+        what it is missing, and where it is heading.
+        Suggest a sharper name, a clearer description,
         and a short list of concrete improvements.
-        Offer a direction the user could add as a sub-idea
-        without replacing the original.
+        If the user gives directions or a note, steer the refinement
+        toward them while keeping the original intent.
+        Use the given bucket_id.
       `.trim(),
     response_schema: RefinementSchema,
     itemsKey: "improvements",
@@ -197,6 +208,10 @@ function extractClosedItems(
   return items;
 }
 
+// Progress steps the client shows while a run streams. Each status event
+// names one; a repeated step updates its message, e.g. a running count.
+type StatusStep = "context" | "cached" | "thinking" | "writing" | "saving";
+
 type StreamOptions = {
   pathway: Pathway;
   profileId: string;
@@ -204,7 +219,19 @@ type StreamOptions = {
   userContent: string;
   inputHash: string;
   limitOutput: boolean;
+  context: string;
+  // How many items the result should hold, when known up front.
+  total?: number;
 };
+
+function progressMessage(pathway: Pathway, count: number, total?: number) {
+  if (pathway === "refinement") {
+    return `${count} improvement${count === 1 ? "" : "s"} drafted`;
+  }
+  return total
+    ? `${count} of ${total} buckets scored`
+    : `${count} bucket${count === 1 ? "" : "s"} scored`;
+}
 
 const NDJSON_HEADERS = {
   "Content-Type": "application/x-ndjson; charset=utf-8",
@@ -213,18 +240,31 @@ const NDJSON_HEADERS = {
   "X-Content-Type-Options": "nosniff",
 };
 
-function encodeEvent(event: {
+type StreamEvent = {
   type: string;
+  step?: StatusStep;
   data?: unknown;
   message?: string;
   cached?: boolean;
-}) {
+};
+
+function encodeEvent(event: StreamEvent) {
   return new TextEncoder().encode(`${JSON.stringify(event)}\n`);
 }
 
-function cachedStream(data: unknown) {
+function cachedStream(data: unknown, context: string) {
   return new ReadableStream<Uint8Array>({
     start(controller) {
+      controller.enqueue(
+        encodeEvent({ type: "status", step: "context", message: context }),
+      );
+      controller.enqueue(
+        encodeEvent({
+          type: "status",
+          step: "cached",
+          message: "Nothing changed since your last run",
+        }),
+      );
       controller.enqueue(encodeEvent({ type: "done", data, cached: true }));
       controller.close();
     },
@@ -238,15 +278,22 @@ function streamPathway({
   userContent,
   inputHash,
   limitOutput,
+  context,
+  total,
 }: StreamOptions) {
   const config = PATHWAY_PROMPTS[pathway];
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (event: { type: string; data?: unknown; message?: string }) =>
+      const send = (event: StreamEvent) =>
         controller.enqueue(encodeEvent(event));
+      const status = (step: StatusStep, message: string) =>
+        send({ type: "status", step, message });
 
       try {
+        status("context", context);
+        status("thinking", "Goblin is thinking it over");
+
         const stream = client.responses.stream({
           model,
           input: [
@@ -271,6 +318,7 @@ function streamPathway({
 
         for await (const event of stream) {
           if (event.type !== "response.output_text.delta") continue;
+          if (!text) status("writing", "Writing results");
           text += event.delta;
 
           const items = extractClosedItems(
@@ -281,11 +329,14 @@ function streamPathway({
           if (items.length <= sentCount) continue;
 
           sentCount = items.length;
+          status("writing", progressMessage(pathway, sentCount, total));
           send({
             type: "partial",
             data: { [config.itemsKey]: items },
           });
         }
+
+        status("saving", "Saving the run");
 
         const final = await stream.finalResponse();
         await recordRun({
@@ -324,9 +375,11 @@ export async function POST(request: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { pathway, ideaId } = (await request.json()) as {
+    const { pathway, bucketId, focus, note } = (await request.json()) as {
       pathway: Pathway;
-      ideaId?: number;
+      bucketId?: number;
+      focus?: string[];
+      note?: string;
     };
 
     if (!pathway || !(pathway in PATHWAY_PROMPTS)) {
@@ -337,30 +390,57 @@ export async function POST(request: Request) {
     const config = PATHWAY_PROMPTS[pathway];
     let model: string;
     let userContent: string;
+    let context: string;
+    let total: number | undefined;
 
     if (pathway === "refinement") {
-      if (!ideaId) {
-        return new Response("Idea ID is required", { status: 400 });
+      if (!bucketId) {
+        return new Response("Bucket ID is required", { status: 400 });
       }
 
-      const [idea] = await db
+      const [bucket] = await db
         .select()
-        .from(ideasTable)
-        .where(eq(ideasTable.id, ideaId));
+        .from(ideaBucketsTable)
+        .where(
+          and(
+            eq(ideaBucketsTable.id, bucketId),
+            eq(ideaBucketsTable.profileId, profileId),
+          ),
+        );
 
-      if (!idea || idea.profileId !== profileId) {
-        return new Response("Idea not found", { status: 404 });
+      if (!bucket) {
+        return new Response("Bucket not found", { status: 404 });
+      }
+
+      const ideas = (await getBucketIdeas(bucket.id)).slice(
+        -MAX_IDEAS_PER_REFINEMENT,
+      );
+
+      // Unknown focus ids are dropped; the note is capped to bound input.
+      const focuses = REFINEMENT_FOCUSES.filter((option) =>
+        focus?.includes(option.id),
+      );
+      const directions = focuses.map((option) => `- ${option.instruction}`);
+      const userNote = note?.trim().slice(0, MAX_REFINEMENT_NOTE_LENGTH);
+
+      context = `Read "${bucket.name}" and ${ideas.length} idea${ideas.length === 1 ? "" : "s"} for context`;
+      if (focuses.length > 0) {
+        context += `, aiming for ${focuses
+          .map((option) => option.label.toLowerCase())
+          .join(", ")}`;
       }
 
       model = AI_MODELS.refine;
       userContent = `
     ${config.user_content}
-    idea_id: ${idea.id}
-    title: ${idea.title}
-    description: ${idea.description}
-    category: ${idea.category}
-    type: ${idea.type}
-    status: ${idea.status}
+    ${directions.length > 0 ? `directions:\n    ${directions.join("\n    ")}` : ""}
+    ${userNote ? `note from the user: ${userNote}` : ""}
+    bucket_id: ${bucket.id}
+    name: ${bucket.name}
+    description: ${bucket.description}
+    theme: ${bucket.theme}
+    ideas:
+    ${ideas.map((idea) => `- ${idea.title}: ${idea.description}`).join("\n")}
   `;
     } else {
       // Only bucket name + description is sent, so only buckets are loaded.
@@ -380,6 +460,9 @@ export async function POST(request: Request) {
         return new Response("No idea buckets found", { status: 400 });
       }
 
+      context = `Read your ${buckets.length} most recent bucket${buckets.length === 1 ? "" : "s"}`;
+      total = buckets.length;
+
       model = AI_MODELS.rank;
       userContent = `
     ${config.user_content}
@@ -391,7 +474,9 @@ export async function POST(request: Request) {
     const inputHash = hashInput(config.system_content, model, userContent);
     const cached = await findCachedResult(profileId, pathway, inputHash);
     if (cached) {
-      return new Response(cachedStream(cached), { headers: NDJSON_HEADERS });
+      return new Response(cachedStream(cached, context), {
+        headers: NDJSON_HEADERS,
+      });
     }
 
     if (await isRateLimited(profileId, pathway)) {
@@ -409,6 +494,8 @@ export async function POST(request: Request) {
       userContent,
       inputHash,
       limitOutput: pathway !== "refinement",
+      context,
+      total,
     });
 
     return new Response(stream, { headers: NDJSON_HEADERS });

@@ -1,18 +1,17 @@
 "use client";
-import { PATHWAYSJSON } from "@/lib/constants";
-import type { IdeaView } from "@/lib/db/schema";
+import { PATHWAYSJSON, type RefinementFocusId } from "@/lib/constants";
 import type {
   AnalysisPayload,
+  BucketOption,
   Pathway,
   PathwayId,
   Reasoning,
 } from "@/lib/types";
-import { isIdeaRefinement } from "@/lib/types";
+import { isBucketRefinement } from "@/lib/types";
 import clsx from "clsx";
 import {
   Brain,
   Ghost,
-  GitBranch,
   Loader2,
   MaximizeIcon,
   MinimizeIcon,
@@ -29,6 +28,7 @@ import { useRouter } from "next/navigation";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
+import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
 import { RefinementPicker } from "./refinement-picker";
 
 const ExecutionPathway = PATHWAYSJSON.execution;
@@ -89,113 +89,133 @@ const PATHWAYS: Pathway[] = [
   },
 ];
 
-function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
+// With `refineBucket`, the modal opens straight on the refinement picker,
+// limited to that bucket and with it preselected.
+export function AnalyzeVaultModal({
+  onClose,
+  refineBucket,
+}: {
+  onClose: () => void;
+  refineBucket?: BucketOption;
+}) {
+  const scoped = refineBucket != null;
   const router = useRouter();
   const { setToasts } = useContext(ToastContext);
-  const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(null);
+  const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(() =>
+    scoped
+      ? (PATHWAYS.find((pathway) => pathway.id === "refinement") ?? null)
+      : null,
+  );
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisPayload | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
-  const [addingSub, setAddingSub] = useState(false);
-  const [subAdded, setSubAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
-  const [minMaxModal, setMinMaxModal] = useState(false);
-  const [pickingIdea, setPickingIdea] = useState(false);
-  const [ideas, setIdeas] = useState<IdeaView[]>([]);
-  const [ideasLoading, setIdeasLoading] = useState(false);
-  const [selectedIdea, setSelectedIdea] = useState<IdeaView | null>(null);
+  const [minMaxModal, setMinMaxModal] = useState(scoped);
+  const [pickingBucket, setPickingBucket] = useState(scoped);
+  const [buckets, setBuckets] = useState<BucketOption[]>(
+    refineBucket ? [refineBucket] : [],
+  );
+  const [bucketsLoading, setBucketsLoading] = useState(false);
+  const [selectedBucket, setSelectedBucket] = useState<BucketOption | null>(
+    refineBucket ?? null,
+  );
+  const [focus, setFocus] = useState<RefinementFocusId[]>([]);
+  const [note, setNote] = useState("");
   const [recommending, setRecommending] = useState(false);
   const [recommendReason, setRecommendReason] = useState<string>();
   const [cached, setCached] = useState(false);
+  const [steps, setSteps] = useState<AnalysisStep[]>([]);
   const reasoning = useMemo(
     () => getReasoningText(result, selectedPathway?.id),
     [result, selectedPathway?.id],
   );
   const refinement =
-    result && selectedPathway?.id === "refinement" && isIdeaRefinement(result)
+    result && selectedPathway?.id === "refinement" && isBucketRefinement(result)
       ? result
       : null;
 
-  async function loadIdeas() {
-    setIdeasLoading(true);
+  async function loadBuckets() {
+    setBucketsLoading(true);
     try {
-      const response = await fetch("/api/ideas/list");
-      if (!response.ok) throw new Error("Failed to load ideas");
-      setIdeas((await response.json()) as IdeaView[]);
+      const response = await fetch("/api/buckets/list");
+      if (!response.ok) throw new Error("Failed to load buckets");
+      setBuckets((await response.json()) as BucketOption[]);
     } catch (err) {
       console.error(err);
-      setError("Failed to load ideas");
+      setError("Failed to load buckets");
     } finally {
-      setIdeasLoading(false);
+      setBucketsLoading(false);
     }
   }
 
   async function beginPathway() {
     if (!selectedPathway) return;
     if (selectedPathway.id === "refinement") {
-      setPickingIdea(true);
+      setPickingBucket(true);
       setMinMaxModal(true);
-      setSelectedIdea(null);
+      setSelectedBucket(null);
       setRecommendReason(undefined);
-      await loadIdeas();
+      await loadBuckets();
       return;
     }
     await startAnalysis();
   }
 
-  async function recommendIdea() {
+  async function recommendBucket() {
     setRecommending(true);
     setError(null);
     try {
       const response = await fetch("/api/vault/recommend", { method: "POST" });
-      if (!response.ok) throw new Error("Failed to recommend an idea");
+      if (!response.ok) throw new Error("Failed to recommend a bucket");
       const data = (await response.json()) as {
-        ideaId: number;
-        title: string;
+        bucketId: number;
+        name: string;
         description: string;
         reason: string;
       };
-      const idea =
-        ideas.find((item) => item.id === data.ideaId) ??
-        ({
-          id: data.ideaId,
-          title: data.title,
-          description: data.description,
-        } as IdeaView);
-      setSelectedIdea(idea);
+      const bucket = buckets.find((item) => item.id === data.bucketId) ?? {
+        id: data.bucketId,
+        name: data.name,
+        description: data.description,
+        theme: "",
+      };
+      setSelectedBucket(bucket);
       setRecommendReason(data.reason);
     } catch (err) {
       console.error(err);
-      setError("Failed to recommend an idea");
+      setError("Failed to recommend a bucket");
     } finally {
       setRecommending(false);
     }
   }
 
-  async function startAnalysis(idea?: IdeaView) {
+  async function startAnalysis() {
     if (!selectedPathway) return;
-    const ideaToRefine = idea ?? selectedIdea;
-    if (selectedPathway.id === "refinement" && !ideaToRefine) return;
+    if (selectedPathway.id === "refinement" && !selectedBucket) return;
 
-    setPickingIdea(false);
+    setPickingBucket(false);
     setAnalyzing(true);
     setResult(null);
     setSaved(false);
     setApplied(false);
-    setSubAdded(false);
     setError(null);
     setCached(false);
+    setSteps([]);
     setMinMaxModal(true);
     try {
       const response = await fetch("/api/vault/analyze", {
         method: "POST",
         body: JSON.stringify({
           pathway: selectedPathway.id,
-          ideaId: ideaToRefine?.id,
+          bucketId: selectedBucket?.id,
+          ...(selectedPathway.id === "refinement" && {
+            focus,
+            note: note.trim() || undefined,
+          }),
         }),
       });
 
@@ -226,11 +246,23 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
         for (const line of lines) {
           if (!line) continue;
           const event = JSON.parse(line) as {
-            type: "partial" | "done" | "error";
+            type: "status" | "partial" | "done" | "error";
+            step?: string;
             data?: unknown;
             message?: string;
             cached?: boolean;
           };
+
+          if (event.type === "status" && event.step && event.message) {
+            const { step, message } = event;
+            setSteps((current) =>
+              current.some((item) => item.step === step)
+                ? current.map((item) =>
+                    item.step === step ? { ...item, message } : item,
+                  )
+                : [...current, { step, message, startedAt: Date.now() }],
+            );
+          }
 
           if (event.type === "partial" || event.type === "done") {
             setResult(event.data as AnalysisPayload);
@@ -288,65 +320,24 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
     }
   };
 
-  async function applyRefinement(kind: "main" | "sub") {
-    if (!refinement) return;
-    const payload = {
-      title: refinement.refined_title,
-      description: refinement.refined_idea,
-    };
-
-    if (kind === "main") {
-      if (applied || applying) return;
-      setApplying(true);
-      try {
-        const response = await fetch("/api/ideas/update", {
-          method: "POST",
-          body: JSON.stringify({
-            ideaId: refinement.idea_id,
-            ...payload,
-          }),
-        });
-        if (!response.ok) throw new Error("Failed to update idea");
-        setApplied(true);
-        setToasts([
-          {
-            id: `applied-${refinement.idea_id}`,
-            message: "Main idea updated. Previous version saved.",
-            type: "success",
-          },
-        ]);
-        router.refresh();
-      } catch (err) {
-        console.error(err);
-        setToasts([
-          {
-            id: `apply-error-${refinement.idea_id}`,
-            message: "Failed to update the idea",
-            type: "error",
-          },
-        ]);
-      } finally {
-        setApplying(false);
-      }
-      return;
-    }
-
-    if (subAdded || addingSub) return;
-    setAddingSub(true);
+  async function applyRefinement() {
+    if (!refinement || applied || applying) return;
+    setApplying(true);
     try {
-      const response = await fetch("/api/ideas/sub", {
+      const response = await fetch("/api/buckets/update", {
         method: "POST",
         body: JSON.stringify({
-          parentId: refinement.idea_id,
-          ...payload,
+          bucketId: refinement.bucket_id,
+          name: refinement.refined_name,
+          description: refinement.refined_description,
         }),
       });
-      if (!response.ok) throw new Error("Failed to add sub-idea");
-      setSubAdded(true);
+      if (!response.ok) throw new Error("Failed to update bucket");
+      setApplied(true);
       setToasts([
         {
-          id: `sub-${refinement.idea_id}`,
-          message: "Sub-idea added. Parent version saved.",
+          id: `applied-${refinement.bucket_id}`,
+          message: "Bucket updated. Previous version saved.",
           type: "success",
         },
       ]);
@@ -355,25 +346,26 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
       console.error(err);
       setToasts([
         {
-          id: `sub-error-${refinement.idea_id}`,
-          message: "Failed to add a sub-idea",
+          id: `apply-error-${refinement.bucket_id}`,
+          message: "Failed to update the bucket",
           type: "error",
         },
       ]);
     } finally {
-      setAddingSub(false);
+      setApplying(false);
     }
   }
 
-  const runStarted = analyzing || result != null || pickingIdea;
+  const runStarted = analyzing || result != null || pickingBucket;
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
       <div
         className={clsx(
-          "flex flex-col gap-4 p-8 rounded-lg border border-white/20 bg-black transition-all duration-300",
-          minMaxModal && "md:w-full w-full min-h-screen",
-          !minMaxModal && "md:w-1/2 w-11/12",
+          "flex flex-col gap-4 rounded-lg border border-white/20 bg-black transition-all duration-300 min-h-0",
+          // Fixed heights so long results scroll inside the modal.
+          minMaxModal && "md:w-full w-full h-dvh p-8",
+          !minMaxModal && "md:w-1/2 w-11/12 max-h-[85dvh] p-6 md:p-8",
         )}
       >
         {error && <p className="text-sm text-red-400">{error}</p>}
@@ -432,58 +424,61 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
         )}
-        {pickingIdea && (
+        {pickingBucket && (
           <div className="flex flex-col gap-4">
             <RefinementPicker
-              ideas={ideas}
-              loading={ideasLoading}
+              buckets={buckets}
+              loading={bucketsLoading}
               recommending={recommending}
-              selectedIdeaId={selectedIdea?.id ?? null}
+              selectedBucketId={selectedBucket?.id ?? null}
               recommendReason={recommendReason}
-              onSelect={setSelectedIdea}
-              onRecommend={recommendIdea}
+              onSelect={setSelectedBucket}
+              onRecommend={scoped ? undefined : recommendBucket}
+              focus={focus}
+              onFocusChange={setFocus}
+              note={note}
+              onNoteChange={setNote}
             />
             <div className="flex justify-between w-full py-4 border-t border-white/20">
               <button
                 className="action-button"
                 onClick={() => {
-                  setPickingIdea(false);
+                  if (scoped) {
+                    onClose();
+                    return;
+                  }
+                  setPickingBucket(false);
                   setMinMaxModal(false);
                 }}
               >
                 <XIcon className="w-3 h-3" />
-                Back
+                {scoped ? "Cancel" : "Back"}
               </button>
               <button
                 type="button"
-                disabled={!selectedIdea}
+                disabled={!selectedBucket}
                 className={clsx(
                   "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
-                  selectedIdea
+                  selectedBucket
                     ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
                     : "opacity-50 cursor-not-allowed",
                 )}
                 onClick={() => startAnalysis()}
               >
                 <Route className="w-3 h-3" />
-                Refine {selectedIdea ? selectedIdea.title : "this idea"}
+                Refine {selectedBucket ? selectedBucket.name : "this bucket"}
               </button>
             </div>
           </div>
         )}
-        {runStarted && !pickingIdea && (
-          <div className="flex flex-col gap-4 overflow-y-auto max-h-screen">
-            <div className="flex items-center gap-2 flex-wrap">
+        {runStarted && !pickingBucket && (
+          <div className="flex flex-col gap-4 flex-1 min-h-0">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <h2 className="text-2xl font-bold">{selectedPathway?.title}</h2>
               {analyzing && (
-                <span
-                  aria-live="polite"
-                  className="flex items-center gap-2 text-sm text-white/60"
-                >
+                <span className="flex items-center gap-2 text-sm text-white/60">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  {result
-                    ? "Streaming results..."
-                    : "Reading your vault..."}
+                  {steps.at(-1)?.message ?? "Starting..."}
                 </span>
               )}
               {result != null && (
@@ -502,22 +497,13 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
                     {saved ? "Saved" : saving ? "Saving..." : "Save Analysis"}
                   </ActionButton>
                   {refinement && (
-                    <>
-                      <ActionButton
-                        action={() => applyRefinement("main")}
-                        disabled={applying || applied}
-                      >
-                        <PencilIcon className="w-3 h-3" />
-                        {applied ? "Main idea updated" : "Update main idea"}
-                      </ActionButton>
-                      <ActionButton
-                        action={() => applyRefinement("sub")}
-                        disabled={addingSub || subAdded}
-                      >
-                        <GitBranch className="w-3 h-3" />
-                        {subAdded ? "Sub-idea added" : "Add as sub-idea"}
-                      </ActionButton>
-                    </>
+                    <ActionButton
+                      action={applyRefinement}
+                      disabled={applying || applied}
+                    >
+                      <PencilIcon className="w-3 h-3" />
+                      {applied ? "Bucket updated" : "Update bucket"}
+                    </ActionButton>
                   )}
                 </>
               )}
@@ -536,31 +522,42 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
                 <XIcon className="w-3 h-3" /> Close
               </ActionButton>
             </div>
-            {analyzing && result == null && (
-              <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-                <Loader2 className="w-6 h-6 animate-spin text-white/70" />
-                <p className="text-sm text-white/60">
-                  Goblin is working through your vault.
-                </p>
+            <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
+              {(analyzing || (error && steps.length > 0)) && (
+                <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+                  <AnalysisSteps
+                    steps={steps}
+                    running={analyzing}
+                    failed={error != null}
+                  />
+                  {analyzing && steps.length === 0 && (
+                    <p className="flex items-center gap-2 text-sm text-white/60">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Starting...
+                    </p>
+                  )}
+                  {analyzing && result == null && (
+                    <p className="text-xs text-white/40 mt-3">
+                      Results will appear here as they land.
+                    </p>
+                  )}
+                </div>
+              )}
+              {cached && (
                 <p className="text-xs text-white/40">
-                  Results will appear here as they land.
+                  Nothing changed since your last run, so this is that result.
                 </p>
-              </div>
-            )}
-            {cached && (
-              <p className="text-xs text-white/40">
-                Nothing changed since your last run, so this is that result.
-              </p>
-            )}
-            {showReasoning && reasoning && (
-              <p className="text-sm text-white/50">{reasoning}</p>
-            )}
-            {result != null && selectedPathway && (
-              <AnalysisResultConditional
-                result={result}
-                type={selectedPathway.id}
-              />
-            )}
+              )}
+              {showReasoning && reasoning && (
+                <p className="text-sm text-white/50">{reasoning}</p>
+              )}
+              {result != null && selectedPathway && (
+                <AnalysisResultConditional
+                  result={result}
+                  type={selectedPathway.id}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>

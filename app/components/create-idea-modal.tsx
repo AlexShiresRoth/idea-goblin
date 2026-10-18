@@ -1,9 +1,10 @@
 "use client";
 
+import type { BucketChoice, BucketOption } from "@/lib/types";
 import clsx from "clsx";
 import { PlusIcon, XIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
@@ -46,6 +47,47 @@ function Textarea({
       required
       className="mt-1 block w-full rounded-md border focus:outline-none border-white/10 bg-white/10 px-3 py-1 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
     />
+  );
+}
+
+const fieldClassName =
+  "mt-1 block w-full rounded-md border focus:outline-none border-white/10 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50";
+
+function BucketSelect({
+  value,
+  onChange,
+  buckets,
+  loading,
+}: {
+  value: BucketChoice;
+  onChange: (value: BucketChoice) => void;
+  buckets: BucketOption[];
+  loading: boolean;
+}) {
+  return (
+    <select
+      id="bucket"
+      name="bucket"
+      value={String(value)}
+      onChange={(e) => {
+        const next = e.target.value;
+        onChange(next === "auto" || next === "new" ? next : Number(next));
+      }}
+      className={fieldClassName}
+    >
+      <option value="auto">Let the Goblin decide</option>
+      <option value="new">New bucket</option>
+      {loading && <option disabled>Loading buckets...</option>}
+      {buckets.length > 0 && (
+        <optgroup label="Your buckets">
+          {buckets.map((bucket) => (
+            <option key={bucket.id} value={bucket.id}>
+              {bucket.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </select>
   );
 }
 
@@ -92,6 +134,26 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
   const pathname = usePathname();
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [bucket, setBucket] = useState<BucketChoice>("auto");
+  const [bucketName, setBucketName] = useState("");
+  const [buckets, setBuckets] = useState<BucketOption[]>([]);
+  const [bucketsLoading, setBucketsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/buckets/list")
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data: BucketOption[]) => {
+        if (!cancelled) setBuckets(data);
+      })
+      .catch((error) => console.error(error))
+      .finally(() => {
+        if (!cancelled) setBucketsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     if (description.length === 0) {
@@ -109,7 +171,11 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
       setIsLoading(true);
       const response = await fetch("/api/ideas/create", {
         method: "POST",
-        body: JSON.stringify({ description }),
+        body: JSON.stringify({
+          description,
+          bucket,
+          bucketName: bucket === "new" ? bucketName.trim() : undefined,
+        }),
       });
       if (!response.ok) {
         throw new Error("Failed to create idea");
@@ -162,6 +228,28 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
             maxLength={500}
             className="absolute bottom-2 right-2"
           />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="bucket">Bucket</Label>
+          <BucketSelect
+            value={bucket}
+            onChange={setBucket}
+            buckets={buckets}
+            loading={bucketsLoading}
+          />
+          {bucket === "new" && (
+            <input
+              id="bucket-name"
+              name="bucket-name"
+              value={bucketName}
+              onChange={(e) => setBucketName(e.target.value)}
+              maxLength={100}
+              placeholder="Bucket name (defaults to the idea's title)"
+              aria-label="New bucket name"
+              className={fieldClassName}
+            />
+          )}
         </div>
 
         <div className="flex justify-end">

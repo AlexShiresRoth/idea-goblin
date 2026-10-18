@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { findCachedResult, isRateLimited, recordRun } from "@/lib/ai";
 import { AuthGuard } from "@/lib/auth/auth-guard";
+import { getBucketIdeas } from "@/lib/api/buckets";
 import { db } from "@/lib/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBucket, makeSession, mockQuery, readEvents } from "./helpers";
@@ -15,6 +16,7 @@ vi.mock("openai", () => ({
 vi.mock("openai/helpers/zod", () => ({ zodTextFormat: vi.fn(() => ({})) }));
 vi.mock("@/lib/auth/auth-guard", () => ({ AuthGuard: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: { select: vi.fn() } }));
+vi.mock("@/lib/api/buckets", () => ({ getBucketIdeas: vi.fn() }));
 vi.mock("@/lib/ai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/ai")>()),
   findCachedResult: vi.fn(),
@@ -106,12 +108,39 @@ describe("POST /api/vault/analyze", () => {
     );
   });
 
+  it("streams progress steps before the result", async () => {
+    const events = await readEvents(await analyze({ pathway: "execution" }));
+
+    expect(
+      events
+        .filter((event) => event.type === "status")
+        .map((event) => [event.step, event.message]),
+    ).toEqual([
+      ["context", "Read your 1 most recent bucket"],
+      ["thinking", "Goblin is thinking it over"],
+      ["writing", "Writing results"],
+      ["writing", "1 of 1 buckets scored"],
+      ["saving", "Saving the run"],
+    ]);
+    expect(events.at(-1)?.type).toBe("done");
+  });
+
   it("serves a cached result without calling the model", async () => {
     vi.mocked(findCachedResult).mockResolvedValue(executionResult);
 
     const events = await readEvents(await analyze({ pathway: "execution" }));
 
     expect(events).toEqual([
+      {
+        type: "status",
+        step: "context",
+        message: "Read your 1 most recent bucket",
+      },
+      {
+        type: "status",
+        step: "cached",
+        message: "Nothing changed since your last run",
+      },
       { type: "done", data: executionResult, cached: true },
     ]);
     expect(stream).not.toHaveBeenCalled();
@@ -134,34 +163,63 @@ describe("POST /api/vault/analyze", () => {
     expect(response.status).toBe(400);
   });
 
-  it("runs refinement on the refine model without the output cap", async () => {
+  it("refines a bucket on the refine model, with its ideas as context", async () => {
     vi.mocked(db.select).mockReturnValue(
-      mockQuery([
-        {
-          id: 5,
-          profileId: "user-1",
-          title: "T",
-          description: "D",
-          category: "c",
-          type: "idea",
-          status: "incubating",
-        },
-      ]) as never,
+      mockQuery([makeBucket({ id: 5 })]) as never,
     );
+    vi.mocked(getBucketIdeas).mockResolvedValue([
+      {
+        id: 1,
+        title: "Waitlist",
+        description: "Collect emails first",
+        category: "c",
+        status: "incubating",
+        type: "idea",
+      },
+    ]);
 
-    await readEvents(await analyze({ pathway: "refinement", ideaId: 5 }));
+    await readEvents(await analyze({ pathway: "refinement", bucketId: 5 }));
 
     const [params] = stream.mock.calls[0];
     expect(params.model).toBe(AI_MODELS.refine);
     expect(params.reasoning).toBeUndefined();
     expect(params.max_output_tokens).toBeUndefined();
+    expect(params.input[1].content).toContain("bucket_id: 5");
+    expect(params.input[1].content).toContain(
+      "- Waitlist: Collect emails first",
+    );
   });
 
-  it("returns 404 when refining another user's idea", async () => {
+  it("steers refinement by known directions and a capped note", async () => {
     vi.mocked(db.select).mockReturnValue(
-      mockQuery([{ id: 5, profileId: "someone-else" }]) as never,
+      mockQuery([makeBucket({ id: 5 })]) as never,
     );
-    const response = await analyze({ pathway: "refinement", ideaId: 5 });
+    vi.mocked(getBucketIdeas).mockResolvedValue([]);
+
+    await readEvents(
+      await analyze({
+        pathway: "refinement",
+        bucketId: 5,
+        focus: ["marketable", "not-a-focus"],
+        note: "x".repeat(400),
+      }),
+    );
+
+    const content: string = stream.mock.calls[0][0].input[1].content;
+    expect(content).toContain("Make it more marketable");
+    expect(content).not.toContain("not-a-focus");
+    expect(content).toContain(`note from the user: ${"x".repeat(300)}`);
+    expect(content).not.toContain("x".repeat(301));
+  });
+
+  it("returns 400 when refining without a bucket", async () => {
+    const response = await analyze({ pathway: "refinement" });
+    expect(response.status).toBe(400);
+  });
+
+  it("returns 404 when refining another user's bucket", async () => {
+    vi.mocked(db.select).mockReturnValue(mockQuery([]) as never);
+    const response = await analyze({ pathway: "refinement", bucketId: 5 });
     expect(response.status).toBe(404);
   });
 });

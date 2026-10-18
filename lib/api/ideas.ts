@@ -1,11 +1,9 @@
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import "server-only";
 import { db } from "@/lib/db";
 import {
   ideaBucketLinksTable,
-  ideaVersionsTable,
   ideasTable,
-  type IdeaVersion,
   type IdeaView,
 } from "../db/schema";
 
@@ -29,14 +27,6 @@ export async function getTopLevelIdeasForProfile(profileId: string) {
     .where(
       and(eq(ideasTable.profileId, profileId), isNull(ideasTable.parentId)),
     );
-}
-
-export async function getIdeaVersions(ideaId: number): Promise<IdeaVersion[]> {
-  return db
-    .select()
-    .from(ideaVersionsTable)
-    .where(eq(ideaVersionsTable.ideaId, ideaId))
-    .orderBy(desc(ideaVersionsTable.createdAt));
 }
 
 export async function getIdeasForBuckets(bucketIds: number[]) {
