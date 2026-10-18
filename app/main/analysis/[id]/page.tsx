@@ -2,6 +2,7 @@ import {
   AnalysisResultConditional,
   ExecutionChoiceCard,
 } from "@/app/components/analysis-result-condition";
+import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
 import { ExpandableSection } from "@/app/components/expandable-section";
 import { getAnalysisResult } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
@@ -75,11 +76,17 @@ export default async function AnalysisPage({
 
   return (
     <div className="p-4 flex flex-col gap-4 flex-1 w-full min-w-0">
-      <div className="flex items-center gap-1">
-        {PathwayIcons[analysisType]}
-        <h1 className="text-2xl font-bold">
-          {PATHWAYSJSON[analysisType].title}
-        </h1>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1">
+          {PathwayIcons[analysisType]}
+          <h1 className="text-2xl font-bold">
+            {PATHWAYSJSON[analysisType].title}
+          </h1>
+        </div>
+        <DeleteAnalysisButton
+          analysisId={analysis.id}
+          redirectTo="/main/analysis"
+        />
       </div>
       {analysisType === "execution" && "summary" in analysisData && (
         <>

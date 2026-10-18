@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { PlusIcon, XIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useContext, useState } from "react";
+import { createPortal } from "react-dom";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 
@@ -176,32 +177,51 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
 
 export default function CreateIdeaModal({
   type,
+  onTrigger,
 }: {
-  type: "floating" | "inline";
+  type: "floating" | "inline" | "menu";
+  onTrigger?: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+
+  function openModal() {
+    onTrigger?.();
+    setIsOpen(true);
+  }
 
   return (
     <div>
       {type === "inline" && (
-        <ActionButton action={() => setIsOpen(true)}>
+        <ActionButton action={openModal}>
           <PlusIcon className="w-3 h-3" />
           <span>New Idea</span>
         </ActionButton>
       )}
+      {type === "menu" && (
+        <button
+          type="button"
+          onClick={openModal}
+          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
+        >
+          <PlusIcon className="w-3 h-3" />
+          New Idea
+        </button>
+      )}
       {!isOpen && type === "floating" && (
         <button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-12 md:bottom-15 right-5 md:right-15 bg-green-500 text-black rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
+          onClick={openModal}
+          className="hidden md:block fixed bottom-12 md:bottom-15 right-5 md:right-15 bg-green-500 text-black rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
         >
           <PlusIcon className="w-6 h-6" />
         </button>
       )}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-50">
-          <CreateIdeaForm onClose={() => setIsOpen(false)} />
-        </div>
-      )}
+      {isOpen &&
+        createPortal(
+          <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-100">
+            <CreateIdeaForm onClose={() => setIsOpen(false)} />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

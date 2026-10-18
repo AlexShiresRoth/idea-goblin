@@ -20,6 +20,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useContext, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
@@ -88,6 +89,7 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
   const [analyzing, setAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisPayload | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [minMaxModal, setMinMaxModal] = useState(false);
@@ -100,6 +102,7 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
     if (!selectedPathway) return;
     setAnalyzing(true);
     setResult(null);
+    setSaved(false);
     setError(null);
     setMinMaxModal(true);
     try {
@@ -152,41 +155,47 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
   }
 
   const saveAnalysis = async () => {
-    if (!result || !selectedPathway) return;
+    if (!result || !selectedPathway || saved || saving) return;
     setSaving(true);
     try {
-      await fetch("/api/vault/save", {
+      const response = await fetch("/api/vault/save", {
         method: "POST",
         body: JSON.stringify({
           data: result,
-          analysisType: selectedPathway?.id,
+          analysisType: selectedPathway.id,
         }),
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to save analysis");
+      }
+
+      setSaved(true);
+      setToasts([
+        {
+          id: `saved-${selectedPathway.id}-${Date.now()}`,
+          message: `${selectedPathway.title} saved`,
+          type: "success",
+        },
+      ]);
     } catch (err) {
       console.error(err);
       setError("Failed to save analysis");
       setToasts([
         {
+          id: `save-error-${selectedPathway.id}-${Date.now()}`,
           message: "Failed to save analysis",
           type: "error",
-          id: selectedPathway?.id,
         },
       ]);
     } finally {
       setSaving(false);
-      setToasts([
-        {
-          message: "Your analysis has been saved",
-          type: "success",
-          id: selectedPathway?.id,
-        },
-      ]);
     }
   };
 
   const runStarted = analyzing || result != null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
       <div
         className={clsx(
@@ -275,11 +284,11 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
                     <Brain className="w-3 h-3" /> Show Reasoning
                   </ActionButton>
                   <ActionButton
-                    action={() => reasoning && saveAnalysis()}
-                    disabled={saving || analyzing}
+                    action={() => !saved && reasoning && saveAnalysis()}
+                    disabled={saving || analyzing || saved}
                   >
                     <SaveIcon className="w-3 h-3" />
-                    {saving ? "Saving..." : "Save Analysis"}
+                    {saved ? "Saved" : saving ? "Saving..." : "Save Analysis"}
                   </ActionButton>
                 </>
               )}
@@ -321,18 +330,43 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
-export default function AnalyzeVault() {
+export default function AnalyzeVault({
+  variant = "button",
+  onTrigger,
+}: {
+  variant?: "button" | "menu";
+  onTrigger?: () => void;
+}) {
   const [displayModal, setDisplayModal] = useState(false);
+
+  function openModal() {
+    onTrigger?.();
+    setDisplayModal(true);
+  }
+
   return (
     <>
-      <ActionButton action={() => setDisplayModal(true)}>
-        <SparklesIcon className="w-3 h-3" />
-        <span>Analyze Vault</span>
-      </ActionButton>
+      {variant === "button" && (
+        <ActionButton action={openModal}>
+          <SparklesIcon className="w-3 h-3" />
+          <span>Analyze Vault</span>
+        </ActionButton>
+      )}
+      {variant === "menu" && (
+        <button
+          type="button"
+          onClick={openModal}
+          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
+        >
+          <SparklesIcon className="w-3 h-3" />
+          Analyze Vault
+        </button>
+      )}
 
       {displayModal && (
         <AnalyzeVaultModal onClose={() => setDisplayModal(false)} />

@@ -1,3 +1,4 @@
+import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
 import { getAnalysisResults } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
 import type { AnalysisResult as AnalysisRecord } from "@/lib/db/schema";
@@ -25,18 +26,16 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
   const updatedAt = formatDate(analysis.updatedAt);
   const icon = PathwayIcons[analysis.analysisType];
   return (
-    <Link
-      href={`/main/analysis/${analysis.id}`}
-      className="flex flex-col gap-2 rounded-lg p-4 border border-white/10 hover:bg-white/5 transition-colors hover:border-white/50"
-    >
-      <div className="flex items-center gap-2">
-        {icon}
-        <p>{pathway.title}</p>
-      </div>
-      <div>
+    <div className="flex flex-col gap-2 rounded-lg p-4 border border-white/10 hover:bg-white/5 transition-colors hover:border-white/50">
+      <Link href={`/main/analysis/${analysis.id}`} className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          {icon}
+          <p>{pathway.title}</p>
+        </div>
         <p className="text-sm text-white/50">Updated {updatedAt}</p>
-      </div>
-    </Link>
+      </Link>
+      <DeleteAnalysisButton analysisId={analysis.id} />
+    </div>
   );
 }
 
