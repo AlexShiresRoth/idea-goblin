@@ -116,11 +116,11 @@ describe("POST /api/vault/analyze", () => {
         .filter((event) => event.type === "status")
         .map((event) => [event.step, event.message]),
     ).toEqual([
-      ["context", "Read your 1 most recent bucket"],
-      ["thinking", "Goblin is thinking it over"],
-      ["writing", "Writing results"],
-      ["writing", "1 of 1 buckets scored"],
-      ["saving", "Saving the run"],
+      ["context", "Rummaged through your 1 most recent bucket"],
+      ["thinking", "The goblin is gnawing on it"],
+      ["writing", "Scribbling it down"],
+      ["writing", "1 of 1 buckets judged"],
+      ["saving", "Stashing it in the hoard"],
     ]);
     expect(events.at(-1)?.type).toBe("done");
   });
@@ -134,12 +134,12 @@ describe("POST /api/vault/analyze", () => {
       {
         type: "status",
         step: "context",
-        message: "Read your 1 most recent bucket",
+        message: "Rummaged through your 1 most recent bucket",
       },
       {
         type: "status",
         step: "cached",
-        message: "Nothing changed since your last run",
+        message: "Already chewed on this one, nothing has changed",
       },
       { type: "done", data: executionResult, cached: true },
     ]);

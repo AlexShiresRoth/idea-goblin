@@ -183,7 +183,7 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
       setToasts([
         {
           id: "idea-created",
-          message: "Idea created successfully",
+          message: "Idea added to the hoard",
           type: "success",
         },
       ]);
