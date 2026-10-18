@@ -26,8 +26,11 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
   const updatedAt = formatDate(analysis.updatedAt);
   const icon = PathwayIcons[analysis.analysisType];
   return (
-    <div className="flex flex-col gap-2 rounded-lg p-4 border border-white/10 hover:bg-white/5 transition-colors hover:border-white/50">
-      <Link href={`/main/analysis/${analysis.id}`} className="flex flex-col gap-2">
+    <div className="flex w-full md:w-fit flex-col gap-2 rounded-lg p-4 border border-white/10 hover:bg-white/5 transition-colors hover:border-white/50">
+      <Link
+        href={`/main/analysis/${analysis.id}`}
+        className="flex flex-col gap-2"
+      >
         <div className="flex items-center gap-2">
           {icon}
           <p>{pathway.title}</p>
@@ -52,7 +55,7 @@ export default async function AnalysisPage() {
 
   return (
     <div className="p-4 flex flex-1 w-full">
-      <div className="border-white/10 border rounded-lg flex flex-1 p-4 items-start gap-4">
+      <div className="border-white/10 border rounded-lg flex md:flex-row flex-col flex-1 p-4 items-start gap-4">
         {analysis.map((item) => {
           return <AnalysisItem key={item.id} analysis={item} />;
         })}
