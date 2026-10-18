@@ -11,6 +11,7 @@ import {
   profileTable,
 } from "@/lib/db/schema";
 import { findRelevantBucket, generateIdeaResponse } from "@/lib/prompts";
+import type { BucketChoice } from "@/lib/types";
 import { Session } from "@supabase/supabase-js";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
@@ -19,6 +20,14 @@ import OpenAI from "openai";
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const MAX_BUCKET_NAME_LENGTH = 100;
+
+type CreateIdeaPayload = {
+  description?: string;
+  bucket?: BucketChoice;
+  bucketName?: string;
+};
 
 type BucketResponse = {
   action: "use_existing" | "create_new";
@@ -81,13 +90,36 @@ export async function POST(request: Request) {
       profile = await createProfile(session);
     }
 
-    const payload = (await request.json()) as Idea;
-
-    const { description } = payload;
+    const {
+      description,
+      bucket: bucketChoice = "auto",
+      bucketName,
+    } = (await request.json()) as CreateIdeaPayload;
 
     if (!description || description.length < 3) {
       return NextResponse.json(
         { error: "Description is required" },
+        { status: 400 },
+      );
+    }
+
+    const buckets = await db
+      .select()
+      .from(ideaBucketsTable)
+      .where(eq(ideaBucketsTable.profileId, profile[0].id));
+
+    // Validate the user's choice before spending any tokens on it.
+    if (
+      bucketChoice !== "auto" &&
+      bucketChoice !== "new" &&
+      !buckets.some((existing) => existing.id === bucketChoice)
+    ) {
+      return NextResponse.json({ error: "Bucket not found" }, { status: 400 });
+    }
+
+    if (bucketName && bucketName.trim().length > MAX_BUCKET_NAME_LENGTH) {
+      return NextResponse.json(
+        { error: "Bucket name is too long" },
         { status: 400 },
       );
     }
@@ -136,10 +168,24 @@ export async function POST(request: Request) {
       parentId: null,
     });
 
-    const buckets = await db
-      .select()
-      .from(ideaBucketsTable)
-      .where(eq(ideaBucketsTable.profileId, profile[0].id));
+    if (typeof bucketChoice === "number") {
+      await createIdeaBucketLink(newIdea[0].id, bucketChoice);
+      await touchBuckets([bucketChoice]);
+      return NextResponse.json(newIdea);
+    }
+
+    if (bucketChoice === "new") {
+      const newBucket = await createIdeaBucket({
+        name: bucketName?.trim() || idea.title,
+        description,
+        theme: idea.category,
+        profileId: profile[0].id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await createIdeaBucketLink(newIdea[0].id, newBucket[0].id);
+      return NextResponse.json(newIdea);
+    }
 
     const bucketResponse = await findRelevantBucket(
       client,
