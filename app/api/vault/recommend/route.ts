@@ -1,17 +1,15 @@
 import { getTopLevelIdeasForProfile } from "@/lib/api/ideas";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { NextResponse } from "next/server";
-import { OpenAI } from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
-import { z } from "zod";
 
-const client = new OpenAI();
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-const RecommendSchema = z.object({
-  idea_id: z.number(),
-  reason: z.string(),
-});
+function wordCount(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
 
+// No model call: the vaguest idea (fewest words) is the best refinement
+// candidate, and among equally vague ones the longest untouched wins.
 export async function POST() {
   try {
     const session = await AuthGuard();
@@ -24,48 +22,24 @@ export async function POST() {
       return NextResponse.json({ error: "No ideas found" }, { status: 400 });
     }
 
-    const response = await client.responses.parse({
-      model: "gpt-6-astra",
-      input: [
-        {
-          role: "system",
-          content:
-            "Pick the one idea that would benefit most from refinement. Prefer ideas that are promising but vague, broad, or ready to evolve. Use the given idea_id.",
-        },
-        {
-          role: "user",
-          content: ideas
-            .map(
-              (idea) =>
-                `id: ${idea.id}\ntitle: ${idea.title}\ndescription: ${idea.description}`,
-            )
-            .join("\n\n"),
-        },
-      ],
-      text: { format: zodTextFormat(RecommendSchema, "recommend") },
-    });
+    const [idea] = [...ideas].sort(
+      (a, b) =>
+        wordCount(a.description) - wordCount(b.description) ||
+        a.updatedAt.getTime() - b.updatedAt.getTime(),
+    );
 
-    const parsed = response.output_parsed;
-    if (!parsed) {
-      return NextResponse.json(
-        { error: "No recommendation returned" },
-        { status: 500 },
-      );
-    }
-
-    const idea = ideas.find((item) => item.id === parsed.idea_id);
-    if (!idea) {
-      return NextResponse.json(
-        { error: "Recommended idea was not in the vault" },
-        { status: 500 },
-      );
-    }
+    const words = wordCount(idea.description);
+    const days = Math.floor((Date.now() - idea.updatedAt.getTime()) / DAY_MS);
+    const reason =
+      days > 0
+        ? `Only ${words} words of detail and untouched for ${days} day${days === 1 ? "" : "s"}. A good one to sharpen.`
+        : `Only ${words} words of detail. A good one to sharpen.`;
 
     return NextResponse.json({
       ideaId: idea.id,
       title: idea.title,
       description: idea.description,
-      reason: parsed.reason,
+      reason,
     });
   } catch (error) {
     console.error(error);

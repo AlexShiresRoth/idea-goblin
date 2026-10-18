@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { AI_MODELS } from "../ai";
 import { Idea, IdeaBucket } from "../db/schema";
 
 import "server-only";
@@ -8,7 +9,7 @@ export async function generateIdeaResponse(
   description: string,
 ) {
   return await client.chat.completions.create({
-    model: "gpt-6-astra",
+    model: AI_MODELS.rank,
     messages: [
       {
         role: "user",
@@ -49,7 +50,7 @@ export async function generateIdeaResponse(
         },
       },
     },
-    reasoning_effort: "medium",
+    reasoning_effort: "low",
   });
 }
 
@@ -59,7 +60,7 @@ export async function findRelevantBucket(
   idea: Idea,
 ) {
   return await client.chat.completions.create({
-    model: "gpt-6-astra",
+    model: AI_MODELS.rank,
     messages: [
       {
         role: "system",

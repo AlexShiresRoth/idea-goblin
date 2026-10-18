@@ -1,3 +1,4 @@
+import { touchBuckets } from "@/lib/api/buckets";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
 import {
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
           bucketId: link.bucketId,
         })),
       );
+      await touchBuckets(links.map((link) => link.bucketId));
     }
 
     return NextResponse.json(subIdea);

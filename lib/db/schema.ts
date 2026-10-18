@@ -1,6 +1,7 @@
 import type { AnalysisPayload, PathwayId } from "@/lib/types";
 import {
   type AnyPgColumn,
+  index,
   integer,
   jsonb,
   pgSchema,
@@ -91,8 +92,36 @@ export const analysisResultsTable = pgTable("analysis_results", {
   analysisData: jsonb("analysis_data").$type<AnalysisPayload>().notNull(),
 });
 
+// One row per model call: usage for cost tracking, plus the result keyed by
+// an input hash so unchanged inputs can be served without a new call.
+export const aiRunsTable = pgTable(
+  "ai_runs",
+  {
+    id: serial("id").primaryKey(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profileTable.id, { onDelete: "cascade" }),
+    route: text("route").notNull(),
+    model: text("model").notNull(),
+    inputHash: text("input_hash"),
+    inputTokens: integer("input_tokens").notNull().default(0),
+    outputTokens: integer("output_tokens").notNull().default(0),
+    reasoningTokens: integer("reasoning_tokens").notNull().default(0),
+    result: jsonb("result"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("ai_runs_profile_route_created_idx").on(
+      table.profileId,
+      table.route,
+      table.createdAt,
+    ),
+  ],
+);
+
 export type Idea = typeof ideasTable.$inferSelect;
 export type IdeaView = Omit<Idea, "embedding">;
 export type IdeaVersion = typeof ideaVersionsTable.$inferSelect;
 export type IdeaBucket = typeof ideaBucketsTable.$inferSelect;
 export type AnalysisResult = typeof analysisResultsTable.$inferSelect;
+export type AiRun = typeof aiRunsTable.$inferSelect;

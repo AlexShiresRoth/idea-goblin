@@ -1,3 +1,5 @@
+import { AI_MODELS, chatUsage, recordRun } from "@/lib/ai";
+import { touchBuckets } from "@/lib/api/buckets";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
 import {
@@ -50,17 +52,6 @@ async function createIdeaBucketLink(ideaId: number, bucketId: number) {
   return newLink;
 }
 
-async function updateIdeaBucket(buckedId: number) {
-  const updatedBucket = await db
-    .update(ideaBucketsTable)
-    .set({
-      updatedAt: new Date(),
-    })
-    .where(eq(ideaBucketsTable.id, buckedId))
-    .returning();
-  return updatedBucket;
-}
-
 async function createProfile(session: Session) {
   const newProfile = await db
     .insert(profileTable)
@@ -102,6 +93,12 @@ export async function POST(request: Request) {
     }
 
     const response = await generateIdeaResponse(client, description);
+    await recordRun({
+      profileId: profile[0].id,
+      route: "idea-create",
+      model: AI_MODELS.rank,
+      usage: chatUsage(response.usage),
+    });
 
     let idea: Idea;
 
@@ -120,7 +117,7 @@ export async function POST(request: Request) {
       Title: ${idea.title}
       Type: ${idea.type}
       Category: ${idea.category}
-      Description: ${idea.description}
+      Description: ${description}
         `.trim(),
     });
 
@@ -149,6 +146,12 @@ export async function POST(request: Request) {
       buckets,
       newIdea[0],
     );
+    await recordRun({
+      profileId: profile[0].id,
+      route: "bucket-classify",
+      model: AI_MODELS.rank,
+      usage: chatUsage(bucketResponse.usage),
+    });
 
     let bucket: BucketResponse;
 
@@ -175,10 +178,20 @@ export async function POST(request: Request) {
         });
         await createIdeaBucketLink(newIdea[0].id, newBucket[0].id);
         break;
-      case "use_existing":
-        await createIdeaBucketLink(newIdea[0].id, bucket.bucketId as number);
-        await updateIdeaBucket(bucket.bucketId as number);
+      case "use_existing": {
+        const bucketId = bucket.bucketId;
+        if (!buckets.some((existing) => existing.id === bucketId)) {
+          // Don't leave an unlinked idea behind for a bad classification.
+          await db.delete(ideasTable).where(eq(ideasTable.id, newIdea[0].id));
+          return NextResponse.json(
+            { error: "Invalid bucket response" },
+            { status: 400 },
+          );
+        }
+        await createIdeaBucketLink(newIdea[0].id, bucketId as number);
+        await touchBuckets([bucketId as number]);
         break;
+      }
     }
 
     return NextResponse.json(newIdea);

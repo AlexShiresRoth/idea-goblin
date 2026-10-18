@@ -110,6 +110,7 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
   const [selectedIdea, setSelectedIdea] = useState<IdeaView | null>(null);
   const [recommending, setRecommending] = useState(false);
   const [recommendReason, setRecommendReason] = useState<string>();
+  const [cached, setCached] = useState(false);
   const reasoning = useMemo(
     () => getReasoningText(result, selectedPathway?.id),
     [result, selectedPathway?.id],
@@ -187,6 +188,7 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
     setApplied(false);
     setSubAdded(false);
     setError(null);
+    setCached(false);
     setMinMaxModal(true);
     try {
       const response = await fetch("/api/vault/analyze", {
@@ -196,6 +198,11 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
           ideaId: ideaToRefine?.id,
         }),
       });
+
+      if (response.status === 429) {
+        setError(await response.text());
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to start analysis");
@@ -222,11 +229,13 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
             type: "partial" | "done" | "error";
             data?: unknown;
             message?: string;
+            cached?: boolean;
           };
 
           if (event.type === "partial" || event.type === "done") {
             setResult(event.data as AnalysisPayload);
           }
+          if (event.cached) setCached(true);
           if (event.type === "error") {
             setError(event.message ?? "Analysis failed");
           }
@@ -537,6 +546,11 @@ function AnalyzeVaultModal({ onClose }: { onClose: () => void }) {
                   Results will appear here as they land.
                 </p>
               </div>
+            )}
+            {cached && (
+              <p className="text-xs text-white/40">
+                Nothing changed since your last run, so this is that result.
+              </p>
             )}
             {showReasoning && reasoning && (
               <p className="text-sm text-white/50">{reasoning}</p>

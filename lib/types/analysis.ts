@@ -35,7 +35,8 @@ export type ExecutionResult = {
     feasibility: number;
     estimated_effort: "low" | "medium" | "high";
     recommendation: "pursue" | "park" | "kill";
-    reasoning: Reasoning;
+    // Only present on runs saved before reasoning was dropped from execution.
+    reasoning?: Reasoning;
   }[];
   summary: string;
 };
