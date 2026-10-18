@@ -7,7 +7,8 @@ import {
   CheckCircleIcon,
   InfoIcon,
 } from "lucide-react";
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { type Toast, ToastContext } from "../context/toast.provider";
 
 function Toast({ toast }: { toast: Toast }) {
@@ -38,14 +39,24 @@ function Toast({ toast }: { toast: Toast }) {
 
 export function ToastWrapper({ children }: { children: React.ReactNode }) {
   const { toasts } = useContext(ToastContext);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <div>
       {children}
-      <div className="flex flex-col gap-2 fixed top-0 right-0 p-4 z-50">
-        {toasts.map((toast) => (
-          <Toast key={toast.message} toast={toast} />
-        ))}
-      </div>
+      {mounted &&
+        createPortal(
+          <div className="flex flex-col gap-2 fixed top-0 right-0 p-4 z-1000">
+            {toasts.map((toast) => (
+              <Toast key={toast.id} toast={toast} />
+            ))}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

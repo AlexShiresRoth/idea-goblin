@@ -1,5 +1,14 @@
+import { getSession } from "@/lib/auth";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { ToastWrapper } from "../components/toast-wrapper";
+import { ToastProvider } from "../context/toast.provider";
+import Container from "./container";
+import Header from "./header";
+import MobileNav from "./mobile-nav";
+import Sidebar from "./sidebar";
+import SidebarContent from "./sidebar-content";
 
 export const metadata: Metadata = {
   title: "Workspace",
@@ -15,6 +24,33 @@ export const metadata: Metadata = {
   },
 };
 
-export default function MainLayout({ children }: { children: ReactNode }) {
-  return children;
+export default async function MainLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const session = await getSession();
+
+  if (!session || !session.id) {
+    redirect("/");
+  }
+
+  return (
+    <ToastProvider>
+      <ToastWrapper>
+        <main className="flex flex-col items-center h-screen">
+          <Header />
+          <div className="flex w-full h-full min-h-0">
+            <Sidebar>
+              <SidebarContent name={session.user_metadata?.name} />
+            </Sidebar>
+            <Container>
+              <div className="flex flex-1 min-w-0 pb-20 md:pb-0">{children}</div>
+            </Container>
+          </div>
+          <MobileNav />
+        </main>
+      </ToastWrapper>
+    </ToastProvider>
+  );
 }

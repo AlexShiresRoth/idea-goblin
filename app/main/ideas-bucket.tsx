@@ -101,7 +101,7 @@ export default function IdeasBucket({
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs text-green-500">{bucket.theme}</p>
               <p className="text-xs text-white/50">
-                {timeAgo(bucket.createdAt)}
+                {timeAgo(bucket.updatedAt)}
               </p>
             </div>
             <h2 className="text-xl">{bucket.name}</h2>
@@ -110,9 +110,15 @@ export default function IdeasBucket({
         </div>
 
         <div className={clsx(expanded ? "flex flex-col" : "hidden")}>
-          {ideas.map((idea) => (
-            <IdeaComponent key={idea.id} idea={idea} />
-          ))}
+          {ideas
+            .filter((idea) => idea.parentId == null)
+            .map((idea) => (
+              <IdeaComponent
+                key={idea.id}
+                idea={idea}
+                subIdeas={ideas.filter((child) => child.parentId === idea.id)}
+              />
+            ))}
         </div>
 
         {expanded && (

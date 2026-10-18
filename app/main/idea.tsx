@@ -1,5 +1,5 @@
 "use client";
-import { type IdeaView } from "@/lib/db/schema";
+import { type IdeaVersion, type IdeaView } from "@/lib/db/schema";
 import {
   Loader2Icon,
   MinusIcon,
@@ -8,14 +8,37 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ToastContext } from "../context/toast.provider";
 
-export default function Idea({ idea }: { idea: IdeaView }) {
+export default function Idea({
+  idea,
+  subIdeas = [],
+}: {
+  idea: IdeaView;
+  subIdeas?: IdeaView[];
+}) {
   const router = useRouter();
   const { setToasts } = useContext(ToastContext);
   const [expanded, setExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [versions, setVersions] = useState<IdeaVersion[]>([]);
+
+  useEffect(() => {
+    if (!expanded) return;
+    let cancelled = false;
+    fetch(`/api/ideas/versions?ideaId=${idea.id}`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((data: IdeaVersion[]) => {
+        if (!cancelled) setVersions(data);
+      })
+      .catch(() => {
+        if (!cancelled) setVersions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [expanded, idea.id]);
 
   async function deleteIdea(ideaId: number) {
     try {
@@ -72,8 +95,39 @@ export default function Idea({ idea }: { idea: IdeaView }) {
         >
           <p className="text-sm">{idea.title}</p>
           {expanded && (
-            <div className="flex flex-col w-full">
+            <div className="flex flex-col w-full gap-3">
               <p className="text-sm text-white/70">{idea.description}</p>
+              {subIdeas.length > 0 && (
+                <div className="flex flex-col gap-1 border-l border-white/15 pl-3">
+                  <p className="text-xs uppercase tracking-wide text-white/40">
+                    Sub-ideas
+                  </p>
+                  {subIdeas.map((child) => (
+                    <div key={child.id} className="flex flex-col gap-1">
+                      <p className="text-sm">{child.title}</p>
+                      <p className="text-sm text-white/50">{child.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {versions.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs uppercase tracking-wide text-white/40">
+                    Versions
+                  </p>
+                  {versions.map((version) => (
+                    <div
+                      key={version.id}
+                      className="rounded-md bg-white/5 px-3 py-2"
+                    >
+                      <p className="text-sm text-white/70">{version.title}</p>
+                      <p className="text-xs text-white/40">
+                        {new Date(version.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

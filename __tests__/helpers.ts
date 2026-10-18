@@ -18,6 +18,7 @@ export function makeIdea(overrides: Partial<IdeaView> = {}): IdeaView {
     category: "product",
     type: "idea",
     description: "A simple page to collect emails.",
+    parentId: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     ...overrides,

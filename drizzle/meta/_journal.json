@@ -36,6 +36,20 @@
       "when": 1789750554154,
       "tag": "0004_glamorous_frank_castle",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792250337830,
+      "tag": "0005_faithful_sir_ram",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792340000000,
+      "tag": "0006_idea_versions",
+      "breakpoints": true
     }
   ]
 }
