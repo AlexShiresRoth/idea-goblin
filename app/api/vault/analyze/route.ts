@@ -1,17 +1,26 @@
 import { AuthGuard } from "@/lib/auth/auth-guard";
-import { db } from "@/lib/db";
 import {
-  ideaBucketLinksTable,
-  ideaBucketsTable,
-  ideasTable,
-} from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+  AI_MODELS,
+  findCachedResult,
+  hashInput,
+  isRateLimited,
+  RATE_LIMITS,
+  recordRun,
+  responseUsage,
+} from "@/lib/ai";
+import { db } from "@/lib/db";
+import { ideaBucketsTable, ideasTable } from "@/lib/db/schema";
+import { desc, eq } from "drizzle-orm";
 import { OpenAI } from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 const client = new OpenAI();
 
 type Pathway = "analysis" | "execution" | "refinement";
+
+const MAX_BUCKETS_PER_RUN = 8;
+// Includes hidden reasoning tokens; low effort + short fields stay well under.
+const RANK_MAX_OUTPUT_TOKENS = 4000;
 
 const AnalysisChoiceSchema = z.object({
   main_idea: z.string(),
@@ -35,16 +44,16 @@ const AnalysisSchema = z.object({
   reasoning: ReasoningSchema,
 });
 
+// No per-choice reasoning object: it was most of the completion length.
 const ExecutionChoiceSchema = z.object({
   bucket_id: z.number(),
   title: z.string(),
   main_idea: z.string(),
   score: z.number(),
-  justifications: z.string(),
   feasibility: z.number(),
   estimated_effort: z.enum(["low", "medium", "high"]),
   recommendation: z.enum(["pursue", "park", "kill"]),
-  reasoning: ReasoningSchema,
+  justifications: z.string(),
 });
 
 const ExecutionSchema = z.object({
@@ -78,10 +87,9 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         Identify patterns and determine which ideas
         are most worth pursuing.
         Score each idea from 0 to 100.
-        Provide clear justifications.
-        Instead of a large paragraph of reasoning, provide a list of reasons for each idea, 
-        and a general summary of the reasoning.
-        Each reason should be a single sentence or two.
+        Use the given bucket_id for each idea.
+        Justify each score in one or two sentences.
+        Give at most three overall reasons, one sentence each.
       `.trim(),
     response_schema: AnalysisSchema,
     itemsKey: "choices",
@@ -100,9 +108,10 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         - pursue: high value and high feasibility
         - park: high value but low feasibility or high effort
         - kill: low value, even if it is easy
+        Use the given bucket_id for each idea.
         Give each idea a short title and a one-sentence main idea.
-        Provide a short justification for the value score
-        and structured reasoning for the recommendation.
+        Justify the scores and recommendation in one or two sentences.
+        Keep the summary to two or three sentences.
       `.trim(),
     response_schema: ExecutionSchema,
     itemsKey: "choices",
@@ -188,108 +197,58 @@ function extractClosedItems(
   return items;
 }
 
-function streamRefinement(
-  idea: {
-    id: number;
-    title: string;
-    description: string;
-    category: string;
-    type: string;
-    status: string;
-  },
-) {
-  const config = PATHWAY_PROMPTS.refinement;
-  const userContent = `
-    ${config.user_content}
-    idea_id: ${idea.id}
-    title: ${idea.title}
-    description: ${idea.description}
-    category: ${idea.category}
-    type: ${idea.type}
-    status: ${idea.status}
-  `;
+type StreamOptions = {
+  pathway: Pathway;
+  profileId: string;
+  model: string;
+  userContent: string;
+  inputHash: string;
+  limitOutput: boolean;
+};
 
+const NDJSON_HEADERS = {
+  "Content-Type": "application/x-ndjson; charset=utf-8",
+  "Cache-Control": "no-cache, no-transform",
+  "X-Accel-Buffering": "no",
+  "X-Content-Type-Options": "nosniff",
+};
+
+function encodeEvent(event: {
+  type: string;
+  data?: unknown;
+  message?: string;
+  cached?: boolean;
+}) {
+  return new TextEncoder().encode(`${JSON.stringify(event)}\n`);
+}
+
+function cachedStream(data: unknown) {
   return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const encoder = new TextEncoder();
-      const send = (event: {
-        type: string;
-        data?: unknown;
-        message?: string;
-      }) => {
-        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
-      };
-
-      try {
-        const stream = client.responses.stream({
-          model: "gpt-6-astra",
-          input: [
-            {
-              role: "system",
-              content: config.system_content,
-            },
-            {
-              role: "user",
-              content: userContent,
-            },
-          ],
-          text: { format: zodTextFormat(config.response_schema, "refinement") },
-        });
-
-        const final = await stream.finalResponse();
-        if (final.output_parsed) {
-          send({ type: "done", data: final.output_parsed });
-        } else {
-          send({
-            type: "error",
-            message: "No structured response returned",
-          });
-        }
-        controller.close();
-      } catch (error) {
-        controller.error(error);
-      }
+    start(controller) {
+      controller.enqueue(encodeEvent({ type: "done", data, cached: true }));
+      controller.close();
     },
   });
 }
 
-function streamAnalysis(
-  pathway: Pathway,
-  bucketsWithIdeas: {
-    mainIdea: string;
-    description: string;
-    lastUpdated: Date;
-    createdAt: Date;
-    ideas: {
-      title: string;
-      description: string;
-      status: string;
-      category: string;
-      type: string;
-    }[];
-  }[],
-) {
-  const userContent = `
-    ${PATHWAY_PROMPTS[pathway].user_content}
-    ${bucketsWithIdeas.map((bucket) => `- ${bucket.mainIdea}: ${bucket.description}`).join("\n")}
-  `;
-
+function streamPathway({
+  pathway,
+  profileId,
+  model,
+  userContent,
+  inputHash,
+  limitOutput,
+}: StreamOptions) {
   const config = PATHWAY_PROMPTS[pathway];
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
-      const encoder = new TextEncoder();
-      const send = (event: {
-        type: string;
-        data?: unknown;
-        message?: string;
-      }) => {
-        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
-      };
+      const send = (event: { type: string; data?: unknown; message?: string }) =>
+        controller.enqueue(encodeEvent(event));
 
       try {
         const stream = client.responses.stream({
-          model: "gpt-6-astra",
+          model,
           input: [
             {
               role: "system",
@@ -301,6 +260,10 @@ function streamAnalysis(
             },
           ],
           text: { format: zodTextFormat(config.response_schema, pathway) },
+          ...(limitOutput && {
+            reasoning: { effort: "low" },
+            max_output_tokens: RANK_MAX_OUTPUT_TOKENS,
+          }),
         });
 
         let text = "";
@@ -325,6 +288,15 @@ function streamAnalysis(
         }
 
         const final = await stream.finalResponse();
+        await recordRun({
+          profileId,
+          route: pathway,
+          model,
+          usage: responseUsage(final.usage),
+          inputHash,
+          result: final.output_parsed ?? undefined,
+        });
+
         if (final.output_parsed) {
           send({ type: "done", data: final.output_parsed });
         } else {
@@ -357,9 +329,14 @@ export async function POST(request: Request) {
       ideaId?: number;
     };
 
-    if (!pathway) {
+    if (!pathway || !(pathway in PATHWAY_PROMPTS)) {
       return new Response("Bad Request", { status: 400 });
     }
+
+    const profileId = session.user.id;
+    const config = PATHWAY_PROMPTS[pathway];
+    let model: string;
+    let userContent: string;
 
     if (pathway === "refinement") {
       if (!ideaId) {
@@ -371,73 +348,70 @@ export async function POST(request: Request) {
         .from(ideasTable)
         .where(eq(ideasTable.id, ideaId));
 
-      if (!idea || idea.profileId !== session.user.id) {
+      if (!idea || idea.profileId !== profileId) {
         return new Response("Idea not found", { status: 404 });
       }
 
-      return new Response(streamRefinement(idea), {
-        headers: {
-          "Content-Type": "application/x-ndjson; charset=utf-8",
-          "Cache-Control": "no-cache, no-transform",
-          "X-Accel-Buffering": "no",
-          "X-Content-Type-Options": "nosniff",
-        },
-      });
+      model = AI_MODELS.refine;
+      userContent = `
+    ${config.user_content}
+    idea_id: ${idea.id}
+    title: ${idea.title}
+    description: ${idea.description}
+    category: ${idea.category}
+    type: ${idea.type}
+    status: ${idea.status}
+  `;
+    } else {
+      // Only bucket name + description is sent, so only buckets are loaded.
+      // Most recently touched buckets first, capped to bound output size.
+      const buckets = await db
+        .select({
+          id: ideaBucketsTable.id,
+          name: ideaBucketsTable.name,
+          description: ideaBucketsTable.description,
+        })
+        .from(ideaBucketsTable)
+        .where(eq(ideaBucketsTable.profileId, profileId))
+        .orderBy(desc(ideaBucketsTable.updatedAt))
+        .limit(MAX_BUCKETS_PER_RUN);
+
+      if (buckets.length === 0) {
+        return new Response("No idea buckets found", { status: 400 });
+      }
+
+      model = AI_MODELS.rank;
+      userContent = `
+    ${config.user_content}
+    ${buckets.map((bucket) => `- bucket_id ${bucket.id} | ${bucket.name}: ${bucket.description}`).join("\n")}
+  `;
     }
 
-    const ideaBuckets = await db
-      .select()
-      .from(ideaBucketsTable)
-      .where(eq(ideaBucketsTable.profileId, session.user.id));
-
-    if (ideaBuckets.length === 0) {
-      return new Response("No idea buckets found", { status: 400 });
+    // Same prompt + model + input as a previous run: serve that result.
+    const inputHash = hashInput(config.system_content, model, userContent);
+    const cached = await findCachedResult(profileId, pathway, inputHash);
+    if (cached) {
+      return new Response(cachedStream(cached), { headers: NDJSON_HEADERS });
     }
 
-    const bucketsWithIdeas = await Promise.all(
-      ideaBuckets.map(async (bucket) => {
-        const ideas = await db
-          .select()
-          .from(ideaBucketLinksTable)
-          .where(eq(ideaBucketLinksTable.bucketId, bucket.id));
-        const foundIdeas = await Promise.all(
-          ideas.map(async (link) => {
-            const [idea] = await db
-              .select()
-              .from(ideasTable)
-              .where(eq(ideasTable.id, link.ideaId));
-            return idea;
-          }),
-        );
+    if (await isRateLimited(profileId, pathway)) {
+      const limit = RATE_LIMITS[pathway]!;
+      return new Response(
+        `The Goblin needs a break: ${limit.max} ${pathway} runs per ${limit.windowMinutes} minutes. Check your saved analyses or try again later.`,
+        { status: 429 },
+      );
+    }
 
-        return {
-          mainIdea: bucket.name,
-          description: bucket.description,
-          lastUpdated: bucket.updatedAt,
-          createdAt: bucket.createdAt,
-          ideas: foundIdeas.map((idea) => ({
-            title: idea.title,
-            description: idea.description,
-            status: idea.status,
-            category: idea.category,
-            type: idea.type,
-          })),
-        };
-      }),
-    );
-
-    // todo how can we stream this back to the client?
-    // TODO - save the responses to the database
-    const stream = streamAnalysis(pathway, bucketsWithIdeas);
-
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "application/x-ndjson; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        "X-Accel-Buffering": "no",
-        "X-Content-Type-Options": "nosniff",
-      },
+    const stream = streamPathway({
+      pathway,
+      profileId,
+      model,
+      userContent,
+      inputHash,
+      limitOutput: pathway !== "refinement",
     });
+
+    return new Response(stream, { headers: NDJSON_HEADERS });
   } catch (error) {
     console.error(error);
     return new Response("Internal Server Error", { status: 500 });

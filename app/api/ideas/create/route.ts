@@ -1,3 +1,4 @@
+import { AI_MODELS, chatUsage, recordRun } from "@/lib/ai";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
 import {
@@ -102,6 +103,12 @@ export async function POST(request: Request) {
     }
 
     const response = await generateIdeaResponse(client, description);
+    await recordRun({
+      profileId: profile[0].id,
+      route: "idea-create",
+      model: AI_MODELS.rank,
+      usage: chatUsage(response.usage),
+    });
 
     let idea: Idea;
 
@@ -120,7 +127,7 @@ export async function POST(request: Request) {
       Title: ${idea.title}
       Type: ${idea.type}
       Category: ${idea.category}
-      Description: ${idea.description}
+      Description: ${description}
         `.trim(),
     });
 
@@ -149,6 +156,12 @@ export async function POST(request: Request) {
       buckets,
       newIdea[0],
     );
+    await recordRun({
+      profileId: profile[0].id,
+      route: "bucket-classify",
+      model: AI_MODELS.rank,
+      usage: chatUsage(bucketResponse.usage),
+    });
 
     let bucket: BucketResponse;
 

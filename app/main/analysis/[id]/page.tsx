@@ -53,7 +53,7 @@ function ExecutionChoiceReasoning({
   return (
     <div className="flex flex-col gap-4">
       <ExecutionChoiceCard choice={choice} />
-      {choice.reasoning.reasons.length > 0 && (
+      {choice.reasoning && choice.reasoning.reasons.length > 0 && (
         <AnalysisReasoning reasoning={choice.reasoning} showMainIdea={false} />
       )}
     </div>
@@ -102,9 +102,9 @@ export default async function AnalysisPage({
             const title =
               choice.title ??
               choice.main_idea ??
-              choice.reasoning.main_idea ??
+              choice.reasoning?.main_idea ??
               `Idea ${index + 1}`;
-            const preview = choice.main_idea ?? choice.reasoning.main_idea;
+            const preview = choice.main_idea ?? choice.reasoning?.main_idea;
 
             return (
               <ExpandableSection

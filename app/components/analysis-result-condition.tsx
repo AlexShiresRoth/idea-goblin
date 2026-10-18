@@ -110,7 +110,7 @@ export function ExecutionChoiceCard({
   className?: string;
 }) {
   const title =
-    choice.title ?? choice.main_idea ?? choice.reasoning.main_idea;
+    choice.title ?? choice.main_idea ?? choice.reasoning?.main_idea;
   const mainIdea =
     choice.title && choice.main_idea ? choice.main_idea : undefined;
 
