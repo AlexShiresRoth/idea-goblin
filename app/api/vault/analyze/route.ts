@@ -37,6 +37,10 @@ const AnalysisSchema = z.object({
 
 const ExecutionChoiceSchema = z.object({
   bucket_id: z.number(),
+  title: z.string(),
+  main_idea: z.string(),
+  score: z.number(),
+  justifications: z.string(),
   feasibility: z.number(),
   estimated_effort: z.enum(["low", "medium", "high"]),
   recommendation: z.enum(["pursue", "park", "kill"]),
@@ -86,11 +90,21 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
     itemSchema: AnalysisChoiceSchema,
   },
   execution: {
-    user_content: "Evaluate which ideas I can realistically execute.",
+    user_content: "Evaluate which ideas are worth attention and which I can realistically execute.",
     system_content: `
-        Evaluate each idea's feasibility, complexity,
-        and estimated effort.
-        Recommend whether to pursue, park, or kill each idea.
+        Score each idea independently on two 0-100 scales:
+        - score: how worth attention it is (upside, fit, interest)
+        - feasibility: how realistically it can be executed now
+        Do not let a high value score raise feasibility,
+        or a low feasibility lower the value score.
+        Estimate effort as low, medium, or high.
+        Recommend pursue, park, or kill using both factors:
+        - pursue: high value and high feasibility
+        - park: high value but low feasibility or high effort
+        - kill: low value, even if it is easy
+        Give each idea a short title and a one-sentence main idea.
+        Provide a short justification for the value score
+        and structured reasoning for the recommendation.
       `.trim(),
     response_schema: ExecutionSchema,
     itemsKey: "choices",

@@ -1,8 +1,11 @@
-import { AnalysisResultConditional } from "@/app/components/analysis-result-condition";
+import {
+  AnalysisResultConditional,
+  ExecutionChoiceCard,
+} from "@/app/components/analysis-result-condition";
 import { ExpandableSection } from "@/app/components/expandable-section";
 import { getAnalysisResult } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
-import type { PathwayId, Reasoning } from "@/lib/types";
+import type { ExecutionResult, PathwayId, Reasoning } from "@/lib/types";
 import { Ghost, Waypoints, Wrench } from "lucide-react";
 
 const PathwayIcons: Record<PathwayId, React.ReactNode> = {
@@ -11,10 +14,18 @@ const PathwayIcons: Record<PathwayId, React.ReactNode> = {
   refinement: <Wrench className="w-3 h-3" />,
 };
 
-function AnalysisReasoning({ reasoning }: { reasoning: Reasoning }) {
+function AnalysisReasoning({
+  reasoning,
+  showMainIdea = true,
+}: {
+  reasoning: Reasoning;
+  showMainIdea?: boolean;
+}) {
   return (
     <section className="flex flex-col gap-4">
-      <p className="text-white/70 max-w-2xl">{reasoning.main_idea}</p>
+      {showMainIdea && (
+        <p className="text-white/70 max-w-2xl">{reasoning.main_idea}</p>
+      )}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {reasoning.reasons.map((reason, index) => (
           <div
@@ -30,6 +41,21 @@ function AnalysisReasoning({ reasoning }: { reasoning: Reasoning }) {
         ))}
       </div>
     </section>
+  );
+}
+
+function ExecutionChoiceReasoning({
+  choice,
+}: {
+  choice: ExecutionResult["choices"][number];
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <ExecutionChoiceCard choice={choice} />
+      {choice.reasoning.reasons.length > 0 && (
+        <AnalysisReasoning reasoning={choice.reasoning} showMainIdea={false} />
+      )}
+    </div>
   );
 }
 
@@ -55,7 +81,37 @@ export default async function AnalysisPage({
           {PATHWAYSJSON[analysisType].title}
         </h1>
       </div>
-      {"reasoning" in analysisData && (
+      {analysisType === "execution" && "summary" in analysisData && (
+        <>
+          {analysisData.summary && (
+            <aside className="rounded-lg border border-white/15 bg-white/5 border-l-2 border-l-white/40 px-4 py-3 flex flex-col gap-2">
+              <span className="text-xs uppercase tracking-wide text-white/40">
+                Summary
+              </span>
+              <p className="text-sm text-white/80">{analysisData.summary}</p>
+            </aside>
+          )}
+          {analysisData.choices.map((choice, index) => {
+            const title =
+              choice.title ??
+              choice.main_idea ??
+              choice.reasoning.main_idea ??
+              `Idea ${index + 1}`;
+            const preview = choice.main_idea ?? choice.reasoning.main_idea;
+
+            return (
+              <ExpandableSection
+                key={choice.bucket_id}
+                title={title}
+                preview={preview !== title ? preview : choice.recommendation}
+              >
+                <ExecutionChoiceReasoning choice={choice} />
+              </ExpandableSection>
+            );
+          })}
+        </>
+      )}
+      {analysisType !== "execution" && "reasoning" in analysisData && (
         <ExpandableSection
           title={`Reasoning · ${analysisData.reasoning.reasons.length}`}
           preview={analysisData.reasoning.main_idea}
@@ -63,26 +119,18 @@ export default async function AnalysisPage({
           <AnalysisReasoning reasoning={analysisData.reasoning} />
         </ExpandableSection>
       )}
-      {"summary" in analysisData &&
-        analysisData.choices.map((choice, index) => (
-          <ExpandableSection
-            key={choice.bucket_id}
-            title={`Reasoning · ${index + 1}`}
-            preview={choice.reasoning.main_idea}
-          >
-            <AnalysisReasoning reasoning={choice.reasoning} />
-          </ExpandableSection>
-        ))}
-      <ExpandableSection
-        title={`Results · ${
-          "suggestions" in analysisData
-            ? analysisData.suggestions.length
-            : analysisData.choices.length
-        }`}
-        defaultOpen
-      >
-        <AnalysisResultConditional result={analysisData} type={analysisType} />
-      </ExpandableSection>
+      {analysisType !== "execution" && (
+        <ExpandableSection
+          title={`Results · ${
+            "suggestions" in analysisData
+              ? analysisData.suggestions.length
+              : analysisData.choices.length
+          }`}
+          defaultOpen
+        >
+          <AnalysisResultConditional result={analysisData} type={analysisType} />
+        </ExpandableSection>
+      )}
     </div>
   );
 }

@@ -28,6 +28,10 @@ export type AnalysisResult = {
 export type ExecutionResult = {
   choices: {
     bucket_id: number;
+    title?: string;
+    main_idea?: string;
+    score?: number;
+    justifications?: string;
     feasibility: number;
     estimated_effort: "low" | "medium" | "high";
     recommendation: "pursue" | "park" | "kill";

@@ -14,7 +14,7 @@ export const PATHWAYSJSON: Record<
     id: "execution",
     title: "Idea Execution",
     description:
-      "Goblin will evaluate effort, complexity, and feasibility to find what you can realistically build, and what to kill.",
+      "Goblin will score what is worth your attention, then weigh feasibility and effort to recommend pursue, park, or kill.",
   },
   refinement: {
     id: "refinement",
