@@ -1,7 +1,7 @@
-import { getIdeaVersions } from "@/lib/api/ideas";
+import { getBucketVersions } from "@/lib/api/buckets";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
-import { ideasTable } from "@/lib/db/schema";
+import { ideaBucketsTable } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -12,31 +12,30 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const ideaId = Number(new URL(request.url).searchParams.get("ideaId"));
-    if (!ideaId) {
+    const bucketId = Number(new URL(request.url).searchParams.get("bucketId"));
+    if (!bucketId) {
       return NextResponse.json(
-        { error: "Idea ID is required" },
+        { error: "Bucket ID is required" },
         { status: 400 },
       );
     }
 
-    const [idea] = await db
-      .select({ id: ideasTable.id })
-      .from(ideasTable)
+    const [bucket] = await db
+      .select({ id: ideaBucketsTable.id })
+      .from(ideaBucketsTable)
       .where(
         and(
-          eq(ideasTable.id, ideaId),
-          eq(ideasTable.profileId, session.user.id),
+          eq(ideaBucketsTable.id, bucketId),
+          eq(ideaBucketsTable.profileId, session.user.id),
         ),
       )
       .limit(1);
 
-    if (!idea) {
-      return NextResponse.json({ error: "Idea not found" }, { status: 404 });
+    if (!bucket) {
+      return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
     }
 
-    const versions = await getIdeaVersions(ideaId);
-    return NextResponse.json(versions);
+    return NextResponse.json(await getBucketVersions(bucketId));
   } catch (error) {
     console.error(error);
     return NextResponse.json(

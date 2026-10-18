@@ -6,11 +6,13 @@ import { useState } from "react";
 
 export function ExpandableSection({
   title,
+  leading,
   preview,
   defaultOpen = false,
   children,
 }: {
   title: string;
+  leading?: React.ReactNode;
   preview?: string;
   defaultOpen?: boolean;
   children: React.ReactNode;
@@ -25,6 +27,7 @@ export function ExpandableSection({
         className="flex items-center justify-between w-full min-w-0 text-left gap-3 py-2 border-b border-white/10 hover:border-white/30 transition-colors"
       >
         <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+          {!open && leading}
           <span className="text-sm shrink-0">{title}</span>
           {!open && preview && (
             <span className="text-sm text-white/50 truncate max-w-xl">

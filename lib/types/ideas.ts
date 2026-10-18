@@ -5,5 +5,6 @@ export type BucketChoice = "auto" | "new" | number;
 export type BucketOption = {
   id: number;
   name: string;
+  description: string;
   theme: string;
 };

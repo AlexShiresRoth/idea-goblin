@@ -2,7 +2,8 @@ import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
 import { getAnalysisResults } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
 import type { AnalysisResult as AnalysisRecord } from "@/lib/db/schema";
-import type { PathwayId } from "@/lib/types";
+import type { ExecutionResult, PathwayId } from "@/lib/types";
+import { isBucketRefinement, isIdeaRefinement } from "@/lib/types";
 import { Ghost, Waypoints, Wrench } from "lucide-react";
 import Link from "next/link";
 const PATHWAYS = PATHWAYSJSON;
@@ -25,6 +26,14 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
   const pathway = PATHWAYS[analysis.analysisType];
   const updatedAt = formatDate(analysis.updatedAt);
   const icon = PathwayIcons[analysis.analysisType];
+  const data = analysis.analysisData;
+  const refinedFrom = isBucketRefinement(data)
+    ? data.original_name
+    : isIdeaRefinement(data)
+      ? data.original_title
+      : undefined;
+  const isExecution = analysis.analysisType === "execution";
+
   return (
     <div className="flex w-full md:w-fit flex-col gap-2 rounded-lg p-4 border border-white/10 hover:bg-white/5 transition-colors hover:border-white/50">
       <Link
@@ -35,6 +44,16 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
           {icon}
           <p>{pathway.title}</p>
         </div>
+        {refinedFrom && (
+          <p className="text-sm text-white/80 truncate max-w-sm">
+            {refinedFrom}
+          </p>
+        )}
+        {isExecution && (
+          <p className="text-sm text-white/80 truncate max-w-sm">
+            {(analysis.analysisData as ExecutionResult).summary}
+          </p>
+        )}
         <p className="text-sm text-white/50">Updated {updatedAt}</p>
       </Link>
       <DeleteAnalysisButton analysisId={analysis.id} />
@@ -54,8 +73,8 @@ export default async function AnalysisPage() {
   }
 
   return (
-    <div className="p-4 flex flex-1 w-full">
-      <div className="border-white/10 border rounded-lg flex md:flex-row flex-col flex-1 p-4 items-start gap-4">
+    <div className="p-4 flex w-full">
+      <div className="flex md:flex-row flex-col items-start content-start gap-4 w-full md:flex-wrap">
         {analysis.map((item) => {
           return <AnalysisItem key={item.id} analysis={item} />;
         })}

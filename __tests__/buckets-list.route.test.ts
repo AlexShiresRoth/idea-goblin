@@ -26,7 +26,12 @@ describe("GET /api/buckets/list", () => {
     const response = await GET();
 
     await expect(response.json()).resolves.toEqual([
-      { id: 10, name: "Launch ideas", theme: "growth" },
+      {
+        id: 10,
+        name: "Launch ideas",
+        description: "Things to try this month",
+        theme: "growth",
+      },
     ]);
   });
 });

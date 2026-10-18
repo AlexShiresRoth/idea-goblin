@@ -51,6 +51,7 @@ export type LegacyRefinementResult = {
   reasoning: Reasoning;
 };
 
+// Saved by runs from before refinement moved to buckets.
 export type IdeaRefinementResult = {
   idea_id: number;
   original_title: string;
@@ -61,12 +62,32 @@ export type IdeaRefinementResult = {
   reasoning: Reasoning;
 };
 
-export type RefinementResult = LegacyRefinementResult | IdeaRefinementResult;
+// The bucket is the main idea; its ideas are context for the refinement.
+export type BucketRefinementResult = {
+  bucket_id: number;
+  original_name: string;
+  original_description: string;
+  refined_name: string;
+  refined_description: string;
+  improvements: string[];
+  reasoning: Reasoning;
+};
+
+export type RefinementResult =
+  | LegacyRefinementResult
+  | IdeaRefinementResult
+  | BucketRefinementResult;
 
 export function isIdeaRefinement(
   result: AnalysisPayload,
 ): result is IdeaRefinementResult {
   return "refined_idea" in result && "idea_id" in result;
+}
+
+export function isBucketRefinement(
+  result: AnalysisPayload,
+): result is BucketRefinementResult {
+  return "refined_description" in result && "bucket_id" in result;
 }
 
 export type AnalysisPayload =

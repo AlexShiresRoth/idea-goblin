@@ -64,6 +64,13 @@
       "when": 1792343610104,
       "tag": "0008_backfill_bucket_updated_at",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792359194481,
+      "tag": "0009_bucket_versions",
+      "breakpoints": true
     }
   ]
 }

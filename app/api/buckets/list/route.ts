@@ -11,7 +11,12 @@ export async function GET() {
 
     const buckets = await getIdeaBuckets(session.user.id);
     return NextResponse.json(
-      buckets.map(({ id, name, theme }) => ({ id, name, theme })),
+      buckets.map(({ id, name, description, theme }) => ({
+        id,
+        name,
+        description,
+        theme,
+      })),
     );
   } catch (error) {
     console.error(error);
