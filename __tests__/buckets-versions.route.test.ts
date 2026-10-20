@@ -95,6 +95,42 @@ describe("POST /api/buckets/update", () => {
       expect.objectContaining({ name: "N", description: "D" }),
     );
   });
+
+  it("applies a refined category from the list", async () => {
+    vi.mocked(db.select).mockReturnValue(mockQuery([bucket]) as never);
+    const updated = mockQuery([bucket]);
+    vi.mocked(db.update).mockReturnValue(updated as never);
+
+    await post(update, {
+      bucketId: 10,
+      name: "N",
+      description: "D",
+      category: "sports",
+    });
+
+    expect(updated.set).toHaveBeenCalledWith(
+      expect.objectContaining({ category: "sports" }),
+    );
+  });
+
+  it("keeps the current category when the refined one is missing or unknown", async () => {
+    vi.mocked(db.select).mockReturnValue(mockQuery([bucket]) as never);
+    const updated = mockQuery([bucket]);
+    vi.mocked(db.update).mockReturnValue(updated as never);
+
+    await post(update, { bucketId: 10, name: "N", description: "D" });
+    await post(update, {
+      bucketId: 10,
+      name: "N",
+      description: "D",
+      category: "skull",
+    });
+
+    for (const [values] of vi.mocked(updated.set as ReturnType<typeof vi.fn>)
+      .mock.calls) {
+      expect(values).not.toHaveProperty("category");
+    }
+  });
 });
 
 describe("POST /api/buckets/versions/restore", () => {
@@ -124,6 +160,7 @@ describe("POST /api/buckets/versions/restore", () => {
       name: "Old name",
       description: "Old description",
       theme: "old",
+      category: "travel",
       ideas: [snapshotIdea(1, "old"), snapshotIdea(2)],
       createdAt: new Date(),
     };
@@ -143,6 +180,10 @@ describe("POST /api/buckets/versions/restore", () => {
     expect(snapshotBucket).toHaveBeenCalledWith(bucket);
     // bucket + idea 1
     expect(tx.update).toHaveBeenCalledTimes(2);
+    const bucketUpdate = tx.update.mock.results[0].value;
+    expect(bucketUpdate.set).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Old name", theme: "old", category: "travel" }),
+    );
     // idea 3
     expect(tx.delete).toHaveBeenCalledTimes(1);
     // idea 2 recreated, plus its bucket link

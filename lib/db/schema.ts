@@ -36,6 +36,8 @@ export const ideaBucketsTable = pgTable("idea_buckets", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   theme: text("theme").notNull().default(""),
+  // A key of BUCKET_CATEGORIES (icon + colors); null uses the default style.
+  category: text("category"),
   profileId: uuid("profile_id")
     .notNull()
     .references(() => profileTable.id, { onDelete: "cascade" }),
@@ -99,6 +101,7 @@ export const bucketVersionsTable = pgTable("bucket_versions", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   theme: text("theme").notNull(),
+  category: text("category"),
   ideas: jsonb("ideas").$type<BucketSnapshotIdea[]>().notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

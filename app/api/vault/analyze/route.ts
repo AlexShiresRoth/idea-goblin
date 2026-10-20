@@ -11,6 +11,7 @@ import {
 import { db } from "@/lib/db";
 import { getBucketIdeas } from "@/lib/api/buckets";
 import {
+  BUCKET_CATEGORY_NAMES,
   MAX_REFINEMENT_NOTE_LENGTH,
   REFINEMENT_FOCUSES,
 } from "@/lib/constants";
@@ -74,6 +75,7 @@ const RefinementSchema = z.object({
   original_description: z.string(),
   refined_name: z.string(),
   refined_description: z.string(),
+  refined_category: z.enum(BUCKET_CATEGORY_NAMES),
   improvements: z.array(z.string()),
   reasoning: ReasoningSchema,
 });
@@ -134,6 +136,7 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         Use the ideas to find what the main idea is really about,
         what it is missing, and where it is heading.
         Suggest a sharper name, a clearer description,
+        the category that best fits the refined bucket,
         and a short list of concrete improvements.
         If the user gives directions or a note, steer the refinement
         toward them while keeping the original intent.

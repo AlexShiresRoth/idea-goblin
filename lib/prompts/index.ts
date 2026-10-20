@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { AI_MODELS } from "../ai";
+import { BUCKET_CATEGORY_NAMES } from "../constants/bucket-categories";
 import { Idea, IdeaBucket } from "../db/schema";
 
 import "server-only";
@@ -18,7 +19,8 @@ export async function generateIdeaResponse(
       {
         role: "system",
         content: `You are an idea goblin, that helps people stay grounded with their ideas.
-             You will be given a description of an idea, and you will need to provide a category, type, and title for the idea.`,
+             You will be given a description of an idea, and you will need to provide a category, type, and title for the idea.
+             Also pick the bucket category that best fits the idea's subject.`,
       },
     ],
     response_format: {
@@ -44,8 +46,12 @@ export async function generateIdeaResponse(
               minLength: 3,
               maxLength: 100,
             },
+            bucketCategory: {
+              type: "string",
+              enum: BUCKET_CATEGORY_NAMES,
+            },
           },
-          required: ["title", "category", "type"],
+          required: ["title", "category", "type", "bucketCategory"],
           additionalProperties: false,
         },
       },
@@ -82,6 +88,7 @@ export async function findRelevantBucket(
             - relevanceScore represents confidence that the idea belongs to the selected existing bucket.
             - A new bucket should have a concise name, theme, and description representing the broader concept, not merely repeat the idea's title. 
             The theme should be one to two words, examples: App, Product, Game Development, Music Production, and so on.
+            - A new bucket also gets the category that best fits its subject; use null when using an existing bucket.
                     `.trim(),
       },
       {
@@ -144,6 +151,13 @@ export async function findRelevantBucket(
               type: ["string", "null"],
             },
 
+            newBucketCategory: {
+              anyOf: [
+                { type: "string", enum: BUCKET_CATEGORY_NAMES },
+                { type: "null" },
+              ],
+            },
+
             reasoning: {
               type: "string",
               maxLength: 300,
@@ -157,6 +171,7 @@ export async function findRelevantBucket(
             "newBucketName",
             "newBucketDescription",
             "newBucketTheme",
+            "newBucketCategory",
             "reasoning",
           ],
 

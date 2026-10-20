@@ -12,6 +12,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useContext, useState } from "react";
 import { AnalyzeVaultModal } from "../components/analyze-vault";
+import { BucketIcon, bucketStyleVars } from "../components/bucket-icon";
+import CreateIdeaModal from "../components/create-idea-modal";
 import { ToastContext } from "../context/toast.provider";
 import BucketVersions from "./bucket-versions";
 import IdeaComponent from "./idea";
@@ -90,10 +92,12 @@ export default function IdeasBucket({
       aria-label="button"
       onClick={() => !expanded && setExpanded(!expanded)}
       data-bucket-id={bucket.id}
+      // Category colors as CSS variables; everything inside inherits them.
+      style={bucketStyleVars(bucket.category)}
       className={clsx(
         expanded
           ? "fixed w-screen h-screen top-0 left-0 bg-black/80 z-50 flex flex-col items-center py-8"
-          : "flex bg-black flex-col gap-4 border border-white/20 rounded-lg items-start break-inside-avoid mb-2 hover:bg-black/60 hover:border-white/50 transition-colors cursor-pointer",
+          : "flex bg-black flex-col gap-4 border border-white/20 rounded-lg items-start break-inside-avoid mb-2 hover:bg-black/60 hover:border-(--bucket-primary)/50 transition-colors cursor-pointer",
       )}
     >
       {expanded && (
@@ -109,7 +113,7 @@ export default function IdeasBucket({
       <div
         className={clsx(
           expanded
-            ? "flex flex-col w-11/12 md:w-1/2 bg-black border border-white/20 rounded-lg overflow-y-auto"
+            ? "flex flex-col w-11/12 md:w-1/2 bg-black border border-(--bucket-primary)/50 hover:border-(--bucket-primary)/20 rounded-lg overflow-y-auto"
             : "",
         )}
       >
@@ -121,12 +125,17 @@ export default function IdeasBucket({
             )}
           >
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs text-green-500">{bucket.theme}</p>
+              <div className="flex items-center gap-1 rounded-full border border-(--bucket-primary)/50 bg-(--bucket-accent)/10 px-2 py-1">
+                <BucketIcon category={bucket.category} className="w-3 h-3" />
+                <p className="text-xs text-(--bucket-tertiary)">
+                  {bucket.theme}
+                </p>
+              </div>
               <p className="text-xs text-white/50">
                 {timeAgo(bucket.updatedAt)}
               </p>
             </div>
-            <h2 className="text-xl">{bucket.name}</h2>
+            <h2 className="flex items-center gap-2 text-xl">{bucket.name}</h2>
             <p className="text-sm text-white/50">
               {bucket.description.slice(0, 200)}
               {bucket.description.length > 200 && "..."}
@@ -172,6 +181,7 @@ export default function IdeasBucket({
 
         {expanded && (
           <div className="flex justify-end gap-2">
+            <CreateIdeaModal type="bucket" defaultBucket={bucket.id} />
             <button
               disabled={isDeleting || ideas.length === 0}
               onClick={() => setRefining(true)}

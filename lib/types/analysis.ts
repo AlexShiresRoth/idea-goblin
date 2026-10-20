@@ -69,6 +69,8 @@ export type BucketRefinementResult = {
   original_description: string;
   refined_name: string;
   refined_description: string;
+  // Missing on runs saved before buckets had categories.
+  refined_category?: string;
   improvements: string[];
   reasoning: Reasoning;
 };

@@ -1,6 +1,7 @@
 import { AI_MODELS, chatUsage, recordRun } from "@/lib/ai";
 import { touchBuckets } from "@/lib/api/buckets";
 import { AuthGuard } from "@/lib/auth/auth-guard";
+import { isBucketCategory } from "@/lib/constants";
 import { db } from "@/lib/db";
 import {
   Idea,
@@ -36,6 +37,7 @@ type BucketResponse = {
   newBucketName: string | null;
   newBucketDescription: string | null;
   newBucketTheme: string | null;
+  newBucketCategory: string | null;
   reasoning: string;
 };
 
@@ -132,7 +134,8 @@ export async function POST(request: Request) {
       usage: chatUsage(response.usage),
     });
 
-    let idea: Idea;
+    // The idea call also suggests a bucket category, used if it starts one.
+    let idea: Idea & { bucketCategory?: string };
 
     try {
       idea = JSON.parse(response?.choices[0]?.message.content as string);
@@ -179,6 +182,9 @@ export async function POST(request: Request) {
         name: bucketName?.trim() || idea.title,
         description,
         theme: idea.category,
+        category: isBucketCategory(idea.bucketCategory)
+          ? idea.bucketCategory
+          : null,
         profileId: profile[0].id,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -218,6 +224,9 @@ export async function POST(request: Request) {
           name: bucket.newBucketName as string,
           description: bucket.newBucketDescription as string,
           theme: bucket.newBucketTheme as string,
+          category: isBucketCategory(bucket.newBucketCategory)
+            ? bucket.newBucketCategory
+            : null,
           profileId: profile[0].id,
           createdAt: new Date(),
           updatedAt: new Date(),

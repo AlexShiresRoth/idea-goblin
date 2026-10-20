@@ -51,6 +51,7 @@ function classifyAs(bucketId: number) {
       newBucketName: null,
       newBucketDescription: null,
       newBucketTheme: null,
+      newBucketCategory: null,
       reasoning: "fits",
     }) as never,
   );
@@ -76,7 +77,7 @@ describe("POST /api/ideas/create", () => {
     vi.clearAllMocks();
     vi.mocked(AuthGuard).mockResolvedValue(makeSession() as never);
     vi.mocked(generateIdeaResponse).mockResolvedValue(
-      chatJson({ title: "New", category: "app", type: "idea" }) as never,
+      chatJson({ title: "New", category: "app", type: "idea", bucketCategory: "startup" }) as never,
     );
     vi.mocked(db.select)
       .mockReturnValueOnce(mockQuery([{ id: userId }]) as never)
@@ -150,6 +151,54 @@ describe("POST /api/ideas/create", () => {
     const values = vi.mocked(inserted.values as ReturnType<typeof vi.fn>).mock
       .calls;
     expect(values).toContainEqual([expect.objectContaining({ name: "New" })]);
+  });
+
+  it("gives a user-created bucket the category suggested for its idea", async () => {
+    await create({ bucket: "new" });
+
+    const values = vi.mocked(inserted.values as ReturnType<typeof vi.fn>).mock
+      .calls;
+    expect(values).toContainEqual([
+      expect.objectContaining({ name: "New", category: "startup" }),
+    ]);
+  });
+
+  it("drops a category that isn't on the list", async () => {
+    vi.mocked(generateIdeaResponse).mockResolvedValue(
+      chatJson({ title: "New", category: "app", type: "idea", bucketCategory: "skull" }) as never,
+    );
+
+    await create({ bucket: "new" });
+
+    const values = vi.mocked(inserted.values as ReturnType<typeof vi.fn>).mock
+      .calls;
+    expect(values).toContainEqual([
+      expect.objectContaining({ name: "New", category: null }),
+    ]);
+  });
+
+  it("stores the classifier's category on a bucket it creates", async () => {
+    vi.mocked(findRelevantBucket).mockResolvedValue(
+      chatJson({
+        action: "create_new",
+        bucketId: null,
+        relevanceScore: 0,
+        newBucketName: "Music tools",
+        newBucketDescription: "Apps for musicians",
+        newBucketTheme: "Music",
+        newBucketCategory: "music",
+        reasoning: "new topic",
+      }) as never,
+    );
+
+    const response = await create();
+
+    expect(response.status).toBe(200);
+    const values = vi.mocked(inserted.values as ReturnType<typeof vi.fn>).mock
+      .calls;
+    expect(values).toContainEqual([
+      expect.objectContaining({ name: "Music tools", category: "music" }),
+    ]);
   });
 
   it("rejects an overly long bucket name", async () => {

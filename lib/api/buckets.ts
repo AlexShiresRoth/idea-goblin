@@ -50,7 +50,7 @@ export async function getBucketIdeas(
 // Saves the bucket and every idea in it as one version, so the whole bucket
 // can be restored later.
 export async function snapshotBucket(
-  bucket: Pick<IdeaBucket, "id" | "name" | "description" | "theme">,
+  bucket: Pick<IdeaBucket, "id" | "name" | "description" | "theme" | "category">,
 ) {
   const ideas = await getBucketIdeas(bucket.id);
   await db.insert(bucketVersionsTable).values({
@@ -58,6 +58,7 @@ export async function snapshotBucket(
     name: bucket.name,
     description: bucket.description,
     theme: bucket.theme,
+    category: bucket.category,
     ideas,
   });
 }

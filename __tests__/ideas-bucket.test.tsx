@@ -12,10 +12,13 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
 }));
 
-function renderBucket(ideas = [makeIdea({ title: "Nested idea" })]) {
+function renderBucket(
+  ideas = [makeIdea({ title: "Nested idea" })],
+  bucket = makeBucket(),
+) {
   return render(
     <ToastContext.Provider value={{ toasts: [], setToasts }}>
-      <IdeasBucket bucket={makeBucket()} ideas={ideas} />
+      <IdeasBucket bucket={bucket} ideas={ideas} />
     </ToastContext.Provider>,
   );
 }
@@ -46,6 +49,35 @@ describe("IdeasBucket", () => {
     expect(screen.queryByText("Delete")).not.toBeInTheDocument();
   });
 
+  it("shows the bucket's category icon", () => {
+    renderBucket(undefined, makeBucket({ category: "music" }));
+
+    expect(screen.getByTestId("bucket-icon")).toHaveAttribute(
+      "data-category",
+      "music",
+    );
+  });
+
+  // Set on the outermost element so the container's border can use them,
+  // not just the theme pill inside it.
+  it("sets the category colors on the bucket container", () => {
+    renderBucket(undefined, makeBucket({ category: "music" }));
+
+    const container = screen.getByLabelText("button");
+    expect(container.style.getPropertyValue("--bucket-primary")).toBe(
+      "var(--color-fuchsia-400)",
+    );
+  });
+
+  it("uses the default style for buckets without a category", () => {
+    renderBucket();
+
+    expect(screen.getByTestId("bucket-icon")).toHaveAttribute(
+      "data-category",
+      "default",
+    );
+  });
+
   it("expands to show ideas and delete", async () => {
     const user = userEvent.setup();
     renderBucket();
@@ -54,6 +86,7 @@ describe("IdeasBucket", () => {
 
     expect(screen.getByText("Nested idea").closest(".hidden")).toBeNull();
     expect(screen.getByText("Delete")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
   });
 
   it("deletes the bucket, toasts success, and refreshes", async () => {

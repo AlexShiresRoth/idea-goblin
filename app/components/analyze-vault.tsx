@@ -330,6 +330,7 @@ export function AnalyzeVaultModal({
           bucketId: refinement.bucket_id,
           name: refinement.refined_name,
           description: refinement.refined_description,
+          category: refinement.refined_category,
         }),
       });
       if (!response.ok) throw new Error("Failed to update bucket");

@@ -11,10 +11,10 @@ vi.mock("next/navigation", () => ({
 
 const fetchMock = vi.fn();
 
-function renderModal() {
+function renderModal(modal = <CreateIdeaModal type="inline" />) {
   render(
     <ToastContext.Provider value={{ toasts: [], setToasts: vi.fn() }}>
-      <CreateIdeaModal type="inline" />
+      {modal}
     </ToastContext.Provider>,
   );
 }
@@ -64,6 +64,19 @@ describe("CreateIdeaModal bucket choice", () => {
     const user = await openAndDescribe();
 
     await user.selectOptions(screen.getByLabelText("Bucket"), "Dungeon game");
+    await user.click(screen.getByRole("button", { name: /create idea/i }));
+
+    await waitFor(() => expect(sentBody().bucket).toBe(9));
+  });
+
+  it("preselects the bucket it was opened from", async () => {
+    const user = userEvent.setup();
+    renderModal(<CreateIdeaModal type="bucket" defaultBucket={9} />);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.type(screen.getByLabelText(/what's your idea/i), "Loot respec");
+    await screen.findByRole("option", { name: "Dungeon game" });
+
+    expect(screen.getByLabelText("Bucket")).toHaveValue("9");
     await user.click(screen.getByRole("button", { name: /create idea/i }));
 
     await waitFor(() => expect(sentBody().bucket).toBe(9));

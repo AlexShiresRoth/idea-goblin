@@ -13,6 +13,7 @@ import { isBucketRefinement, isIdeaRefinement } from "@/lib/types";
 import clsx from "clsx";
 import { ChevronDown, ScanHeart } from "lucide-react";
 import { useState } from "react";
+import { BucketIcon } from "./bucket-icon";
 
 function scoreTone(score: number) {
   if (score >= 75)
@@ -246,6 +247,7 @@ function refinementFields(
         originalText: result.original_description,
         refinedTitle: result.refined_name,
         refinedText: result.refined_description,
+        refinedCategory: result.refined_category,
         improvements: result.improvements,
       }
     : {
@@ -253,6 +255,7 @@ function refinementFields(
         originalText: result.original_idea,
         refinedTitle: result.refined_title,
         refinedText: result.refined_idea,
+        refinedCategory: undefined,
         improvements: result.improvements,
       };
 }
@@ -277,7 +280,12 @@ export function RefinementCard({
         <span className="text-xs uppercase tracking-wide text-white/40">
           Refined
         </span>
-        <h2 className="text-lg font-bold">{fields.refinedTitle}</h2>
+        <h2 className="flex items-center gap-2 text-lg font-bold">
+          {fields.refinedCategory && (
+            <BucketIcon category={fields.refinedCategory} className="w-4 h-4" />
+          )}
+          {fields.refinedTitle}
+        </h2>
         <p className="text-white/70">{fields.refinedText}</p>
       </div>
       {fields.improvements.length > 0 && (

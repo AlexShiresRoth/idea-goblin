@@ -1,5 +1,6 @@
 import { snapshotBucket } from "@/lib/api/buckets";
 import { AuthGuard } from "@/lib/auth/auth-guard";
+import { isBucketCategory } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { ideaBucketsTable } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -12,10 +13,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { bucketId, name, description } = (await request.json()) as {
+    const { bucketId, name, description, category } = (await request.json()) as {
       bucketId?: number;
       name?: string;
       description?: string;
+      category?: string;
     };
 
     if (!bucketId || !name || !description) {
@@ -44,7 +46,13 @@ export async function POST(request: Request) {
 
     const [updated] = await db
       .update(ideaBucketsTable)
-      .set({ name, description, updatedAt: new Date() })
+      .set({
+        name,
+        description,
+        // Unknown categories are ignored so the bucket keeps its current one.
+        ...(isBucketCategory(category) && { category }),
+        updatedAt: new Date(),
+      })
       .where(eq(ideaBucketsTable.id, bucketId))
       .returning();
 
