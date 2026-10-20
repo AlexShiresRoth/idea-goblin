@@ -46,9 +46,10 @@ export default function IdeasBucket({
   const [refining, setRefining] = useState(false);
   const [rawStart, setStart] = useState(0);
   const take = 5;
-  // Clamp so a shrinking list (e.g. after deleting an idea) never strands us
-  // on an empty page.
-  const lastPageStart = Math.max(0, (Math.ceil(ideas.length / take) - 1) * take);
+  const lastPageStart = Math.max(
+    0,
+    (Math.ceil(ideas.length / take) - 1) * take,
+  );
   const start = Math.min(rawStart, lastPageStart);
   const pageIndex = Math.floor(start / take) + 1;
   const ideasPage = ideas.slice(start, start + take);
