@@ -1,7 +1,14 @@
 "use client";
 import { IdeaBucket, type IdeaView } from "@/lib/db/schema";
 import clsx from "clsx";
-import { Loader2Icon, SparklesIcon, Trash2Icon, XIcon } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Loader2Icon,
+  SparklesIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useContext, useState } from "react";
 import { AnalyzeVaultModal } from "../components/analyze-vault";
@@ -37,6 +44,18 @@ export default function IdeasBucket({
   const [expanded, setExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [refining, setRefining] = useState(false);
+  const [rawStart, setStart] = useState(0);
+  const take = 5;
+  const lastPageStart = Math.max(
+    0,
+    (Math.ceil(ideas.length / take) - 1) * take,
+  );
+  const start = Math.min(rawStart, lastPageStart);
+  const pageIndex = Math.floor(start / take) + 1;
+  const ideasPage = ideas.slice(start, start + take);
+  const canGoLeft = start > 0;
+  const canGoRight = start + take < ideas.length;
+
   async function deleteBucket(bucketId: number) {
     setIsDeleting(true);
     try {
@@ -78,7 +97,7 @@ export default function IdeasBucket({
       )}
     >
       {expanded && (
-        <div className="flex w-11/12 md:w-1/3 items-center my-2 justify-end">
+        <div className="flex w-11/12 md:w-1/2 items-center my-2 justify-end">
           <button
             onClick={() => setExpanded(!expanded)}
             className="flex items-center p-2 rounded bg-white/10 text-sm hover:cursor-pointer hover:text-white/80 transition-colors"
@@ -90,7 +109,7 @@ export default function IdeasBucket({
       <div
         className={clsx(
           expanded
-            ? "flex flex-col w-11/12 md:w-1/3  bg-black border border-white/20 rounded-lg overflow-y-auto"
+            ? "flex flex-col w-11/12 md:w-1/2 bg-black border border-white/20 rounded-lg overflow-y-auto"
             : "",
         )}
       >
@@ -114,9 +133,37 @@ export default function IdeasBucket({
             </p>
           </div>
         </div>
-
         <div className={clsx(expanded ? "flex flex-col" : "hidden")}>
-          {ideas.map((idea) => (
+          {ideas.length > take && (
+            <div
+              data-testid="idea-header"
+              className="flex items-center px-4 border-b border-white/20 justify-between"
+            >
+              <p className="text-white/60">Ideas {ideas.length}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  aria-label="Previous ideas"
+                  disabled={!canGoLeft}
+                  onClick={() => canGoLeft && setStart(start - take)}
+                  className="hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span>
+                  {pageIndex} / {Math.ceil(ideas.length / take)}
+                </span>
+                <button
+                  aria-label="Next ideas"
+                  disabled={!canGoRight}
+                  onClick={() => setStart(start + take)}
+                  className="hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+          {ideasPage.map((idea) => (
             <IdeaComponent key={idea.id} idea={idea} />
           ))}
         </div>

@@ -1,23 +1,37 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { AuthGuard } from "../auth/auth-guard";
 import { db } from "../db";
 import { analysisResultsTable } from "../db/schema";
+import type { PathwayId } from "../types";
 
-export async function getAnalysisResults() {
+export async function getAnalysisResults({
+  type,
+  page = 1,
+  pageSize = 6,
+}: { type?: PathwayId; page?: number; pageSize?: number } = {}) {
   try {
     const session = await AuthGuard();
     if (!session) {
-      return [];
+      return { items: [], total: 0 };
     }
-    const analysisResults = await db
-      .select()
-      .from(analysisResultsTable)
-      .where(eq(analysisResultsTable.profileId, session.user.id))
-      .orderBy(desc(analysisResultsTable.createdAt));
-    return analysisResults;
+    const where = and(
+      eq(analysisResultsTable.profileId, session.user.id),
+      type ? eq(analysisResultsTable.analysisType, type) : undefined,
+    );
+    const [items, [{ total }]] = await Promise.all([
+      db
+        .select()
+        .from(analysisResultsTable)
+        .where(where)
+        .orderBy(desc(analysisResultsTable.createdAt))
+        .limit(pageSize)
+        .offset((page - 1) * pageSize),
+      db.select({ total: count() }).from(analysisResultsTable).where(where),
+    ]);
+    return { items, total };
   } catch (error) {
     console.error(error);
-    return [];
+    return { items: [], total: 0 };
   }
 }
 
