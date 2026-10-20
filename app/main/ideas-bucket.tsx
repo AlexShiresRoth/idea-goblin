@@ -44,12 +44,17 @@ export default function IdeasBucket({
   const [expanded, setExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [refining, setRefining] = useState(false);
-  const [start, setStart] = useState(0);
+  const [rawStart, setStart] = useState(0);
   const take = 5;
+  // Clamp so a shrinking list (e.g. after deleting an idea) never strands us
+  // on an empty page.
+  const lastPageStart = Math.max(0, (Math.ceil(ideas.length / take) - 1) * take);
+  const start = Math.min(rawStart, lastPageStart);
   const pageIndex = Math.floor(start / take) + 1;
   const ideasPage = ideas.slice(start, start + take);
   const canGoLeft = start > 0;
   const canGoRight = start + take < ideas.length;
+
   async function deleteBucket(bucketId: number) {
     setIsDeleting(true);
     try {
@@ -130,12 +135,13 @@ export default function IdeasBucket({
         <div className={clsx(expanded ? "flex flex-col" : "hidden")}>
           {ideas.length > take && (
             <div
-              test-id="idea-header"
+              data-testid="idea-header"
               className="flex items-center px-4 border-b border-white/20 justify-between"
             >
               <p className="text-white/60">Ideas {ideas.length}</p>
               <div className="flex items-center gap-2">
                 <button
+                  aria-label="Previous ideas"
                   disabled={!canGoLeft}
                   onClick={() => canGoLeft && setStart(start - take)}
                   className="hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -146,6 +152,7 @@ export default function IdeasBucket({
                   {pageIndex} / {Math.ceil(ideas.length / take)}
                 </span>
                 <button
+                  aria-label="Next ideas"
                   disabled={!canGoRight}
                   onClick={() => setStart(start + take)}
                   className="hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"

@@ -71,6 +71,7 @@ export function mockQuery(result: unknown) {
     "where",
     "orderBy",
     "limit",
+    "offset",
     "innerJoin",
     "set",
     "values",

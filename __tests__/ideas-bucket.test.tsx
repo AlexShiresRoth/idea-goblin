@@ -206,6 +206,117 @@ describe("IdeasBucket", () => {
     expect(screen.queryByText("Choose a bucket")).not.toBeInTheDocument();
   });
 
+  it("hides pagination when the bucket fits on one page", async () => {
+    const user = userEvent.setup();
+    renderBucket(
+      Array.from({ length: 5 }, (_, i) =>
+        makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
+      ),
+    );
+
+    await user.click(screen.getByLabelText("button"));
+
+    expect(screen.getByText("Idea 5")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Next ideas")).not.toBeInTheDocument();
+  });
+
+  it("pages through ideas five at a time", async () => {
+    const user = userEvent.setup();
+    renderBucket(
+      Array.from({ length: 12 }, (_, i) =>
+        makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
+      ),
+    );
+
+    await user.click(screen.getByLabelText("button"));
+
+    expect(screen.getByText("Ideas 12")).toBeInTheDocument();
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
+    expect(screen.getByText("Idea 1")).toBeInTheDocument();
+    expect(screen.getByText("Idea 5")).toBeInTheDocument();
+    expect(screen.queryByText("Idea 6")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Previous ideas")).toBeDisabled();
+
+    await user.click(screen.getByLabelText("Next ideas"));
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+    expect(screen.queryByText("Idea 5")).not.toBeInTheDocument();
+    expect(screen.getByText("Idea 6")).toBeInTheDocument();
+    expect(screen.getByText("Idea 10")).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("Next ideas"));
+    expect(screen.getByText("3 / 3")).toBeInTheDocument();
+    expect(screen.getByText("Idea 11")).toBeInTheDocument();
+    expect(screen.getByText("Idea 12")).toBeInTheDocument();
+    expect(screen.queryByText("Idea 10")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Next ideas")).toBeDisabled();
+
+    await user.click(screen.getByLabelText("Previous ideas"));
+    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+    expect(screen.getByText("Idea 6")).toBeInTheDocument();
+  });
+
+  it("falls back to the last page when ideas on the current page are removed", async () => {
+    const makeIdeas = (count: number) =>
+      Array.from({ length: count }, (_, i) =>
+        makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
+      );
+    const user = userEvent.setup();
+    const { rerender } = renderBucket(makeIdeas(12));
+
+    await user.click(screen.getByLabelText("button"));
+    await user.click(screen.getByLabelText("Next ideas"));
+    await user.click(screen.getByLabelText("Next ideas"));
+    expect(screen.getByText("3 / 3")).toBeInTheDocument();
+
+    // Deleting an idea refreshes the route, which re-renders with fewer ideas.
+    rerender(
+      <ToastContext.Provider value={{ toasts: [], setToasts }}>
+        <IdeasBucket bucket={makeBucket()} ideas={makeIdeas(10)} />
+      </ToastContext.Provider>,
+    );
+
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    expect(screen.getByText("Idea 6")).toBeInTheDocument();
+    expect(screen.getByText("Idea 10")).toBeInTheDocument();
+    expect(screen.getByLabelText("Next ideas")).toBeDisabled();
+  });
+
+  it("collapses version details again on a second toggle", async () => {
+    const versions = [1, 2].map((id) => ({
+      id,
+      bucketId: 10,
+      name: `Version ${id}`,
+      description: `Description ${id}`,
+      theme: "growth",
+      ideas: [],
+      createdAt: "2026-01-01T00:00:00.000Z",
+    }));
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => versions,
+    } as Response);
+    const user = userEvent.setup();
+    renderBucket();
+
+    await user.click(screen.getByLabelText("button"));
+    await screen.findByText("Version 1");
+    const [first, second] = screen.getAllByTestId("toggle-version");
+
+    await user.click(first);
+    expect(screen.getByText("Description 1")).toBeInTheDocument();
+    expect(screen.queryByText("Description 2")).not.toBeInTheDocument();
+    expect(second).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(second);
+    expect(screen.getByText("Description 2")).toBeInTheDocument();
+    expect(screen.getByText("Description 1")).toBeInTheDocument();
+
+    await user.click(first);
+    expect(first).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Description 1")).not.toBeInTheDocument();
+    expect(screen.getByText("Description 2")).toBeInTheDocument();
+  });
+
   it("disables refine when the bucket has no ideas", async () => {
     const user = userEvent.setup();
     renderBucket([]);
