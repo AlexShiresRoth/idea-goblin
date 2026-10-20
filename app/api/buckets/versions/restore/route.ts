@@ -27,7 +27,7 @@ async function embed(title: string, description: string) {
 }
 
 // Puts the bucket back the way the version saw it: its name, description and
-// theme, and exactly the ideas it held then, with their text at that time.
+// theme and category, and exactly the ideas it held then, with their text at that time.
 export async function POST(request: Request) {
   try {
     const session = await AuthGuard();
@@ -104,6 +104,7 @@ export async function POST(request: Request) {
           name: version.name,
           description: version.description,
           theme: version.theme,
+          category: version.category,
           updatedAt: new Date(),
         })
         .where(eq(ideaBucketsTable.id, bucket.id));
