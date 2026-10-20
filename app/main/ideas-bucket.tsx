@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useContext, useState } from "react";
 import { AnalyzeVaultModal } from "../components/analyze-vault";
 import { BucketIcon, bucketStyleVars } from "../components/bucket-icon";
+import CreateIdeaModal from "../components/create-idea-modal";
 import { ToastContext } from "../context/toast.provider";
 import BucketVersions from "./bucket-versions";
 import IdeaComponent from "./idea";
@@ -180,6 +181,7 @@ export default function IdeasBucket({
 
         {expanded && (
           <div className="flex justify-end gap-2">
+            <CreateIdeaModal type="bucket" defaultBucket={bucket.id} />
             <button
               disabled={isDeleting || ideas.length === 0}
               onClick={() => setRefining(true)}

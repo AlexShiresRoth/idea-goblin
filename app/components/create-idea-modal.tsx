@@ -128,13 +128,19 @@ function Counter({
   );
 }
 
-function CreateIdeaForm({ onClose }: { onClose: () => void }) {
+function CreateIdeaForm({
+  onClose,
+  defaultBucket = "auto",
+}: {
+  onClose: () => void;
+  defaultBucket?: BucketChoice;
+}) {
   const { setToasts } = useContext(ToastContext);
   const router = useRouter();
   const pathname = usePathname();
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [bucket, setBucket] = useState<BucketChoice>("auto");
+  const [bucket, setBucket] = useState<BucketChoice>(defaultBucket);
   const [bucketName, setBucketName] = useState("");
   const [buckets, setBuckets] = useState<BucketOption[]>([]);
   const [bucketsLoading, setBucketsLoading] = useState(true);
@@ -265,9 +271,11 @@ function CreateIdeaForm({ onClose }: { onClose: () => void }) {
 export default function CreateIdeaModal({
   type,
   onTrigger,
+  defaultBucket,
 }: {
-  type: "floating" | "inline" | "menu";
+  type: "floating" | "inline" | "menu" | "bucket";
   onTrigger?: () => void;
+  defaultBucket?: BucketChoice;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -294,6 +302,16 @@ export default function CreateIdeaModal({
           New Idea
         </button>
       )}
+      {type === "bucket" && (
+        <button
+          type="button"
+          onClick={openModal}
+          className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-green-400/80 transition-colors"
+        >
+          <PlusIcon className="w-3 h-3" />
+          Add
+        </button>
+      )}
       {!isOpen && type === "floating" && (
         <button
           onClick={openModal}
@@ -305,7 +323,10 @@ export default function CreateIdeaModal({
       {isOpen &&
         createPortal(
           <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-100">
-            <CreateIdeaForm onClose={() => setIsOpen(false)} />
+            <CreateIdeaForm
+              onClose={() => setIsOpen(false)}
+              defaultBucket={defaultBucket}
+            />
           </div>,
           document.body,
         )}

@@ -86,6 +86,7 @@ describe("IdeasBucket", () => {
 
     expect(screen.getByText("Nested idea").closest(".hidden")).toBeNull();
     expect(screen.getByText("Delete")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
   });
 
   it("deletes the bucket, toasts success, and refreshes", async () => {
