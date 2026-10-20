@@ -117,7 +117,10 @@ describe("IdeasBucket", () => {
     await user.click(screen.getByRole("button", { name: /More concise/ }));
     await user.click(screen.getByRole("button", { name: /More concise/ }));
     await user.click(screen.getByRole("button", { name: /Bigger vision/ }));
-    await user.type(screen.getByLabelText("Refinement note"), "  for teachers ");
+    await user.type(
+      screen.getByLabelText("Refinement note"),
+      "  for teachers ",
+    );
     await user.click(
       screen.getByRole("button", { name: "Refine Launch ideas" }),
     );
@@ -173,7 +176,15 @@ describe("IdeasBucket", () => {
 
     await user.click(screen.getByLabelText("button"));
     expect(await screen.findByText("Older name")).toBeInTheDocument();
+    expect(screen.queryByText("Old idea")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("toggle-version"));
+    expect(screen.getByTestId("toggle-version")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     expect(screen.getByText("Old idea")).toBeInTheDocument();
+    expect(screen.getByText("Older description")).toBeInTheDocument();
 
     await user.click(screen.getByTestId("restore-version"));
 
