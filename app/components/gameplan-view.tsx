@@ -1,7 +1,11 @@
 "use client";
 
 import { isDone } from "@/lib/constants";
-import type { GameplanResult, GameplanStep } from "@/lib/types";
+import type {
+  GameplanResult,
+  GameplanStep,
+  GameplanStepRef,
+} from "@/lib/types";
 import clsx from "clsx";
 import {
   CircleCheckIcon,
@@ -27,21 +31,29 @@ const EFFORT_STYLES: Record<GameplanStep["effort"], string> = {
   high: "border-red-500/40 text-red-400",
 };
 
+// Adding a step as an idea calls `onLink` with the new idea's id, so the
+// plan's owner can link the step to it.
+export type LinkStep = (ref: GameplanStepRef, ideaId: number) => Promise<void>;
+
 function AddAsIdea({
   bucketId,
   title,
   detail,
+  stepRef,
+  onLink,
 }: {
   bucketId: number;
   title: string;
   detail: string;
+  stepRef: GameplanStepRef;
+  onLink?: LinkStep;
 }) {
   const router = useRouter();
   const { setToasts } = useContext(ToastContext);
-  const [state, setState] = useState<"idle" | "adding" | "added">("idle");
+  const [adding, setAdding] = useState(false);
 
   async function add() {
-    setState("adding");
+    setAdding(true);
     try {
       const response = await fetch("/api/ideas/create", {
         method: "POST",
@@ -54,7 +66,7 @@ function AddAsIdea({
         }),
       });
       if (!response.ok) throw new Error("Failed to add idea");
-      setState("added");
+      const [idea] = (await response.json()) as { id: number }[];
       setToasts([
         {
           id: `gameplan-idea-${title}`,
@@ -63,9 +75,20 @@ function AddAsIdea({
         },
       ]);
       router.refresh();
+      try {
+        await onLink?.(stepRef, idea.id);
+      } catch (error) {
+        console.error(error);
+        setToasts([
+          {
+            id: `gameplan-link-error-${title}`,
+            message: "Added the idea, but couldn't link it to the plan",
+            type: "error",
+          },
+        ]);
+      }
     } catch (error) {
       console.error(error);
-      setState("idle");
       setToasts([
         {
           id: `gameplan-idea-error-${title}`,
@@ -73,6 +96,8 @@ function AddAsIdea({
           type: "error",
         },
       ]);
+    } finally {
+      setAdding(false);
     }
   }
 
@@ -80,18 +105,62 @@ function AddAsIdea({
     <button
       type="button"
       onClick={add}
-      disabled={state !== "idle"}
+      disabled={adding}
       className="flex shrink-0 items-center gap-1 text-xs text-white/50 hover:text-green-400/80 transition-colors hover:cursor-pointer disabled:cursor-default disabled:opacity-60"
     >
-      {state === "adding" ? (
+      {adding ? (
         <Loader2Icon className="w-3 h-3 animate-spin" />
-      ) : state === "added" ? (
-        <CircleCheckIcon className="w-3 h-3" />
       ) : (
         <PlusIcon className="w-3 h-3" />
       )}
-      {state === "added" ? "Added" : "Add as idea"}
+      Add as idea
     </button>
+  );
+}
+
+// "From your idea", or the button to make the step one.
+function StepLink({
+  ideaId,
+  idea,
+  bucketId,
+  title,
+  detail,
+  stepRef,
+  onLink,
+}: {
+  ideaId?: number | null;
+  idea?: IdeaRef;
+  bucketId?: number;
+  title: string;
+  detail: string;
+  stepRef: GameplanStepRef;
+  onLink?: LinkStep;
+}) {
+  if (ideaId != null) {
+    return (
+      <span className="text-xs text-white/40">
+        From your idea{idea ? `: ${idea.title}` : ""}
+      </span>
+    );
+  }
+  if (bucketId == null) return null;
+  return (
+    <AddAsIdea
+      bucketId={bucketId}
+      title={title}
+      detail={detail}
+      stepRef={stepRef}
+      onLink={onLink}
+    />
+  );
+}
+
+function DoneMark() {
+  return (
+    <CircleCheckIcon
+      aria-label="Done"
+      className="w-3 h-3 shrink-0 text-green-500/80"
+    />
   );
 }
 
@@ -99,10 +168,14 @@ function StepItem({
   step,
   idea,
   bucketId,
+  stepRef,
+  onLink,
 }: {
   step: GameplanStep;
   idea?: IdeaRef;
   bucketId?: number;
+  stepRef: GameplanStepRef;
+  onLink?: LinkStep;
 }) {
   const done = idea ? isDone(idea) : false;
 
@@ -115,12 +188,7 @@ function StepItem({
             done && "text-white/50 line-through",
           )}
         >
-          {done && (
-            <CircleCheckIcon
-              aria-label="Done"
-              className="w-3 h-3 shrink-0 text-green-500/80"
-            />
-          )}
+          {done && <DoneMark />}
           {step.title}
         </p>
         <span
@@ -134,19 +202,15 @@ function StepItem({
       </div>
       <p className="text-xs text-white/50">{step.detail}</p>
       <div className="flex justify-end">
-        {step.idea_id != null ? (
-          <span className="text-xs text-white/40">
-            From your idea{idea ? `: ${idea.title}` : ""}
-          </span>
-        ) : (
-          bucketId != null && (
-            <AddAsIdea
-              bucketId={bucketId}
-              title={step.title}
-              detail={step.detail}
-            />
-          )
-        )}
+        <StepLink
+          ideaId={step.idea_id}
+          idea={idea}
+          bucketId={bucketId}
+          title={step.title}
+          detail={step.detail}
+          stepRef={stepRef}
+          onLink={onLink}
+        />
       </div>
     </li>
   );
@@ -181,19 +245,25 @@ function NoteList({
 
 // Fields arrive a few at a time while a gameplan streams, so each part
 // renders once it exists. With `ideas`, steps from existing ideas show the
-// idea and whether it is done; with `bucketId`, other steps can be added as
-// ideas.
+// idea and whether it is done. Other steps can be added as ideas in the
+// plan's bucket; `onLink` then links the step to the new idea.
 export function GameplanView({
   result,
   ideas,
   bucketId,
+  onLink,
 }: {
   result: Partial<GameplanResult>;
   ideas?: IdeaRef[];
   bucketId?: number;
+  onLink?: LinkStep;
 }) {
   const ideasById = new Map(ideas?.map((idea) => [idea.id, idea]));
   const targetBucket = bucketId ?? result.bucket_id;
+  const ideaFor = (id?: number | null) =>
+    id != null ? ideasById.get(id) : undefined;
+  const firstIdea = ideaFor(result.first_step?.idea_id);
+  const firstDone = firstIdea ? isDone(firstIdea) : false;
 
   return (
     <div className="flex flex-col gap-6">
@@ -213,17 +283,24 @@ export function GameplanView({
       {result.first_step && (
         <section className="flex flex-col gap-1 rounded-lg border border-green-500/30 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="flex items-center gap-2 text-sm text-green-400">
-              <ZapIcon className="w-3 h-3" />
+            <h3
+              className={clsx(
+                "flex items-center gap-2 text-sm text-green-400",
+                firstDone && "line-through opacity-70",
+              )}
+            >
+              {firstDone ? <DoneMark /> : <ZapIcon className="w-3 h-3" />}
               Start today: {result.first_step.title}
             </h3>
-            {targetBucket != null && (
-              <AddAsIdea
-                bucketId={targetBucket}
-                title={result.first_step.title}
-                detail={result.first_step.detail}
-              />
-            )}
+            <StepLink
+              ideaId={result.first_step.idea_id}
+              idea={firstIdea}
+              bucketId={targetBucket}
+              title={result.first_step.title}
+              detail={result.first_step.detail}
+              stepRef={{ kind: "first" }}
+              onLink={onLink}
+            />
           </div>
           <p className="text-sm text-white/60">{result.first_step.detail}</p>
         </section>
@@ -245,12 +322,10 @@ export function GameplanView({
                   <StepItem
                     key={stepIndex}
                     step={step}
-                    idea={
-                      step.idea_id != null
-                        ? ideasById.get(step.idea_id)
-                        : undefined
-                    }
+                    idea={ideaFor(step.idea_id)}
                     bucketId={targetBucket}
+                    stepRef={{ kind: "phase", phase: index, step: stepIndex }}
+                    onLink={onLink}
                   />
                 ))}
               </ul>

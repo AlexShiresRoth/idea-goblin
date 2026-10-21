@@ -176,6 +176,9 @@ describe("IdeasBucket", () => {
         if (url === "/api/vault/analyze") {
           return new Response(JSON.stringify({ type: "done", data: plan }));
         }
+        if (url === "/api/ideas/create") {
+          return { ok: true, json: async () => [{ id: 55 }] } as Response;
+        }
         return { ok: true, json: async () => [] } as Response;
       }) as never);
     }
@@ -239,6 +242,39 @@ describe("IdeasBucket", () => {
           bucketId: 10,
         }),
       });
+    });
+    it("keeps steps added as ideas linked when the plan is saved", async () => {
+      routeFetch(null);
+      const user = userEvent.setup();
+      renderBucket(refineIdeas);
+
+      await user.click(screen.getByLabelText("button"));
+      await user.click(
+        await screen.findByRole("button", { name: "Make a gameplan" }),
+      );
+      await user.click(
+        screen.getByRole("button", { name: "Plan Launch ideas" }),
+      );
+      // Only the first step is unlinked in this plan.
+      const [modalAdd] = await screen.findAllByRole("button", {
+        name: "Add as idea",
+      });
+      await user.click(modalAdd);
+      // The phase step was already linked; now the first step is too.
+      await vi.waitFor(() =>
+        expect(screen.getAllByText("From your idea")).toHaveLength(2),
+      );
+      expect(
+        screen.queryByRole("button", { name: "Add as idea" }),
+      ).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /Save to bucket/ }));
+
+      const saveCall = vi
+        .mocked(fetch)
+        .mock.calls.find(([url]) => url === "/api/vault/save");
+      const body = JSON.parse(String(saveCall?.[1]?.body));
+      expect(body.data.first_step.idea_id).toBe(55);
     });
   });
 

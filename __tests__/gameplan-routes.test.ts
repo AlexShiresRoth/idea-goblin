@@ -25,7 +25,7 @@ describe("POST /api/vault/save", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(AuthGuard).mockResolvedValue(makeSession() as never);
-    insertQuery = mockQuery(undefined);
+    insertQuery = mockQuery([{ id: 42 }]);
     vi.mocked(db.insert).mockReturnValue(insertQuery as never);
   });
 
@@ -36,6 +36,7 @@ describe("POST /api/vault/save", () => {
     });
 
     expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ id: 42 });
     expect(db.select).not.toHaveBeenCalled();
     expect(insertQuery.values).toHaveBeenCalledWith(
       expect.objectContaining({ analysisType: "execution", bucketId: null }),

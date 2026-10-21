@@ -87,9 +87,14 @@ describe("GameplanView", () => {
     );
   });
 
-  it("adds a step as an idea in the plan's bucket", async () => {
+  it("adds a step as an idea and links the step to it", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 77 }],
+    } as Response);
+    const onLink = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
-    renderView();
+    renderView({ onLink });
 
     // The first step and the unlinked step can be added; the linked one can't.
     const buttons = screen.getAllByRole("button", { name: "Add as idea" });
@@ -103,8 +108,60 @@ describe("GameplanView", () => {
         bucket: 10,
       }),
     });
-    expect(await screen.findByText("Added")).toBeInTheDocument();
+    expect(onLink).toHaveBeenCalledWith(
+      { kind: "phase", phase: 0, step: 1 },
+      77,
+    );
     expect(refresh).toHaveBeenCalled();
+  });
+
+  it("links the first step too", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 78 }],
+    } as Response);
+    const onLink = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderView({ onLink });
+
+    await user.click(screen.getAllByRole("button", { name: "Add as idea" })[0]);
+
+    expect(onLink).toHaveBeenCalledWith({ kind: "first" }, 78);
+  });
+
+  it("shows a linked first step as done when its idea is", () => {
+    renderView({
+      result: {
+        ...gameplan,
+        first_step: { ...gameplan.first_step, idea_id: 5 },
+      },
+      ideas: [{ id: 5, title: "Form tool", status: "done" }],
+    });
+
+    expect(screen.getByText("From your idea: Form tool")).toBeInTheDocument();
+    expect(
+      screen.getByText("Start today: Pick a form tool").className,
+    ).toContain("line-through");
+  });
+
+  it("says so when the idea is added but the link fails", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 77 }],
+    } as Response);
+    const user = userEvent.setup();
+    renderView({ onLink: vi.fn().mockRejectedValue(new Error("nope")) });
+
+    await user.click(screen.getAllByRole("button", { name: "Add as idea" })[1]);
+
+    await vi.waitFor(() =>
+      expect(setToasts).toHaveBeenCalledWith([
+        expect.objectContaining({
+          message: "Added the idea, but couldn't link it to the plan",
+          type: "error",
+        }),
+      ]),
+    );
   });
 
   it("renders a partial plan while it streams", () => {

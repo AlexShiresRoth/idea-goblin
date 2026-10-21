@@ -33,14 +33,18 @@ export async function POST(request: Request) {
       }
     }
 
-    await db.insert(analysisResultsTable).values({
-      profileId: session.user.id,
-      analysisType,
-      analysisData: data,
-      bucketId: bucketId ?? null,
-    });
+    const [saved] = await db
+      .insert(analysisResultsTable)
+      .values({
+        profileId: session.user.id,
+        analysisType,
+        analysisData: data,
+        bucketId: bucketId ?? null,
+      })
+      .returning({ id: analysisResultsTable.id });
 
-    return new Response("Analysis result saved", { status: 200 });
+    // The id lets the client keep editing the saved copy (gameplan links).
+    return Response.json({ id: saved.id });
   } catch (error) {
     console.error(error);
     return new Response("Internal server error", { status: 500 });

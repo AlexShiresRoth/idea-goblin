@@ -4,7 +4,7 @@ import {
   RecommendationBadge,
 } from "@/app/components/analysis-result-condition";
 import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
-import { GameplanView } from "@/app/components/gameplan-view";
+import { SavedGameplanView } from "@/app/components/saved-gameplan-view";
 import { ExpandableSection } from "@/app/components/expandable-section";
 import { getAnalysisResult } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
@@ -130,7 +130,7 @@ export default async function AnalysisPage({
       {isGameplan(analysisData) && (
         <>
           <p className="text-white/70">{analysisData.bucket_name}</p>
-          <GameplanView result={analysisData} />
+          <SavedGameplanView analysisId={analysis.id} result={analysisData} />
         </>
       )}
       {analysisType !== "execution" && "reasoning" in analysisData && (
