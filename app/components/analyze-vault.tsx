@@ -6,9 +6,11 @@ import type {
   Pathway,
   PathwayId,
   Reasoning,
-  RefinementRound,
+  BucketRefinementResult,
+  GameplanResult,
+  Round,
 } from "@/lib/types";
-import { isBucketRefinement } from "@/lib/types";
+import { isBucketRefinement, isGameplan } from "@/lib/types";
 import clsx from "clsx";
 import {
   Brain,
@@ -21,11 +23,13 @@ import {
   SaveIcon,
   SparklesIcon,
   Wrench,
+  Flag,
   XIcon,
 } from "lucide-react";
 import { useContext, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { readNdjson } from "@/lib/ndjson";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
@@ -33,8 +37,12 @@ import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
 import { RefinementPicker } from "./refinement-picker";
 import { RefinementReply, RefinementRounds } from "./refinement-rounds";
 
+// A draft the user can reply to: a bucket refinement or a gameplan.
+type Draft = BucketRefinementResult | GameplanResult;
+
 const ExecutionPathway = PATHWAYSJSON.execution;
 const RefinementPathway = PATHWAYSJSON.refinement;
+const GameplanPathway = PATHWAYSJSON.gameplan;
 
 function formatReasoning(reasoning: Reasoning | undefined): string | undefined {
   if (!reasoning) return undefined;
@@ -73,6 +81,8 @@ function getReasoningText(
       return "reasoning" in result
         ? formatReasoning(result.reasoning)
         : undefined;
+    case "gameplan":
+      return undefined;
   }
 }
 
@@ -89,23 +99,38 @@ const PATHWAYS: Pathway[] = [
     description: RefinementPathway.description,
     icon: <Wrench className="w-3 h-3" />,
   },
+  {
+    id: GameplanPathway.id,
+    title: GameplanPathway.title,
+    description: GameplanPathway.description,
+    icon: <Flag className="w-3 h-3" />,
+  },
 ];
 
-// With `refineBucket`, the modal opens straight on the refinement picker,
-// limited to that bucket and with it preselected.
+// Pathways that work on one bucket, picked before the run starts.
+type BucketPathwayId = "refinement" | "gameplan";
+
+function isBucketPathway(id?: PathwayId): id is BucketPathwayId {
+  return id === "refinement" || id === "gameplan";
+}
+
+// With `scopeBucket`, the modal opens straight on the bucket picker for
+// `scopePathway`, limited to that bucket and with it preselected.
 export function AnalyzeVaultModal({
   onClose,
-  refineBucket,
+  scopeBucket,
+  scopePathway = "refinement",
 }: {
   onClose: () => void;
-  refineBucket?: BucketOption;
+  scopeBucket?: BucketOption;
+  scopePathway?: BucketPathwayId;
 }) {
-  const scoped = refineBucket != null;
+  const scoped = scopeBucket != null;
   const router = useRouter();
   const { setToasts } = useContext(ToastContext);
   const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(() =>
     scoped
-      ? (PATHWAYS.find((pathway) => pathway.id === "refinement") ?? null)
+      ? (PATHWAYS.find((pathway) => pathway.id === scopePathway) ?? null)
       : null,
   );
   const [analyzing, setAnalyzing] = useState(false);
@@ -119,16 +144,16 @@ export function AnalyzeVaultModal({
   const [minMaxModal, setMinMaxModal] = useState(scoped);
   const [pickingBucket, setPickingBucket] = useState(scoped);
   const [buckets, setBuckets] = useState<BucketOption[]>(
-    refineBucket ? [refineBucket] : [],
+    scopeBucket ? [scopeBucket] : [],
   );
   const [bucketsLoading, setBucketsLoading] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState<BucketOption | null>(
-    refineBucket ?? null,
+    scopeBucket ?? null,
   );
   const [focus, setFocus] = useState<RefinementFocusId[]>([]);
   const [note, setNote] = useState("");
-  // Earlier drafts of this refinement and the user's reply to each.
-  const [rounds, setRounds] = useState<RefinementRound[]>([]);
+  // Earlier drafts of this run and the user's reply to each.
+  const [rounds, setRounds] = useState<Round<Draft>[]>([]);
   const [reply, setReply] = useState("");
   const [recommending, setRecommending] = useState(false);
   const [recommendReason, setRecommendReason] = useState<string>();
@@ -142,6 +167,12 @@ export function AnalyzeVaultModal({
     result && selectedPathway?.id === "refinement" && isBucketRefinement(result)
       ? result
       : null;
+  const gameplan =
+    result && selectedPathway?.id === "gameplan" && isGameplan(result)
+      ? result
+      : null;
+  // A finished draft the user can reply to.
+  const draft: Draft | null = refinement ?? gameplan;
 
   async function loadBuckets() {
     setBucketsLoading(true);
@@ -159,7 +190,7 @@ export function AnalyzeVaultModal({
 
   async function beginPathway() {
     if (!selectedPathway) return;
-    if (selectedPathway.id === "refinement") {
+    if (isBucketPathway(selectedPathway.id)) {
       setPickingBucket(true);
       setMinMaxModal(true);
       setSelectedBucket(null);
@@ -198,11 +229,11 @@ export function AnalyzeVaultModal({
     }
   }
 
-  // `nextRounds` continues a refinement from its latest draft; a fresh run
-  // starts with none.
-  async function startAnalysis(nextRounds: RefinementRound[] = []) {
+  // `nextRounds` continues a run from its latest draft; a fresh run starts
+  // with none.
+  async function startAnalysis(nextRounds: Round<Draft>[] = []) {
     if (!selectedPathway) return;
-    if (selectedPathway.id === "refinement" && !selectedBucket) return;
+    if (isBucketPathway(selectedPathway.id) && !selectedBucket) return;
 
     setRounds(nextRounds);
     setPickingBucket(false);
@@ -220,8 +251,8 @@ export function AnalyzeVaultModal({
         body: JSON.stringify({
           pathway: selectedPathway.id,
           bucketId: selectedBucket?.id,
-          ...(selectedPathway.id === "refinement" && {
-            focus,
+          ...(selectedPathway.id === "refinement" && { focus }),
+          ...(isBucketPathway(selectedPathway.id) && {
             note: note.trim() || undefined,
             ...(nextRounds.length > 0 && { rounds: nextRounds }),
           }),
@@ -237,51 +268,32 @@ export function AnalyzeVaultModal({
         throw new Error("Failed to start analysis");
       }
 
-      if (!response.body) {
-        throw new Error("No body in response");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          if (!line) continue;
-          const event = JSON.parse(line) as {
-            type: "status" | "partial" | "done" | "error";
-            step?: string;
-            data?: unknown;
-            message?: string;
-            cached?: boolean;
-          };
-
-          if (event.type === "status" && event.step && event.message) {
-            const { step, message } = event;
-            setSteps((current) =>
-              current.some((item) => item.step === step)
-                ? current.map((item) =>
-                    item.step === step ? { ...item, message } : item,
-                  )
-                : [...current, { step, message, startedAt: Date.now() }],
-            );
-          }
-
-          if (event.type === "partial" || event.type === "done") {
-            setResult(event.data as AnalysisPayload);
-          }
-          if (event.cached) setCached(true);
-          if (event.type === "error") {
-            setError(event.message ?? "Analysis failed");
-          }
+      await readNdjson<{
+        type: "status" | "partial" | "done" | "error";
+        step?: string;
+        data?: unknown;
+        message?: string;
+        cached?: boolean;
+      }>(response, (event) => {
+        if (event.type === "status" && event.step && event.message) {
+          const { step, message } = event;
+          setSteps((current) =>
+            current.some((item) => item.step === step)
+              ? current.map((item) =>
+                  item.step === step ? { ...item, message } : item,
+                )
+              : [...current, { step, message, startedAt: Date.now() }],
+          );
         }
-      }
+
+        if (event.type === "partial" || event.type === "done") {
+          setResult(event.data as AnalysisPayload);
+        }
+        if (event.cached) setCached(true);
+        if (event.type === "error") {
+          setError(event.message ?? "Analysis failed");
+        }
+      });
     } catch (err) {
       console.error(err);
       setError("Failed to start analysis");
@@ -299,6 +311,8 @@ export function AnalyzeVaultModal({
         body: JSON.stringify({
           data: result,
           analysisType: selectedPathway.id,
+          // A gameplan belongs to its bucket, which shows the latest one.
+          ...(gameplan && { bucketId: gameplan.bucket_id }),
         }),
       });
 
@@ -368,9 +382,9 @@ export function AnalyzeVaultModal({
 
   function refineAgain() {
     const feedback = reply.trim();
-    if (!refinement || !feedback || analyzing) return;
+    if (!draft || !feedback || analyzing) return;
     setReply("");
-    void startAnalysis([...rounds, { draft: refinement, feedback }]);
+    void startAnalysis([...rounds, { draft, feedback }]);
   }
 
   // Makes an earlier draft current again, dropping the rounds after it.
@@ -408,7 +422,7 @@ export function AnalyzeVaultModal({
                 personalized feedback.
               </p>
             </div>
-            <div className="md:grid grid-cols-2 gap-4 flex flex-col">
+            <div className="md:grid grid-cols-3 gap-4 flex flex-col">
               {PATHWAYS.map((pathway) => (
                 <button
                   type="button"
@@ -463,7 +477,14 @@ export function AnalyzeVaultModal({
               selectedBucketId={selectedBucket?.id ?? null}
               recommendReason={recommendReason}
               onSelect={setSelectedBucket}
-              onRecommend={scoped ? undefined : recommendBucket}
+              onRecommend={
+                scoped || selectedPathway?.id !== "refinement"
+                  ? undefined
+                  : recommendBucket
+              }
+              pathway={
+                selectedPathway?.id === "gameplan" ? "gameplan" : "refinement"
+              }
               focus={focus}
               onFocusChange={setFocus}
               note={note}
@@ -496,7 +517,8 @@ export function AnalyzeVaultModal({
                 onClick={() => startAnalysis()}
               >
                 <Route className="w-3 h-3" />
-                Refine {selectedBucket ? selectedBucket.name : "this bucket"}
+                {selectedPathway?.id === "gameplan" ? "Plan" : "Refine"}{" "}
+                {selectedBucket ? selectedBucket.name : "this bucket"}
               </button>
             </div>
           </div>
@@ -520,11 +542,19 @@ export function AnalyzeVaultModal({
                     <Brain className="w-3 h-3" /> Show Reasoning
                   </ActionButton>
                   <ActionButton
-                    action={() => !saved && reasoning && saveAnalysis()}
+                    action={() =>
+                      !saved && (reasoning || gameplan) && saveAnalysis()
+                    }
                     disabled={saving || analyzing || saved}
                   >
                     <SaveIcon className="w-3 h-3" />
-                    {saved ? "Saved" : saving ? "Saving..." : "Save Analysis"}
+                    {saved
+                      ? "Saved"
+                      : saving
+                        ? "Saving..."
+                        : gameplan
+                          ? "Save to bucket"
+                          : "Save Analysis"}
                   </ActionButton>
                   {refinement && (
                     <ActionButton
@@ -580,7 +610,8 @@ export function AnalyzeVaultModal({
               )}
               {cached && (
                 <p className="text-xs text-white/40">
-                  Nothing changed since your last run, so the goblin handed back the same result.
+                  Nothing changed since your last run, so the goblin handed back
+                  the same result.
                 </p>
               )}
               {showReasoning && reasoning && (
@@ -592,13 +623,18 @@ export function AnalyzeVaultModal({
                   type={selectedPathway.id}
                 />
               )}
-              {refinement && !analyzing && (
+              {draft && !analyzing && (
                 <RefinementReply
                   value={reply}
                   roundCount={rounds.length}
                   disabled={analyzing}
                   onChange={setReply}
                   onSubmit={refineAgain}
+                  placeholder={
+                    gameplan
+                      ? "e.g. I only have weekends, and skip the marketing phase"
+                      : undefined
+                  }
                 />
               )}
             </div>

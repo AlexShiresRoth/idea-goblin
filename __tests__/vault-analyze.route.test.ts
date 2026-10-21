@@ -337,6 +337,125 @@ describe("POST /api/vault/analyze", () => {
     expect(stream).not.toHaveBeenCalled();
   });
 
+  describe("gameplan", () => {
+    const gameplanDraft = {
+      finish_line: "A live waitlist page.",
+      where_you_are: "Emails are collected by hand.",
+      first_step: { title: "Pick a form tool", detail: "Ten minutes." },
+      phases: [
+        {
+          title: "Build",
+          goal: "Get it live",
+          steps: [
+            {
+              title: "Ship the page",
+              detail: "One page.",
+              idea_id: 2,
+              effort: "low",
+            },
+          ],
+        },
+      ],
+      cut: ["The referral program"],
+      risks: ["Scope creep"],
+    };
+
+    beforeEach(() => {
+      vi.mocked(db.select).mockReturnValue(
+        mockQuery([makeBucket({ id: 5 })]) as never,
+      );
+      vi.mocked(getBucketIdeas).mockResolvedValue([
+        {
+          id: 1,
+          title: "Waitlist",
+          description: "Collect emails first",
+          category: "c",
+          status: "done",
+          type: "idea",
+        },
+        {
+          id: 2,
+          title: "Landing page",
+          description: "One page",
+          category: "c",
+          status: "incubating",
+          type: "idea",
+        },
+      ]);
+    });
+
+    it("plans on the refine model with idea ids, done ideas and a capped output", async () => {
+      const events = await readEvents(
+        await analyze({
+          pathway: "gameplan",
+          bucketId: 5,
+          note: "weekends only",
+          focus: ["marketable"],
+        }),
+      );
+
+      const [params] = stream.mock.calls[0];
+      expect(params.model).toBe(AI_MODELS.refine);
+      expect(params.reasoning).toEqual({ effort: "medium" });
+      expect(params.max_output_tokens).toBe(8000);
+      const content: string = params.input[1].content;
+      expect(content).toContain("Make a gameplan");
+      expect(content).toContain("bucket_id: 5");
+      expect(content).toContain(
+        "- idea_id 1 (done) | Waitlist: Collect emails first",
+      );
+      expect(content).toContain("- idea_id 2 | Landing page: One page");
+      expect(content).toContain("note from the user: weekends only");
+      // Refinement directions don't apply to a gameplan.
+      expect(content).not.toContain("Make it more marketable");
+      expect(events[0].message).toBe(
+        'Rummaged through "Launch ideas" and its 2 ideas (1 done)',
+      );
+    });
+
+    it("continues from an earlier plan and the user's reply", async () => {
+      await readEvents(
+        await analyze({
+          pathway: "gameplan",
+          bucketId: 5,
+          rounds: [{ draft: gameplanDraft, feedback: "skip the build phase" }],
+        }),
+      );
+
+      const { input } = stream.mock.calls[0][0];
+      expect(input).toHaveLength(4);
+      expect(JSON.parse(input[2].content).finish_line).toBe(
+        "A live waitlist page.",
+      );
+      expect(input[3].content).toBe("reply: skip the build phase");
+    });
+
+    it("rejects a refinement draft as a gameplan round", async () => {
+      const response = await analyze({
+        pathway: "gameplan",
+        bucketId: 5,
+        rounds: [
+          {
+            draft: {
+              refined_name: "A",
+              refined_description: "B",
+              improvements: [],
+            },
+            feedback: "again",
+          },
+        ],
+      });
+
+      expect(response.status).toBe(400);
+      expect(stream).not.toHaveBeenCalled();
+    });
+
+    it("needs a bucket", async () => {
+      const response = await analyze({ pathway: "gameplan" });
+      expect(response.status).toBe(400);
+    });
+  });
+
   it("returns 400 when refining without a bucket", async () => {
     const response = await analyze({ pathway: "refinement" });
     expect(response.status).toBe(400);

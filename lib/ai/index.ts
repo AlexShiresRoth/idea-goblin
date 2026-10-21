@@ -17,6 +17,7 @@ export type AiRoute =
   | "analysis"
   | "execution"
   | "refinement"
+  | "gameplan"
   | "idea-create"
   | "bucket-classify"
   | "idea-import";
@@ -28,6 +29,7 @@ export const RATE_LIMITS: Partial<
   analysis: { max: 3, windowMinutes: 60 },
   execution: { max: 3, windowMinutes: 60 },
   refinement: { max: 10, windowMinutes: 60 },
+  gameplan: { max: 10, windowMinutes: 60 },
   // One run per import, however many model calls it makes.
   "idea-import": { max: 5, windowMinutes: 60 },
 };

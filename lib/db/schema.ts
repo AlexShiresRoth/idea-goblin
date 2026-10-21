@@ -115,6 +115,10 @@ export const analysisResultsTable = pgTable("analysis_results", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   analysisType: text("analysis_type").$type<PathwayId>().notNull(),
   analysisData: jsonb("analysis_data").$type<AnalysisPayload>().notNull(),
+  // Set for analyses about one bucket (gameplans), so it can show its latest.
+  bucketId: integer("bucket_id").references(() => ideaBucketsTable.id, {
+    onDelete: "cascade",
+  }),
 });
 
 // One row per model call: usage for cost tracking, plus the result keyed by

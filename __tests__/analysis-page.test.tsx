@@ -16,6 +16,7 @@ function makeAnalysis(id: number): AnalysisResult {
     id,
     profileId: userId,
     analysisType: "execution",
+    bucketId: null,
     analysisData: { summary: `Summary ${id}` } as never,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -157,8 +158,6 @@ describe("AnalysisPage", () => {
     });
     expect(screen.getByText("2 / 2")).toBeInTheDocument();
     expect(screen.getByText("Summary 11")).toBeInTheDocument();
-    expect(screen.getByLabelText("Next page")).toHaveAttribute(
-      "aria-disabled",
-    );
+    expect(screen.getByLabelText("Next page")).toHaveAttribute("aria-disabled");
   });
 });
