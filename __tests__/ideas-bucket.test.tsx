@@ -1,6 +1,6 @@
 import IdeasBucket from "@/app/main/ideas-bucket";
 import { ToastContext } from "@/app/context/toast.provider";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBucket, makeIdea } from "./helpers";
@@ -62,6 +62,27 @@ describe("IdeasBucket", () => {
     await user.click(screen.getByLabelText("Close bucket"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(document.body.style.overflow).toBe("");
+  });
+
+  it("minimizes the header summary and expands it again", async () => {
+    const user = userEvent.setup();
+    renderBucket(undefined, makeBucket({ description: "Full summary text" }));
+
+    await user.click(screen.getByLabelText("button"));
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByText("Full summary text")).toBeVisible();
+
+    await user.click(dialog.getByRole("button", { name: "Hide summary" }));
+    expect(dialog.getByText("Full summary text")).not.toBeVisible();
+    expect(dialog.queryByText(/^Updated/)).not.toBeInTheDocument();
+    expect(dialog.getByText("Launch ideas")).toBeInTheDocument();
+    expect(dialog.getByText("Delete")).toBeInTheDocument();
+
+    await user.click(dialog.getByRole("button", { name: "Show summary" }));
+    expect(dialog.getByText("Full summary text")).toBeVisible();
+    expect(
+      dialog.getByRole("button", { name: "Hide summary" }),
+    ).toHaveAttribute("aria-expanded", "true");
   });
 
   it("shows an empty state for a bucket with no ideas", async () => {

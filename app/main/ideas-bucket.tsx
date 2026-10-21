@@ -1,8 +1,11 @@
 "use client";
 import { IdeaBucket, type IdeaView } from "@/lib/db/schema";
+import clsx from "clsx";
 import {
+  ChevronDownIcon,
   ChevronLeft,
   ChevronRight,
+  ChevronUpIcon,
   Loader2Icon,
   SparklesIcon,
   Trash2Icon,
@@ -60,6 +63,9 @@ function BucketDetail({
   const { setToasts } = useContext(ToastContext);
   const [isDeleting, setIsDeleting] = useState(false);
   const [refining, setRefining] = useState(false);
+  // Collapses the header to one line, leaving more room for ideas.
+  const [summaryOpen, setSummaryOpen] = useState(true);
+  const summaryId = `bucket-summary-${bucket.id}`;
   const [rawStart, setStart] = useState(0);
   const take = IDEAS_PER_PAGE;
   const lastPageStart = Math.max(
@@ -116,16 +122,54 @@ function BucketDetail({
       style={bucketStyleVars(bucket.category)}
       className="fixed inset-0 z-50 flex flex-col bg-black"
     >
-      <header className="flex flex-col gap-4 border-b border-(--bucket-primary)/40 px-4 py-4 md:flex-row md:items-start md:justify-between md:px-8">
+      <header
+        className={clsx(
+          "flex flex-col gap-4 border-b border-(--bucket-primary)/40 px-4 md:flex-row md:justify-between md:px-8",
+          summaryOpen ? "py-4 md:items-start" : "py-2 md:items-center",
+        )}
+      >
         <div className="flex min-w-0 max-w-3xl flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <ThemePill bucket={bucket} />
-            <p className="text-xs text-white/50">
-              Updated {timeAgo(bucket.updatedAt)} ago
-            </p>
+          {summaryOpen && (
+            <div className="flex items-center gap-3">
+              <ThemePill bucket={bucket} />
+              <p className="text-xs text-white/50">
+                Updated {timeAgo(bucket.updatedAt)} ago
+              </p>
+            </div>
+          )}
+          <div className="flex min-w-0 items-center gap-2">
+            {!summaryOpen && <ThemePill bucket={bucket} />}
+            <h2
+              className={clsx(
+                "min-w-0",
+                summaryOpen ? "text-2xl" : "truncate text-lg",
+              )}
+            >
+              {bucket.name}
+            </h2>
+            <button
+              type="button"
+              aria-expanded={summaryOpen}
+              aria-controls={summaryId}
+              aria-label={summaryOpen ? "Hide summary" : "Show summary"}
+              title={summaryOpen ? "Hide summary" : "Show summary"}
+              onClick={() => setSummaryOpen(!summaryOpen)}
+              className="shrink-0 rounded p-1 text-white/50 hover:cursor-pointer hover:bg-white/10 hover:text-white/80 transition-colors"
+            >
+              {summaryOpen ? (
+                <ChevronUpIcon className="w-4 h-4" />
+              ) : (
+                <ChevronDownIcon className="w-4 h-4" />
+              )}
+            </button>
           </div>
-          <h2 className="text-2xl">{bucket.name}</h2>
-          <p className="text-sm text-white/50">{bucket.description}</p>
+          <p
+            id={summaryId}
+            hidden={!summaryOpen}
+            className="text-sm text-white/50"
+          >
+            {bucket.description}
+          </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <CreateIdeaModal type="bucket" defaultBucket={bucket.id} />
