@@ -1,6 +1,6 @@
 import IdeasBucket from "@/app/main/ideas-bucket";
 import { ToastContext } from "@/app/context/toast.provider";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBucket, makeIdea } from "./helpers";
@@ -45,8 +45,71 @@ describe("IdeasBucket", () => {
 
     expect(screen.getByText("Launch ideas")).toBeInTheDocument();
     expect(screen.getByText("growth")).toBeInTheDocument();
-    expect(screen.getByText("Nested idea").closest(".hidden")).toBeTruthy();
+    expect(screen.queryByText("Nested idea")).not.toBeInTheDocument();
     expect(screen.queryByText("Delete")).not.toBeInTheDocument();
+  });
+
+  it("opens full screen and closes again", async () => {
+    const user = userEvent.setup();
+    renderBucket();
+
+    await user.click(screen.getByLabelText("button"));
+    expect(
+      screen.getByRole("dialog", { name: "Launch ideas" }),
+    ).toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    await user.click(screen.getByLabelText("Close bucket"));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("minimizes the header summary and expands it again", async () => {
+    const user = userEvent.setup();
+    renderBucket(undefined, makeBucket({ description: "Full summary text" }));
+
+    await user.click(screen.getByLabelText("button"));
+    const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByText("Full summary text")).toBeVisible();
+
+    await user.click(dialog.getByRole("button", { name: "Hide summary" }));
+    expect(dialog.getByText("Full summary text")).not.toBeVisible();
+    expect(dialog.queryByText(/^Updated/)).not.toBeInTheDocument();
+    expect(dialog.getByText("Launch ideas")).toBeInTheDocument();
+    expect(dialog.getByText("Delete")).toBeInTheDocument();
+
+    await user.click(dialog.getByRole("button", { name: "Show summary" }));
+    expect(dialog.getByText("Full summary text")).toBeVisible();
+    expect(
+      dialog.getByRole("button", { name: "Hide summary" }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("shows an empty state for a bucket with no ideas", async () => {
+    const user = userEvent.setup();
+    renderBucket([]);
+
+    await user.click(screen.getByLabelText("button"));
+
+    expect(screen.getByText(/No ideas in here yet/)).toBeInTheDocument();
+  });
+
+  it("toasts an error and stays open when delete fails", async () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: false } as Response);
+    const user = userEvent.setup();
+    renderBucket();
+
+    await user.click(screen.getByLabelText("button"));
+    await user.click(screen.getByText("Delete"));
+
+    expect(setToasts).toHaveBeenCalledWith([
+      { id: 10, message: "Error deleting bucket", type: "error" },
+    ]);
+    expect(setToasts).not.toHaveBeenCalledWith([
+      expect.objectContaining({ type: "success" }),
+    ]);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("shows the bucket's category icon", () => {
@@ -242,50 +305,50 @@ describe("IdeasBucket", () => {
   it("hides pagination when the bucket fits on one page", async () => {
     const user = userEvent.setup();
     renderBucket(
-      Array.from({ length: 5 }, (_, i) =>
+      Array.from({ length: 10 }, (_, i) =>
         makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
       ),
     );
 
     await user.click(screen.getByLabelText("button"));
 
-    expect(screen.getByText("Idea 5")).toBeInTheDocument();
+    expect(screen.getByText("Idea 10")).toBeInTheDocument();
     expect(screen.queryByLabelText("Next ideas")).not.toBeInTheDocument();
   });
 
-  it("pages through ideas five at a time", async () => {
+  it("pages through ideas ten at a time", async () => {
     const user = userEvent.setup();
     renderBucket(
-      Array.from({ length: 12 }, (_, i) =>
+      Array.from({ length: 25 }, (_, i) =>
         makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
       ),
     );
 
     await user.click(screen.getByLabelText("button"));
 
-    expect(screen.getByText("Ideas 12")).toBeInTheDocument();
+    expect(screen.getByText("Ideas 25")).toBeInTheDocument();
     expect(screen.getByText("1 / 3")).toBeInTheDocument();
     expect(screen.getByText("Idea 1")).toBeInTheDocument();
-    expect(screen.getByText("Idea 5")).toBeInTheDocument();
-    expect(screen.queryByText("Idea 6")).not.toBeInTheDocument();
+    expect(screen.getByText("Idea 10")).toBeInTheDocument();
+    expect(screen.queryByText("Idea 11")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Previous ideas")).toBeDisabled();
 
     await user.click(screen.getByLabelText("Next ideas"));
     expect(screen.getByText("2 / 3")).toBeInTheDocument();
-    expect(screen.queryByText("Idea 5")).not.toBeInTheDocument();
-    expect(screen.getByText("Idea 6")).toBeInTheDocument();
-    expect(screen.getByText("Idea 10")).toBeInTheDocument();
+    expect(screen.queryByText("Idea 10")).not.toBeInTheDocument();
+    expect(screen.getByText("Idea 11")).toBeInTheDocument();
+    expect(screen.getByText("Idea 20")).toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Next ideas"));
     expect(screen.getByText("3 / 3")).toBeInTheDocument();
-    expect(screen.getByText("Idea 11")).toBeInTheDocument();
-    expect(screen.getByText("Idea 12")).toBeInTheDocument();
-    expect(screen.queryByText("Idea 10")).not.toBeInTheDocument();
+    expect(screen.getByText("Idea 21")).toBeInTheDocument();
+    expect(screen.getByText("Idea 25")).toBeInTheDocument();
+    expect(screen.queryByText("Idea 20")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Next ideas")).toBeDisabled();
 
     await user.click(screen.getByLabelText("Previous ideas"));
     expect(screen.getByText("2 / 3")).toBeInTheDocument();
-    expect(screen.getByText("Idea 6")).toBeInTheDocument();
+    expect(screen.getByText("Idea 11")).toBeInTheDocument();
   });
 
   it("falls back to the last page when ideas on the current page are removed", async () => {
@@ -294,7 +357,7 @@ describe("IdeasBucket", () => {
         makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
       );
     const user = userEvent.setup();
-    const { rerender } = renderBucket(makeIdeas(12));
+    const { rerender } = renderBucket(makeIdeas(25));
 
     await user.click(screen.getByLabelText("button"));
     await user.click(screen.getByLabelText("Next ideas"));
@@ -304,13 +367,13 @@ describe("IdeasBucket", () => {
     // Deleting an idea refreshes the route, which re-renders with fewer ideas.
     rerender(
       <ToastContext.Provider value={{ toasts: [], setToasts }}>
-        <IdeasBucket bucket={makeBucket()} ideas={makeIdeas(10)} />
+        <IdeasBucket bucket={makeBucket()} ideas={makeIdeas(20)} />
       </ToastContext.Provider>,
     );
 
     expect(screen.getByText("2 / 2")).toBeInTheDocument();
-    expect(screen.getByText("Idea 6")).toBeInTheDocument();
-    expect(screen.getByText("Idea 10")).toBeInTheDocument();
+    expect(screen.getByText("Idea 11")).toBeInTheDocument();
+    expect(screen.getByText("Idea 20")).toBeInTheDocument();
     expect(screen.getByLabelText("Next ideas")).toBeDisabled();
   });
 

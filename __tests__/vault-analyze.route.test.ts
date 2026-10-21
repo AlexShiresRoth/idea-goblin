@@ -212,6 +212,109 @@ describe("POST /api/vault/analyze", () => {
     expect(content).not.toContain("x".repeat(301));
   });
 
+  it("continues a refinement from earlier drafts and the user's replies", async () => {
+    vi.mocked(db.select).mockReturnValue(
+      mockQuery([makeBucket({ id: 5 })]) as never,
+    );
+    vi.mocked(getBucketIdeas).mockResolvedValue([]);
+    const draft = {
+      refined_name: "Waitlist Kit",
+      refined_description: "Collect emails before launch.",
+      refined_category: "tools",
+      improvements: ["Add referrals"],
+      reasoning: { main_idea: "dropped", reasons: [] },
+    };
+
+    const events = await readEvents(
+      await analyze({
+        pathway: "refinement",
+        bucketId: 5,
+        rounds: [{ draft, feedback: "  aim it at teachers  " }],
+      }),
+    );
+
+    const { input } = stream.mock.calls[0][0];
+    expect(input).toHaveLength(4);
+    expect(input[1].content).toContain("bucket_id: 5");
+    expect(input[2].role).toBe("assistant");
+    expect(JSON.parse(input[2].content)).toEqual({
+      refined_name: "Waitlist Kit",
+      refined_description: "Collect emails before launch.",
+      refined_category: "tools",
+      improvements: ["Add referrals"],
+    });
+    expect(input[3]).toEqual({
+      role: "user",
+      content: "reply: aim it at teachers",
+    });
+    expect(events[0].message).toContain("reworking draft 1 with your reply");
+  });
+
+  it("caches follow-ups separately from the first draft", async () => {
+    vi.mocked(db.select).mockReturnValue(
+      mockQuery([makeBucket({ id: 5 })]) as never,
+    );
+    vi.mocked(getBucketIdeas).mockResolvedValue([]);
+    const draft = {
+      refined_name: "A",
+      refined_description: "B",
+      improvements: [],
+    };
+
+    await readEvents(await analyze({ pathway: "refinement", bucketId: 5 }));
+    await readEvents(
+      await analyze({
+        pathway: "refinement",
+        bucketId: 5,
+        rounds: [{ draft, feedback: "shorter" }],
+      }),
+    );
+
+    const [first, second] = vi
+      .mocked(findCachedResult)
+      .mock.calls.map((call) => call[2]);
+    expect(first).not.toBe(second);
+  });
+
+  it.each([
+    [
+      "an empty reply",
+      [
+        {
+          draft: {
+            refined_name: "A",
+            refined_description: "B",
+            improvements: [],
+          },
+          feedback: "  ",
+        },
+      ],
+    ],
+    ["a malformed draft", [{ draft: { refined_name: 1 }, feedback: "hi" }]],
+    [
+      "too many rounds",
+      Array.from({ length: 6 }, () => ({
+        draft: {
+          refined_name: "A",
+          refined_description: "B",
+          improvements: [],
+        },
+        feedback: "again",
+      })),
+    ],
+  ])("returns 400 for %s", async (_label, rounds) => {
+    vi.mocked(db.select).mockReturnValue(
+      mockQuery([makeBucket({ id: 5 })]) as never,
+    );
+    const response = await analyze({
+      pathway: "refinement",
+      bucketId: 5,
+      rounds,
+    });
+    expect(response.status).toBe(400);
+    expect(stream).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when refining without a bucket", async () => {
     const response = await analyze({ pathway: "refinement" });
     expect(response.status).toBe(400);

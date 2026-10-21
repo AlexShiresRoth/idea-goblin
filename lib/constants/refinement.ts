@@ -51,3 +51,6 @@ export const REFINEMENT_FOCUSES: {
 ];
 
 export const MAX_REFINEMENT_NOTE_LENGTH = 300;
+
+// Follow-up rounds a refinement can take, each replying to the last draft.
+export const MAX_REFINEMENT_ROUNDS = 5;
