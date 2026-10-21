@@ -1,4 +1,5 @@
 "use client";
+import { isDone } from "@/lib/constants";
 import { IdeaBucket, type IdeaView } from "@/lib/db/schema";
 import clsx from "clsx";
 import {
@@ -40,6 +41,10 @@ function timeAgo(date: Date) {
         : `${diffInSeconds}s`;
 }
 
+function doneCount(ideas: IdeaView[]) {
+  return `${ideas.filter(isDone).length} of ${ideas.length} done`;
+}
+
 function ThemePill({ bucket }: { bucket: IdeaBucket }) {
   return (
     <div className="flex w-fit items-center gap-1 rounded-full border border-(--bucket-primary)/50 bg-(--bucket-accent)/10 px-2 py-1">
@@ -68,16 +73,20 @@ function BucketDetail({
   const [summaryOpen, setSummaryOpen] = useState(true);
   const summaryId = `bucket-summary-${bucket.id}`;
   const [rawStart, setStart] = useState(0);
+  const [showDone, setShowDone] = useState(false);
+  // Done ideas leave the paged list for their own section.
+  const openIdeas = ideas.filter((idea) => !isDone(idea));
+  const doneIdeas = ideas.filter(isDone);
   const take = IDEAS_PER_PAGE;
   const lastPageStart = Math.max(
     0,
-    (Math.ceil(ideas.length / take) - 1) * take,
+    (Math.ceil(openIdeas.length / take) - 1) * take,
   );
   const start = Math.min(rawStart, lastPageStart);
   const pageIndex = Math.floor(start / take) + 1;
-  const ideasPage = ideas.slice(start, start + take);
+  const ideasPage = openIdeas.slice(start, start + take);
   const canGoLeft = start > 0;
-  const canGoRight = start + take < ideas.length;
+  const canGoRight = start + take < openIdeas.length;
 
   // The page behind shouldn't scroll while the bucket fills the screen.
   useEffect(() => {
@@ -218,8 +227,15 @@ function BucketDetail({
             data-testid="idea-header"
             className="sticky top-0 z-10 flex items-center justify-between border-b border-white/20 bg-black px-4 py-2 md:px-8"
           >
-            <p className="text-white/60">Ideas {ideas.length}</p>
-            {ideas.length > take && (
+            <p className="text-white/60">
+              Ideas {openIdeas.length}
+              {doneIdeas.length > 0 && (
+                <span className="ml-2 text-xs text-white/40">
+                  {doneCount(ideas)}
+                </span>
+              )}
+            </p>
+            {openIdeas.length > take && (
               <div className="flex items-center gap-2">
                 <button
                   aria-label="Previous ideas"
@@ -230,7 +246,7 @@ function BucketDetail({
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <span>
-                  {pageIndex} / {Math.ceil(ideas.length / take)}
+                  {pageIndex} / {Math.ceil(openIdeas.length / take)}
                 </span>
                 <button
                   aria-label="Next ideas"
@@ -247,8 +263,35 @@ function BucketDetail({
             <p className="px-4 py-6 text-sm text-white/40 md:px-8">
               No ideas in here yet. Add one to get the goblin chewing.
             </p>
+          ) : openIdeas.length === 0 ? (
+            <p className="px-4 py-6 text-sm text-white/40 md:px-8">
+              Everything in here is done. Add another, or dig through the done
+              pile below.
+            </p>
           ) : (
             ideasPage.map((idea) => <IdeaComponent key={idea.id} idea={idea} />)
+          )}
+          {doneIdeas.length > 0 && (
+            <div className="border-t border-white/10">
+              <button
+                type="button"
+                aria-expanded={showDone}
+                onClick={() => setShowDone(!showDone)}
+                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-white/50 hover:cursor-pointer hover:text-white/80 transition-colors md:px-8"
+              >
+                <ChevronRight
+                  className={clsx(
+                    "w-3 h-3 transition-transform",
+                    showDone && "rotate-90",
+                  )}
+                />
+                Done {doneIdeas.length}
+              </button>
+              {showDone &&
+                doneIdeas.map((idea) => (
+                  <IdeaComponent key={idea.id} idea={idea} />
+                ))}
+            </div>
           )}
         </section>
         <aside className="border-t border-white/20 md:min-h-0 md:overflow-y-auto md:border-t-0 md:border-l">
@@ -296,6 +339,9 @@ export default function IdeasBucket({
           {bucket.description.slice(0, 200)}
           {bucket.description.length > 200 && "..."}
         </p>
+        {ideas.some(isDone) && (
+          <p className="text-xs text-white/40">{doneCount(ideas)}</p>
+        )}
       </div>
       {expanded && (
         <BucketDetail

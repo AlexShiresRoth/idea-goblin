@@ -190,6 +190,28 @@ describe("POST /api/vault/analyze", () => {
     );
   });
 
+  it("labels done ideas in the refinement context", async () => {
+    vi.mocked(db.select).mockReturnValue(
+      mockQuery([makeBucket({ id: 5 })]) as never,
+    );
+    vi.mocked(getBucketIdeas).mockResolvedValue([
+      {
+        id: 1,
+        title: "Waitlist",
+        description: "Collect emails first",
+        category: "c",
+        status: "done",
+        type: "idea",
+      },
+    ]);
+
+    await readEvents(await analyze({ pathway: "refinement", bucketId: 5 }));
+
+    expect(stream.mock.calls[0][0].input[1].content).toContain(
+      "- Waitlist (done): Collect emails first",
+    );
+  });
+
   it("steers refinement by known directions and a capped note", async () => {
     vi.mocked(db.select).mockReturnValue(
       mockQuery([makeBucket({ id: 5 })]) as never,

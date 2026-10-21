@@ -85,6 +85,64 @@ describe("IdeasBucket", () => {
     ).toHaveAttribute("aria-expanded", "true");
   });
 
+  describe("done ideas", () => {
+    const mixed = [
+      makeIdea({ id: 1, title: "Open one" }),
+      makeIdea({ id: 2, title: "Finished one", status: "done" }),
+      makeIdea({ id: 3, title: "Open two" }),
+    ];
+
+    it("shows a done count on the card", () => {
+      renderBucket(mixed);
+      expect(screen.getByText("1 of 3 done")).toBeInTheDocument();
+    });
+
+    it("hides the done count when nothing is done", () => {
+      renderBucket();
+      expect(screen.queryByText(/ done$/)).not.toBeInTheDocument();
+    });
+
+    it("moves done ideas into a collapsed section", async () => {
+      const user = userEvent.setup();
+      renderBucket(mixed);
+
+      await user.click(screen.getByLabelText("button"));
+      const dialog = within(screen.getByRole("dialog"));
+
+      expect(dialog.getByText("Ideas 2")).toBeInTheDocument();
+      expect(dialog.getByText("Open one")).toBeInTheDocument();
+      expect(dialog.queryByText("Finished one")).not.toBeInTheDocument();
+
+      await user.click(dialog.getByRole("button", { name: /Done 1/ }));
+      expect(dialog.getByText("Finished one")).toBeInTheDocument();
+    });
+
+    it("pages through open ideas only", async () => {
+      const user = userEvent.setup();
+      renderBucket([
+        ...Array.from({ length: 10 }, (_, i) =>
+          makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
+        ),
+        makeIdea({ id: 99, title: "Old win", status: "done" }),
+      ]);
+
+      await user.click(screen.getByLabelText("button"));
+
+      expect(screen.queryByLabelText("Next ideas")).not.toBeInTheDocument();
+    });
+
+    it("says so when everything is done", async () => {
+      const user = userEvent.setup();
+      renderBucket([makeIdea({ title: "Finished one", status: "done" })]);
+
+      await user.click(screen.getByLabelText("button"));
+
+      expect(
+        screen.getByText(/Everything in here is done/),
+      ).toBeInTheDocument();
+    });
+  });
+
   it("shows an empty state for a bucket with no ideas", async () => {
     const user = userEvent.setup();
     renderBucket([]);

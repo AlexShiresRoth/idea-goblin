@@ -12,6 +12,7 @@ import { db } from "@/lib/db";
 import { getBucketIdeas } from "@/lib/api/buckets";
 import {
   BUCKET_CATEGORY_NAMES,
+  isDone,
   MAX_REFINEMENT_NOTE_LENGTH,
   MAX_REFINEMENT_ROUNDS,
   REFINEMENT_FOCUSES,
@@ -147,6 +148,7 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         Refine one idea bucket. The bucket's name and description
         are the main idea; the ideas listed in it are context.
         Preserve the original intent.
+        Ideas marked (done) are finished; treat them as progress, not open work.
         Use the ideas to find what the main idea is really about,
         what it is missing, and where it is heading.
         Suggest a sharper name, a clearer description,
@@ -477,7 +479,7 @@ export async function POST(request: Request) {
     description: ${bucket.description}
     theme: ${bucket.theme}
     ideas:
-    ${ideas.map((idea) => `- ${idea.title}: ${idea.description}`).join("\n")}
+    ${ideas.map((idea) => `- ${idea.title}${isDone(idea) ? " (done)" : ""}: ${idea.description}`).join("\n")}
   `;
     } else {
       // Only bucket name + description is sent, so only buckets are loaded.

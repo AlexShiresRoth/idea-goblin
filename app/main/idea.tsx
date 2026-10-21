@@ -1,11 +1,15 @@
 "use client";
+import { isDone } from "@/lib/constants";
 import { type IdeaView } from "@/lib/db/schema";
+import clsx from "clsx";
 import {
   CheckIcon,
+  CircleCheckIcon,
   Loader2Icon,
   MinusIcon,
   PencilIcon,
   PlusIcon,
+  RotateCcwIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react";
@@ -23,6 +27,8 @@ export default function Idea({ idea }: { idea: IdeaView }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isMarking, setIsMarking] = useState(false);
+  const done = isDone(idea);
   const [title, setTitle] = useState(idea.title);
   const [description, setDescription] = useState(idea.description);
 
@@ -67,26 +73,15 @@ export default function Idea({ idea }: { idea: IdeaView }) {
   }
 
   async function deleteIdea(ideaId: number) {
+    setIsDeleting(true);
     try {
-      setIsDeleting(true);
-
       const response = await fetch("/api/ideas/delete", {
         method: "DELETE",
         body: JSON.stringify({ ideaId }),
       });
-
       if (!response.ok) {
         throw new Error("Failed to delete idea");
       }
-
-      return response.json();
-    } catch (error) {
-      console.error(error);
-      setToasts([
-        { id: idea.id, message: "Failed to delete idea", type: "error" },
-      ]);
-    } finally {
-      setIsDeleting(false);
       setToasts([
         {
           id: idea.id,
@@ -95,6 +90,43 @@ export default function Idea({ idea }: { idea: IdeaView }) {
         },
       ]);
       router.refresh();
+    } catch (error) {
+      console.error(error);
+      setToasts([
+        { id: idea.id, message: "Failed to delete idea", type: "error" },
+      ]);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  async function toggleDone() {
+    setIsMarking(true);
+    try {
+      const response = await fetch("/api/ideas/status", {
+        method: "POST",
+        body: JSON.stringify({ ideaId: idea.id, done: !done }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update idea");
+      }
+      setToasts([
+        {
+          id: idea.id,
+          message: done
+            ? `"${idea.title}" is back on the pile`
+            : `"${idea.title}" is done. Nice work.`,
+          type: "success",
+        },
+      ]);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setToasts([
+        { id: idea.id, message: "Failed to update idea", type: "error" },
+      ]);
+    } finally {
+      setIsMarking(false);
     }
   }
 
@@ -163,7 +195,20 @@ export default function Idea({ idea }: { idea: IdeaView }) {
             className="flex flex-col p-4 gap-2 w-full hover:cursor-pointer hover:bg-white/5 transition-colors"
             onClick={() => setExpanded(!expanded)}
           >
-            <p className="text-sm">{idea.title}</p>
+            <p
+              className={clsx(
+                "flex items-center gap-2 text-sm",
+                done && "text-white/50 line-through",
+              )}
+            >
+              {done && (
+                <CircleCheckIcon
+                  aria-label="Done"
+                  className="w-3 h-3 shrink-0 text-green-500/80"
+                />
+              )}
+              {idea.title}
+            </p>
             {expanded && (
               <div className="flex flex-col w-full gap-3">
                 <p className="text-sm text-white/70">{idea.description}</p>
@@ -173,6 +218,21 @@ export default function Idea({ idea }: { idea: IdeaView }) {
         )}
         {expanded && !editing && (
           <div className="flex justify-end gap-4 p-2 border-t border-white/20">
+            <button
+              data-testid="toggle-done"
+              onClick={() => !isMarking && toggleDone()}
+              disabled={isMarking}
+              className="flex items-center gap-1 text-white/50 hover:text-green-400/80 transition-colors text-xs hover:cursor-pointer disabled:opacity-50"
+            >
+              {isMarking ? (
+                <Loader2Icon className="w-3 h-3 animate-spin" />
+              ) : done ? (
+                <RotateCcwIcon className="w-3 h-3" />
+              ) : (
+                <CircleCheckIcon className="w-3 h-3" />
+              )}
+              {done ? "Not done" : "Done"}
+            </button>
             <button
               data-testid="edit-idea"
               onClick={startEditing}

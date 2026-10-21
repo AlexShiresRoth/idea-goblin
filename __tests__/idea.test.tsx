@@ -61,6 +61,85 @@ describe("Idea", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
+  it("toasts an error instead of success when delete fails", async () => {
+    vi.mocked(fetch).mockResolvedValue({ ok: false } as Response);
+    const user = userEvent.setup();
+    render(
+      <ToastContext.Provider value={{ toasts: [], setToasts }}>
+        <Idea idea={makeIdea({ id: 7 })} />
+      </ToastContext.Provider>,
+    );
+
+    await user.click(screen.getByTestId("toggle-expanded"));
+    await user.click(screen.getByTestId("delete-idea"));
+
+    expect(setToasts).toHaveBeenCalledWith([
+      { id: 7, message: "Failed to delete idea", type: "error" },
+    ]);
+    expect(setToasts).not.toHaveBeenCalledWith([
+      expect.objectContaining({ type: "success" }),
+    ]);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  describe("done", () => {
+    function renderIdea(status = "incubating") {
+      render(
+        <ToastContext.Provider value={{ toasts: [], setToasts }}>
+          <Idea idea={makeIdea({ id: 7, status })} />
+        </ToastContext.Provider>,
+      );
+    }
+
+    it("marks an open idea done", async () => {
+      const user = userEvent.setup();
+      renderIdea();
+
+      await user.click(screen.getByTestId("toggle-expanded"));
+      expect(screen.getByTestId("toggle-done")).toHaveTextContent("Done");
+      await user.click(screen.getByTestId("toggle-done"));
+
+      expect(fetch).toHaveBeenCalledWith("/api/ideas/status", {
+        method: "POST",
+        body: JSON.stringify({ ideaId: 7, done: true }),
+      });
+      expect(refresh).toHaveBeenCalled();
+    });
+
+    it("shows a done idea as done and reopens it", async () => {
+      const user = userEvent.setup();
+      renderIdea("done");
+
+      expect(screen.getByLabelText("Done")).toBeInTheDocument();
+      expect(screen.getByText("Ship a landing page").className).toContain(
+        "line-through",
+      );
+
+      await user.click(screen.getByTestId("toggle-expanded"));
+      expect(screen.getByTestId("toggle-done")).toHaveTextContent("Not done");
+      await user.click(screen.getByTestId("toggle-done"));
+
+      expect(fetch).toHaveBeenCalledWith("/api/ideas/status", {
+        method: "POST",
+        body: JSON.stringify({ ideaId: 7, done: false }),
+      });
+    });
+
+    it("toasts an error when marking fails", async () => {
+      vi.mocked(fetch).mockResolvedValue({ ok: false } as Response);
+      const user = userEvent.setup();
+      renderIdea();
+
+      await user.click(screen.getByTestId("toggle-expanded"));
+      await user.click(screen.getByTestId("toggle-done"));
+
+      expect(setToasts).toHaveBeenCalledWith([
+        { id: 7, message: "Failed to update idea", type: "error" },
+      ]);
+      expect(refresh).not.toHaveBeenCalled();
+    });
+  });
+
   describe("editing", () => {
     function renderIdea() {
       render(
