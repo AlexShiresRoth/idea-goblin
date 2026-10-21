@@ -5,6 +5,7 @@ import { Menu, XIcon } from "lucide-react";
 import { useState } from "react";
 import AnalyzeVault from "../components/analyze-vault";
 import CreateIdeaModal from "../components/create-idea-modal";
+import ImportIdeasModal from "../components/import-ideas-modal";
 import NavLinks from "./nav-links";
 import SignoutButton from "./signout-button";
 
@@ -38,6 +39,7 @@ export default function MobileNav() {
         >
           <NavLinks variant="sheet" onNavigate={() => setOpen(false)} />
           <CreateIdeaModal type="menu" onTrigger={() => setOpen(false)} />
+          <ImportIdeasModal type="menu" onTrigger={() => setOpen(false)} />
           <AnalyzeVault variant="menu" onTrigger={() => setOpen(false)} />
           <div className="rounded-md border border-white/15 bg-black px-2">
             <SignoutButton />

@@ -17,6 +17,7 @@ import {
   REFINEMENT_FOCUSES,
 } from "@/lib/constants";
 import { ideaBucketsTable } from "@/lib/db/schema";
+import { encodeEvent, NDJSON_HEADERS } from "@/lib/ndjson";
 import { and, desc, eq } from "drizzle-orm";
 import { OpenAI } from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
@@ -258,13 +259,6 @@ function progressMessage(pathway: Pathway, count: number, total?: number) {
     : `${count} bucket${count === 1 ? "" : "s"} judged`;
 }
 
-const NDJSON_HEADERS = {
-  "Content-Type": "application/x-ndjson; charset=utf-8",
-  "Cache-Control": "no-cache, no-transform",
-  "X-Accel-Buffering": "no",
-  "X-Content-Type-Options": "nosniff",
-};
-
 type StreamEvent = {
   type: string;
   step?: StatusStep;
@@ -272,10 +266,6 @@ type StreamEvent = {
   message?: string;
   cached?: boolean;
 };
-
-function encodeEvent(event: StreamEvent) {
-  return new TextEncoder().encode(`${JSON.stringify(event)}\n`);
-}
 
 function cachedStream(data: unknown, context: string) {
   return new ReadableStream<Uint8Array>({

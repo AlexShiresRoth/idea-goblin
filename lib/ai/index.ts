@@ -18,7 +18,8 @@ export type AiRoute =
   | "execution"
   | "refinement"
   | "idea-create"
-  | "bucket-classify";
+  | "bucket-classify"
+  | "idea-import";
 
 // Fresh (non-cached) generations allowed per user per window.
 export const RATE_LIMITS: Partial<
@@ -27,6 +28,8 @@ export const RATE_LIMITS: Partial<
   analysis: { max: 3, windowMinutes: 60 },
   execution: { max: 3, windowMinutes: 60 },
   refinement: { max: 10, windowMinutes: 60 },
+  // One run per import, however many model calls it makes.
+  "idea-import": { max: 5, windowMinutes: 60 },
 };
 
 type Usage = { input: number; output: number; reasoning: number };
