@@ -75,3 +75,49 @@ buckets stays free.
 7. **Later, if top-ups sell a lot:** add a $15–20 tier with more monthly
    credits. Heavy users often prefer a predictable bill to repeated
    top-ups.
+
+### Make the gameplan a daily habit
+
+The gameplan is what sets Idea Goblin apart from "AI analyzes your ideas".
+Its value comes from people coming back to it, not reading it once.
+
+1. **"Next up" on the board.** A strip at the top of the board with the
+   next step that isn't done yet from each bucket's latest gameplan. It
+   answers "what do I do today?" whenever the app opens.
+2. **Flag plans that have gone stale.** When ideas are added or marked done
+   after a plan was saved, show "N ideas changed since this plan, update
+   it?" on the Gameplan tab, so a plan never quietly drifts out of date.
+3. **Celebrate finishing.** A small moment when a phase or a whole bucket
+   is done. It's an app about actually finishing things.
+
+### Friendlier UI
+
+1. **Name actions by outcome, not by tool.** "Analyze Vault", "Idea
+   Execution" and "pathway" read like an AI tool menu. Use the user's
+   questions instead: "What should I work on?" (execution), "Sharpen this
+   idea" (refinement), "How do I finish this?" (gameplan). Refine and
+   Gameplan live in the bucket; the vault-wide modal keeps only "What
+   should I work on?".
+2. **Fewer decisions.**
+   - One way to save: gameplans save to their bucket automatically, and
+     refinement only asks whether to apply it. That retires the separate
+     "Save Analysis" / "Update bucket" / "Save to bucket" buttons.
+   - The bucket header has five actions. Merge Add and Import into one
+     button with a dropdown, and move Delete into a "⋯" menu.
+   - Once results live in their buckets, the saved-analyses page becomes
+     history, not a second place to look.
+3. **Safe deletes.** Deleting a bucket or idea happens on one click today.
+   Add an undo toast (or a confirm step), using the same archive approach
+   as Done.
+4. **Readable contrast.** Much of the text is `text-white/40–50` at
+   `text-xs` on black. Raise secondary text to at least WCAG AA contrast.
+5. **Plain words on controls.** Keep the goblin voice in flavour text, but
+   buttons and statuses say what they do ("Saving…", not "Stashing it in
+   the hoard").
+6. **First run.** A new user lands on an empty board. Guide them: paste or
+   import ideas → Goblin sorts them → it offers a gameplan for the biggest
+   bucket, so the "here's how to finish it" moment happens in the first
+   minute.
+7. **Mobile bucket view.** On phones the Gameplan tab ends up below the
+   whole ideas list. Use Ideas / Gameplan / Versions tabs there instead
+   of stacking.
