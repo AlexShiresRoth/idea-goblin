@@ -74,7 +74,7 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 p-4 border-t border-white/20">
+    <div className="flex flex-col gap-2 p-4">
       <p className="text-xs uppercase tracking-wide text-white/40">Versions</p>
       {loading && versions.length === 0 && (
         <p
