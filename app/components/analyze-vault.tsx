@@ -6,6 +6,7 @@ import type {
   Pathway,
   PathwayId,
   Reasoning,
+  RefinementRound,
 } from "@/lib/types";
 import { isBucketRefinement } from "@/lib/types";
 import clsx from "clsx";
@@ -30,6 +31,7 @@ import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
 import { RefinementPicker } from "./refinement-picker";
+import { RefinementReply, RefinementRounds } from "./refinement-rounds";
 
 const ExecutionPathway = PATHWAYSJSON.execution;
 const RefinementPathway = PATHWAYSJSON.refinement;
@@ -125,6 +127,9 @@ export function AnalyzeVaultModal({
   );
   const [focus, setFocus] = useState<RefinementFocusId[]>([]);
   const [note, setNote] = useState("");
+  // Earlier drafts of this refinement and the user's reply to each.
+  const [rounds, setRounds] = useState<RefinementRound[]>([]);
+  const [reply, setReply] = useState("");
   const [recommending, setRecommending] = useState(false);
   const [recommendReason, setRecommendReason] = useState<string>();
   const [cached, setCached] = useState(false);
@@ -193,10 +198,13 @@ export function AnalyzeVaultModal({
     }
   }
 
-  async function startAnalysis() {
+  // `nextRounds` continues a refinement from its latest draft; a fresh run
+  // starts with none.
+  async function startAnalysis(nextRounds: RefinementRound[] = []) {
     if (!selectedPathway) return;
     if (selectedPathway.id === "refinement" && !selectedBucket) return;
 
+    setRounds(nextRounds);
     setPickingBucket(false);
     setAnalyzing(true);
     setResult(null);
@@ -215,6 +223,7 @@ export function AnalyzeVaultModal({
           ...(selectedPathway.id === "refinement" && {
             focus,
             note: note.trim() || undefined,
+            ...(nextRounds.length > 0 && { rounds: nextRounds }),
           }),
         }),
       });
@@ -355,6 +364,26 @@ export function AnalyzeVaultModal({
     } finally {
       setApplying(false);
     }
+  }
+
+  function refineAgain() {
+    const feedback = reply.trim();
+    if (!refinement || !feedback || analyzing) return;
+    setReply("");
+    void startAnalysis([...rounds, { draft: refinement, feedback }]);
+  }
+
+  // Makes an earlier draft current again, dropping the rounds after it.
+  function restoreDraft(index: number) {
+    const round = rounds[index];
+    if (!round || analyzing) return;
+    setResult(round.draft);
+    setRounds(rounds.slice(0, index));
+    setSaved(false);
+    setApplied(false);
+    setCached(false);
+    setError(null);
+    setSteps([]);
   }
 
   const runStarted = analyzing || result != null || pickingBucket;
@@ -524,6 +553,11 @@ export function AnalyzeVaultModal({
               </ActionButton>
             </div>
             <div className="flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
+              <RefinementRounds
+                rounds={rounds}
+                disabled={analyzing}
+                onRestore={restoreDraft}
+              />
               {(analyzing || (error && steps.length > 0)) && (
                 <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
                   <AnalysisSteps
@@ -556,6 +590,15 @@ export function AnalyzeVaultModal({
                 <AnalysisResultConditional
                   result={result}
                   type={selectedPathway.id}
+                />
+              )}
+              {refinement && !analyzing && (
+                <RefinementReply
+                  value={reply}
+                  roundCount={rounds.length}
+                  disabled={analyzing}
+                  onChange={setReply}
+                  onSubmit={refineAgain}
                 />
               )}
             </div>

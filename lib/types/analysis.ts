@@ -75,6 +75,13 @@ export type BucketRefinementResult = {
   reasoning: Reasoning;
 };
 
+// One back-and-forth in a refinement: the draft Goblin produced and the
+// user's reply to it, which steers the next draft.
+export type RefinementRound = {
+  draft: BucketRefinementResult;
+  feedback: string;
+};
+
 export type RefinementResult =
   | LegacyRefinementResult
   | IdeaRefinementResult

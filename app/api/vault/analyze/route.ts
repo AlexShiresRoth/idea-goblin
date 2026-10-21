@@ -13,6 +13,7 @@ import { getBucketIdeas } from "@/lib/api/buckets";
 import {
   BUCKET_CATEGORY_NAMES,
   MAX_REFINEMENT_NOTE_LENGTH,
+  MAX_REFINEMENT_ROUNDS,
   REFINEMENT_FOCUSES,
 } from "@/lib/constants";
 import { ideaBucketsTable } from "@/lib/db/schema";
@@ -80,6 +81,18 @@ const RefinementSchema = z.object({
   reasoning: ReasoningSchema,
 });
 
+// A previous draft comes back from the client, so only the fields the model
+// needs are kept, with lengths capped to bound input.
+const RoundSchema = z.object({
+  draft: z.object({
+    refined_name: z.string().max(200),
+    refined_description: z.string().max(2000),
+    refined_category: z.string().max(50).optional(),
+    improvements: z.array(z.string().max(500)).max(10),
+  }),
+  feedback: z.string().trim().min(1).max(MAX_REFINEMENT_NOTE_LENGTH),
+});
+
 type PathwayConfig = {
   user_content: string;
   system_content: string;
@@ -140,6 +153,10 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         and a short list of concrete improvements.
         If the user gives directions or a note, steer the refinement
         toward them while keeping the original intent.
+        If earlier drafts and the user's replies to them follow,
+        revise the latest draft to address the latest reply.
+        Keep what the user did not push back on.
+        The original name and description are still the bucket's.
         Use the given bucket_id.
       `.trim(),
     response_schema: RefinementSchema,
@@ -216,11 +233,15 @@ function extractClosedItems(
 // names one; a repeated step updates its message, e.g. a running count.
 type StatusStep = "context" | "cached" | "thinking" | "writing" | "saving";
 
+type FollowUp = { role: "assistant" | "user"; content: string };
+
 type StreamOptions = {
   pathway: Pathway;
   profileId: string;
   model: string;
   userContent: string;
+  // Earlier drafts and the user's replies, after the first user message.
+  followUps: FollowUp[];
   inputHash: string;
   limitOutput: boolean;
   context: string;
@@ -280,6 +301,7 @@ function streamPathway({
   profileId,
   model,
   userContent,
+  followUps,
   inputHash,
   limitOutput,
   context,
@@ -309,6 +331,7 @@ function streamPathway({
               role: "user",
               content: userContent,
             },
+            ...followUps,
           ],
           text: { format: zodTextFormat(config.response_schema, pathway) },
           ...(limitOutput && {
@@ -379,12 +402,14 @@ export async function POST(request: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { pathway, bucketId, focus, note } = (await request.json()) as {
-      pathway: Pathway;
-      bucketId?: number;
-      focus?: string[];
-      note?: string;
-    };
+    const { pathway, bucketId, focus, note, rounds } =
+      (await request.json()) as {
+        pathway: Pathway;
+        bucketId?: number;
+        focus?: string[];
+        note?: string;
+        rounds?: unknown;
+      };
 
     if (!pathway || !(pathway in PATHWAY_PROMPTS)) {
       return new Response("Bad Request", { status: 400 });
@@ -396,11 +421,26 @@ export async function POST(request: Request) {
     let userContent: string;
     let context: string;
     let total: number | undefined;
+    let followUps: FollowUp[] = [];
 
     if (pathway === "refinement") {
       if (!bucketId) {
         return new Response("Bucket ID is required", { status: 400 });
       }
+
+      const parsedRounds = z
+        .array(RoundSchema)
+        .max(MAX_REFINEMENT_ROUNDS)
+        .optional()
+        .safeParse(rounds);
+      if (!parsedRounds.success) {
+        return new Response("Invalid refinement rounds", { status: 400 });
+      }
+      // Each round replays as the draft Goblin gave, then the user's reply.
+      followUps = (parsedRounds.data ?? []).flatMap((round) => [
+        { role: "assistant" as const, content: JSON.stringify(round.draft) },
+        { role: "user" as const, content: `reply: ${round.feedback}` },
+      ]);
 
       const [bucket] = await db
         .select()
@@ -432,6 +472,9 @@ export async function POST(request: Request) {
         context += `, aiming for ${focuses
           .map((option) => option.label.toLowerCase())
           .join(", ")}`;
+      }
+      if (followUps.length > 0) {
+        context += `, reworking draft ${followUps.length / 2} with your reply`;
       }
 
       model = AI_MODELS.refine;
@@ -475,7 +518,12 @@ export async function POST(request: Request) {
     }
 
     // Same prompt + model + input as a previous run: serve that result.
-    const inputHash = hashInput(config.system_content, model, userContent);
+    const inputHash = hashInput(
+      config.system_content,
+      model,
+      userContent,
+      ...(followUps.length > 0 ? [followUps] : []),
+    );
     const cached = await findCachedResult(profileId, pathway, inputHash);
     if (cached) {
       return new Response(cachedStream(cached, context), {
@@ -496,6 +544,7 @@ export async function POST(request: Request) {
       profileId,
       model,
       userContent,
+      followUps,
       inputHash,
       limitOutput: pathway !== "refinement",
       context,
