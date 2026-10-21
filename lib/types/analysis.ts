@@ -1,4 +1,4 @@
-export type PathwayId = "analysis" | "execution" | "refinement";
+export type PathwayId = "analysis" | "execution" | "refinement" | "gameplan";
 
 export type Pathway = {
   id: PathwayId;
@@ -75,22 +75,43 @@ export type BucketRefinementResult = {
   reasoning: Reasoning;
 };
 
-// One back-and-forth in a refinement: the draft Goblin produced and the
-// user's reply to it, which steers the next draft.
-export type RefinementRound = {
-  draft: BucketRefinementResult;
-  feedback: string;
+// A plan to finish one bucket. Steps may build on ideas already in it.
+export type GameplanStep = {
+  title: string;
+  detail: string;
+  idea_id: number | null;
+  effort: "low" | "medium" | "high";
 };
 
+export type GameplanResult = {
+  bucket_id: number;
+  bucket_name: string;
+  // What "complete" means for this bucket.
+  finish_line: string;
+  where_you_are: string;
+  first_step: { title: string; detail: string };
+  phases: { title: string; goal: string; steps: GameplanStep[] }[];
+  cut: string[];
+  risks: string[];
+};
+
+// One back-and-forth on a draft: what Goblin produced and the user's reply
+// to it, which steers the next draft.
+export type Round<Draft> = { draft: Draft; feedback: string };
+export type RefinementRound = Round<BucketRefinementResult>;
+export type GameplanRound = Round<GameplanResult>;
+
 export type RefinementResult =
-  | LegacyRefinementResult
-  | IdeaRefinementResult
-  | BucketRefinementResult;
+  LegacyRefinementResult | IdeaRefinementResult | BucketRefinementResult;
 
 export function isIdeaRefinement(
   result: AnalysisPayload,
 ): result is IdeaRefinementResult {
   return "refined_idea" in result && "idea_id" in result;
+}
+
+export function isGameplan(result: AnalysisPayload): result is GameplanResult {
+  return "finish_line" in result && "phases" in result;
 }
 
 export function isBucketRefinement(
@@ -100,6 +121,4 @@ export function isBucketRefinement(
 }
 
 export type AnalysisPayload =
-  | AnalysisResult
-  | ExecutionResult
-  | RefinementResult;
+  AnalysisResult | ExecutionResult | RefinementResult | GameplanResult;

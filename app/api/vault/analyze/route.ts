@@ -25,13 +25,17 @@ import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 const client = new OpenAI();
 
-type Pathway = "analysis" | "execution" | "refinement";
+type Pathway = "analysis" | "execution" | "refinement" | "gameplan";
+// Pathways about one bucket, which takes ideas as context and follow-ups.
+type BucketPathway = "refinement" | "gameplan";
 
 const MAX_BUCKETS_PER_RUN = 8;
 // Context for a bucket refinement: its most recent ideas, capped to bound input.
 const MAX_IDEAS_PER_REFINEMENT = 30;
 // Includes hidden reasoning tokens; low effort + short fields stay well under.
 const RANK_MAX_OUTPUT_TOKENS = 4000;
+// A gameplan is the longest output on the premium model, so it gets a ceiling.
+const GAMEPLAN_MAX_OUTPUT_TOKENS = 8000;
 
 const AnalysisChoiceSchema = z.object({
   main_idea: z.string(),
@@ -83,24 +87,92 @@ const RefinementSchema = z.object({
   reasoning: ReasoningSchema,
 });
 
+const GameplanStepSchema = z.object({
+  title: z.string(),
+  detail: z.string(),
+  // An idea in the bucket this step builds on, if any.
+  idea_id: z.number().nullable(),
+  effort: z.enum(["low", "medium", "high"]),
+});
+
+const GameplanPhaseSchema = z.object({
+  title: z.string(),
+  goal: z.string(),
+  steps: z.array(GameplanStepSchema),
+});
+
+const GameplanSchema = z.object({
+  bucket_id: z.number(),
+  bucket_name: z.string(),
+  finish_line: z.string(),
+  where_you_are: z.string(),
+  first_step: z.object({ title: z.string(), detail: z.string() }),
+  phases: z.array(GameplanPhaseSchema),
+  cut: z.array(z.string()),
+  risks: z.array(z.string()),
+});
+
 // A previous draft comes back from the client, so only the fields the model
 // needs are kept, with lengths capped to bound input.
-const RoundSchema = z.object({
-  draft: z.object({
+const short = z.string().max(300);
+const long = z.string().max(1500);
+const DRAFT_SCHEMAS: Record<BucketPathway, z.ZodType> = {
+  refinement: z.object({
     refined_name: z.string().max(200),
     refined_description: z.string().max(2000),
     refined_category: z.string().max(50).optional(),
     improvements: z.array(z.string().max(500)).max(10),
   }),
-  feedback: z.string().trim().min(1).max(MAX_REFINEMENT_NOTE_LENGTH),
-});
+  gameplan: z.object({
+    finish_line: long,
+    where_you_are: long,
+    first_step: z.object({ title: short, detail: long }),
+    phases: z
+      .array(
+        z.object({
+          title: short,
+          goal: long,
+          steps: z
+            .array(
+              z.object({
+                title: short,
+                detail: long,
+                idea_id: z.number().nullable(),
+                effort: z.enum(["low", "medium", "high"]),
+              }),
+            )
+            .max(10),
+        }),
+      )
+      .max(6),
+    cut: z.array(long).max(10),
+    risks: z.array(long).max(10),
+  }),
+};
+
+function roundsSchema(pathway: BucketPathway) {
+  return z
+    .array(
+      z.object({
+        draft: DRAFT_SCHEMAS[pathway],
+        feedback: z.string().trim().min(1).max(MAX_REFINEMENT_NOTE_LENGTH),
+      }),
+    )
+    .max(MAX_REFINEMENT_ROUNDS)
+    .optional();
+}
+
+type ItemsKey = "choices" | "suggestions" | "improvements" | "phases";
 
 type PathwayConfig = {
   user_content: string;
   system_content: string;
   response_schema: z.ZodSchema;
-  itemsKey: "choices" | "suggestions" | "improvements";
+  itemsKey: ItemsKey;
   itemSchema: z.ZodType;
+  // Reasoning effort and output ceiling; unset means the model's defaults.
+  reasoning_effort?: "low" | "medium";
+  max_output_tokens?: number;
 };
 
 const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
@@ -118,6 +190,8 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
     response_schema: AnalysisSchema,
     itemsKey: "choices",
     itemSchema: AnalysisChoiceSchema,
+    reasoning_effort: "low",
+    max_output_tokens: RANK_MAX_OUTPUT_TOKENS,
   },
   execution: {
     user_content:
@@ -141,6 +215,8 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
     response_schema: ExecutionSchema,
     itemsKey: "choices",
     itemSchema: ExecutionChoiceSchema,
+    reasoning_effort: "low",
+    max_output_tokens: RANK_MAX_OUTPUT_TOKENS,
   },
   refinement: {
     user_content: "Refine this idea bucket.",
@@ -166,11 +242,42 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
     itemsKey: "improvements",
     itemSchema: z.string(),
   },
+  gameplan: {
+    user_content: "Make a gameplan to finish this idea bucket.",
+    system_content: `
+        Make a practical gameplan to finish one idea bucket.
+        The bucket's name and description are the goal; its ideas are the raw material.
+        Ideas marked (done) are finished: count them as progress and do not plan them again.
+        - finish_line: one or two sentences on what "finished" means for this bucket,
+          small enough to actually reach.
+        - where_you_are: one or two sentences on the current state, given what is done.
+        - first_step: one concrete thing the user can do today, in under an hour.
+        - phases: three to five phases in order, each with a short goal
+          and two to five concrete steps. Steps are actions, not topics.
+        - A step that carries out an existing open idea uses that idea's idea_id;
+          otherwise idea_id is null. Never invent an idea_id.
+        - Rate each step's effort as low, medium, or high.
+        - cut: open ideas or scope worth dropping to reach the finish line sooner.
+        - risks: the few things most likely to stall it, one sentence each.
+        Keep it lean: this is a plan for one person, not a project board.
+        If the user gives a note, fit the plan to it (time, skills, constraints).
+        If earlier drafts and the user's replies to them follow,
+        revise the latest draft to address the latest reply.
+        Keep what the user did not push back on.
+        Use the given bucket_id and bucket name.
+      `.trim(),
+    response_schema: GameplanSchema,
+    itemsKey: "phases",
+    itemSchema: GameplanPhaseSchema,
+    // Planning gets more thought than ranking, but never an unbounded run.
+    reasoning_effort: "medium",
+    max_output_tokens: GAMEPLAN_MAX_OUTPUT_TOKENS,
+  },
 };
 
 function extractClosedItems(
   text: string,
-  arrayKey: "choices" | "suggestions" | "improvements",
+  arrayKey: ItemsKey,
   itemSchema: z.ZodType,
 ) {
   const keyIndex = text.indexOf(`"${arrayKey}"`);
@@ -246,7 +353,6 @@ type StreamOptions = {
   // Earlier drafts and the user's replies, after the first user message.
   followUps: FollowUp[];
   inputHash: string;
-  limitOutput: boolean;
   context: string;
   // How many items the result should hold, when known up front.
   total?: number;
@@ -255,6 +361,9 @@ type StreamOptions = {
 function progressMessage(pathway: Pathway, count: number, total?: number) {
   if (pathway === "refinement") {
     return `${count} improvement${count === 1 ? "" : "s"} scratched out`;
+  }
+  if (pathway === "gameplan") {
+    return `${count} phase${count === 1 ? "" : "s"} mapped out`;
   }
   return total
     ? `${count} of ${total} buckets judged`
@@ -295,7 +404,6 @@ function streamPathway({
   userContent,
   followUps,
   inputHash,
-  limitOutput,
   context,
   total,
 }: StreamOptions) {
@@ -326,9 +434,11 @@ function streamPathway({
             ...followUps,
           ],
           text: { format: zodTextFormat(config.response_schema, pathway) },
-          ...(limitOutput && {
-            reasoning: { effort: "low" },
-            max_output_tokens: RANK_MAX_OUTPUT_TOKENS,
+          ...(config.reasoning_effort && {
+            reasoning: { effort: config.reasoning_effort },
+          }),
+          ...(config.max_output_tokens && {
+            max_output_tokens: config.max_output_tokens,
           }),
         });
 
@@ -415,18 +525,14 @@ export async function POST(request: Request) {
     let total: number | undefined;
     let followUps: FollowUp[] = [];
 
-    if (pathway === "refinement") {
+    if (pathway === "refinement" || pathway === "gameplan") {
       if (!bucketId) {
         return new Response("Bucket ID is required", { status: 400 });
       }
 
-      const parsedRounds = z
-        .array(RoundSchema)
-        .max(MAX_REFINEMENT_ROUNDS)
-        .optional()
-        .safeParse(rounds);
+      const parsedRounds = roundsSchema(pathway).safeParse(rounds);
       if (!parsedRounds.success) {
-        return new Response("Invalid refinement rounds", { status: 400 });
+        return new Response("Invalid rounds", { status: 400 });
       }
       // Each round replays as the draft Goblin gave, then the user's reply.
       followUps = (parsedRounds.data ?? []).flatMap((round) => [
@@ -451,26 +557,24 @@ export async function POST(request: Request) {
       const ideas = (await getBucketIdeas(bucket.id)).slice(
         -MAX_IDEAS_PER_REFINEMENT,
       );
-
-      // Unknown focus ids are dropped; the note is capped to bound input.
-      const focuses = REFINEMENT_FOCUSES.filter((option) =>
-        focus?.includes(option.id),
-      );
-      const directions = focuses.map((option) => `- ${option.instruction}`);
+      // The note is capped to bound input.
       const userNote = note?.trim().slice(0, MAX_REFINEMENT_NOTE_LENGTH);
 
       context = `Rummaged through "${bucket.name}" and its ${ideas.length} idea${ideas.length === 1 ? "" : "s"}`;
-      if (focuses.length > 0) {
-        context += `, aiming for ${focuses
-          .map((option) => option.label.toLowerCase())
-          .join(", ")}`;
-      }
-      if (followUps.length > 0) {
-        context += `, reworking draft ${followUps.length / 2} with your reply`;
-      }
-
       model = AI_MODELS.refine;
-      userContent = `
+
+      if (pathway === "refinement") {
+        // Unknown focus ids are dropped.
+        const focuses = REFINEMENT_FOCUSES.filter((option) =>
+          focus?.includes(option.id),
+        );
+        const directions = focuses.map((option) => `- ${option.instruction}`);
+        if (focuses.length > 0) {
+          context += `, aiming for ${focuses
+            .map((option) => option.label.toLowerCase())
+            .join(", ")}`;
+        }
+        userContent = `
     ${config.user_content}
     ${directions.length > 0 ? `directions:\n    ${directions.join("\n    ")}` : ""}
     ${userNote ? `note from the user: ${userNote}` : ""}
@@ -481,6 +585,24 @@ export async function POST(request: Request) {
     ideas:
     ${ideas.map((idea) => `- ${idea.title}${isDone(idea) ? " (done)" : ""}: ${idea.description}`).join("\n")}
   `;
+      } else {
+        const doneCount = ideas.filter(isDone).length;
+        if (doneCount > 0) context += ` (${doneCount} done)`;
+        userContent = `
+    ${config.user_content}
+    ${userNote ? `note from the user: ${userNote}` : ""}
+    bucket_id: ${bucket.id}
+    name: ${bucket.name}
+    description: ${bucket.description}
+    theme: ${bucket.theme}
+    ideas:
+    ${ideas.map((idea) => `- idea_id ${idea.id}${isDone(idea) ? " (done)" : ""} | ${idea.title}: ${idea.description}`).join("\n")}
+  `;
+      }
+
+      if (followUps.length > 0) {
+        context += `, reworking draft ${followUps.length / 2} with your reply`;
+      }
     } else {
       // Only bucket name + description is sent, so only buckets are loaded.
       // Most recently touched buckets first, capped to bound output size.
@@ -538,7 +660,6 @@ export async function POST(request: Request) {
       userContent,
       followUps,
       inputHash,
-      limitOutput: pathway !== "refinement",
       context,
       total,
     });

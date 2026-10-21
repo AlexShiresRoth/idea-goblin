@@ -1,0 +1,2 @@
+ALTER TABLE "analysis_results" ADD COLUMN "bucket_id" integer;--> statement-breakpoint
+ALTER TABLE "analysis_results" ADD CONSTRAINT "analysis_results_bucket_id_idea_buckets_id_fk" FOREIGN KEY ("bucket_id") REFERENCES "public"."idea_buckets"("id") ON DELETE cascade ON UPDATE no action;

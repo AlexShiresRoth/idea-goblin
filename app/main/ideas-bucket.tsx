@@ -20,6 +20,7 @@ import { BucketIcon, bucketStyleVars } from "../components/bucket-icon";
 import CreateIdeaModal from "../components/create-idea-modal";
 import ImportIdeasModal from "../components/import-ideas-modal";
 import { ToastContext } from "../context/toast.provider";
+import BucketGameplan from "./bucket-gameplan";
 import BucketVersions from "./bucket-versions";
 import IdeaComponent from "./idea";
 
@@ -74,6 +75,7 @@ function BucketDetail({
   const summaryId = `bucket-summary-${bucket.id}`;
   const [rawStart, setStart] = useState(0);
   const [showDone, setShowDone] = useState(false);
+  const [sideTab, setSideTab] = useState<"gameplan" | "versions">("gameplan");
   // Done ideas leave the paged list for their own section.
   const openIdeas = ideas.filter((idea) => !isDone(idea));
   const doneIdeas = ideas.filter(isDone);
@@ -295,13 +297,40 @@ function BucketDetail({
           )}
         </section>
         <aside className="border-t border-white/20 md:min-h-0 md:overflow-y-auto md:border-t-0 md:border-l">
-          <BucketVersions bucketId={bucket.id} />
+          <div
+            role="tablist"
+            aria-label="Bucket side panel"
+            className="sticky top-0 z-10 flex gap-4 border-b border-white/20 bg-black px-4"
+          >
+            {(["gameplan", "versions"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={sideTab === tab}
+                onClick={() => setSideTab(tab)}
+                className={clsx(
+                  "-mb-px border-b-2 py-2 text-sm transition-colors hover:cursor-pointer",
+                  sideTab === tab
+                    ? "border-(--bucket-primary) text-white"
+                    : "border-transparent text-white/50 hover:text-white/80",
+                )}
+              >
+                {tab === "gameplan" ? "Gameplan" : "Versions"}
+              </button>
+            ))}
+          </div>
+          {sideTab === "gameplan" ? (
+            <BucketGameplan bucket={bucket} ideas={ideas} />
+          ) : (
+            <BucketVersions bucketId={bucket.id} />
+          )}
         </aside>
       </div>
 
       {refining && (
         <AnalyzeVaultModal
-          refineBucket={bucket}
+          scopeBucket={bucket}
           onClose={() => setRefining(false)}
         />
       )}

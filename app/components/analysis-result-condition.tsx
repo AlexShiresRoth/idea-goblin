@@ -5,6 +5,7 @@ import type {
   AnalysisResult,
   ExecutionResult,
   BucketRefinementResult,
+  GameplanResult,
   IdeaRefinementResult,
   PathwayId,
   RefinementResult,
@@ -14,6 +15,7 @@ import clsx from "clsx";
 import { ChevronDown, ScanHeart } from "lucide-react";
 import { useState } from "react";
 import { BucketIcon } from "./bucket-icon";
+import { GameplanView } from "./gameplan-view";
 
 function scoreTone(score: number) {
   if (score >= 75)
@@ -341,5 +343,7 @@ export function AnalysisResultConditional({
       return <ExecutionChoices result={result as ExecutionResult} />;
     case "refinement":
       return <RefinementSuggestions result={result as RefinementResult} />;
+    case "gameplan":
+      return <GameplanView result={result as Partial<GameplanResult>} />;
   }
 }

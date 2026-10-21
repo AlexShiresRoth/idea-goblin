@@ -143,6 +143,105 @@ describe("IdeasBucket", () => {
     });
   });
 
+  describe("gameplan tab", () => {
+    const plan = {
+      bucket_id: 10,
+      bucket_name: "Launch ideas",
+      finish_line: "A live waitlist page.",
+      where_you_are: "Nothing built yet.",
+      first_step: { title: "Pick a form tool", detail: "Ten minutes." },
+      phases: [
+        {
+          title: "Build",
+          goal: "Get it live",
+          steps: [
+            {
+              title: "Ship it",
+              detail: "One page.",
+              idea_id: 1,
+              effort: "low",
+            },
+          ],
+        },
+      ],
+      cut: [],
+      risks: [],
+    };
+
+    function routeFetch(saved: unknown) {
+      vi.mocked(fetch).mockImplementation((async (url: string) => {
+        if (url.startsWith("/api/buckets/gameplan")) {
+          return { ok: true, json: async () => saved } as Response;
+        }
+        if (url === "/api/vault/analyze") {
+          return new Response(JSON.stringify({ type: "done", data: plan }));
+        }
+        return { ok: true, json: async () => [] } as Response;
+      }) as never);
+    }
+
+    it("shows the bucket's latest saved gameplan with live done checks", async () => {
+      routeFetch({ id: 3, createdAt: "2026-10-21T00:00:00.000Z", data: plan });
+      const user = userEvent.setup();
+      renderBucket([
+        makeIdea({ id: 1, title: "Waitlist page", status: "done" }),
+      ]);
+
+      await user.click(screen.getByLabelText("button"));
+
+      expect(
+        await screen.findByText("A live waitlist page."),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Ship it").className).toContain("line-through");
+      expect(screen.getByRole("link", { name: "open" })).toHaveAttribute(
+        "href",
+        "/main/analysis/3",
+      );
+    });
+
+    it("makes a gameplan for this bucket and saves it to the bucket", async () => {
+      routeFetch(null);
+      const user = userEvent.setup();
+      renderBucket(refineIdeas);
+
+      await user.click(screen.getByLabelText("button"));
+      await user.click(
+        await screen.findByRole("button", { name: "Make a gameplan" }),
+      );
+
+      // Gameplans take a note, not the refinement directions.
+      expect(screen.getByLabelText("Gameplan note")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /More marketable/ }),
+      ).not.toBeInTheDocument();
+      await user.type(screen.getByLabelText("Gameplan note"), "weekends");
+      await user.click(
+        screen.getByRole("button", { name: "Plan Launch ideas" }),
+      );
+
+      expect(fetch).toHaveBeenCalledWith("/api/vault/analyze", {
+        method: "POST",
+        body: JSON.stringify({
+          pathway: "gameplan",
+          bucketId: 10,
+          note: "weekends",
+        }),
+      });
+
+      await user.click(
+        await screen.findByRole("button", { name: /Save to bucket/ }),
+      );
+      expect(fetch).toHaveBeenCalledWith("/api/vault/save", {
+        method: "POST",
+        body: JSON.stringify({
+          data: plan,
+          analysisType: "gameplan",
+          bucketId: 10,
+        }),
+      });
+    });
+  });
+
   it("shows an empty state for a bucket with no ideas", async () => {
     const user = userEvent.setup();
     renderBucket([]);
@@ -296,6 +395,7 @@ describe("IdeasBucket", () => {
     renderBucket();
 
     await user.click(screen.getByLabelText("button"));
+    await user.click(screen.getByRole("tab", { name: "Versions" }));
 
     expect(screen.getByText("Digging up old versions...")).toBeInTheDocument();
   });
@@ -329,6 +429,7 @@ describe("IdeasBucket", () => {
     renderBucket();
 
     await user.click(screen.getByLabelText("button"));
+    await user.click(screen.getByRole("tab", { name: "Versions" }));
     expect(await screen.findByText("Older name")).toBeInTheDocument();
     expect(screen.queryByText("Old idea")).not.toBeInTheDocument();
 
@@ -453,6 +554,7 @@ describe("IdeasBucket", () => {
     renderBucket();
 
     await user.click(screen.getByLabelText("button"));
+    await user.click(screen.getByRole("tab", { name: "Versions" }));
     await screen.findByText("Version 1");
     const [first, second] = screen.getAllByTestId("toggle-version");
 

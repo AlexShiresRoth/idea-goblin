@@ -4,9 +4,31 @@ import {
   MAX_REFINEMENT_NOTE_LENGTH,
   MAX_REFINEMENT_ROUNDS,
 } from "@/lib/constants";
-import type { RefinementRound } from "@/lib/types";
+import type {
+  BucketRefinementResult,
+  GameplanResult,
+  Round,
+} from "@/lib/types";
 import { HistoryIcon, MessageCircleIcon } from "lucide-react";
 import { BucketIcon } from "./bucket-icon";
+
+type Draft = BucketRefinementResult | GameplanResult;
+
+// The line or two that identifies a draft in the thread.
+function draftSummary(draft: Draft) {
+  if ("finish_line" in draft) {
+    return {
+      title: draft.first_step.title,
+      detail: draft.finish_line,
+      category: undefined,
+    };
+  }
+  return {
+    title: draft.refined_name,
+    detail: draft.refined_description,
+    category: draft.refined_category,
+  };
+}
 
 // Earlier drafts and what the user said back to each. Any draft can be
 // restored, which drops the rounds after it.
@@ -15,7 +37,7 @@ export function RefinementRounds({
   disabled,
   onRestore,
 }: {
-  rounds: RefinementRound[];
+  rounds: Round<Draft>[];
   disabled: boolean;
   onRestore: (index: number) => void;
 }) {
@@ -23,43 +45,46 @@ export function RefinementRounds({
 
   return (
     <ol className="flex flex-col gap-3">
-      {rounds.map((round, index) => (
-        <li
-          key={index}
-          className="flex flex-col gap-2 rounded-lg border border-white/10 p-3"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-1 min-w-0">
-              <p className="text-xs text-white/40">Draft {index + 1}</p>
-              <p className="flex items-center gap-2 text-sm text-white/70">
-                {round.draft.refined_category && (
-                  <BucketIcon
-                    category={round.draft.refined_category}
-                    className="w-3 h-3 shrink-0"
-                  />
-                )}
-                <span className="truncate">{round.draft.refined_name}</span>
-              </p>
-              <p className="text-xs text-white/40 line-clamp-2">
-                {round.draft.refined_description}
-              </p>
+      {rounds.map((round, index) => {
+        const summary = draftSummary(round.draft);
+        return (
+          <li
+            key={index}
+            className="flex flex-col gap-2 rounded-lg border border-white/10 p-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-1 min-w-0">
+                <p className="text-xs text-white/40">Draft {index + 1}</p>
+                <p className="flex items-center gap-2 text-sm text-white/70">
+                  {summary.category && (
+                    <BucketIcon
+                      category={summary.category}
+                      className="w-3 h-3 shrink-0"
+                    />
+                  )}
+                  <span className="truncate">{summary.title}</span>
+                </p>
+                <p className="text-xs text-white/40 line-clamp-2">
+                  {summary.detail}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => onRestore(index)}
+                className="action-button shrink-0"
+              >
+                <HistoryIcon className="w-3 h-3" />
+                Go back to this
+              </button>
             </div>
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={() => onRestore(index)}
-              className="action-button shrink-0"
-            >
-              <HistoryIcon className="w-3 h-3" />
-              Go back to this
-            </button>
-          </div>
-          <p className="flex gap-2 text-sm text-white/60 border-t border-white/10 pt-2">
-            <MessageCircleIcon className="w-3 h-3 mt-1 shrink-0" />
-            {round.feedback}
-          </p>
-        </li>
-      ))}
+            <p className="flex gap-2 text-sm text-white/60 border-t border-white/10 pt-2">
+              <MessageCircleIcon className="w-3 h-3 mt-1 shrink-0" />
+              {round.feedback}
+            </p>
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -70,18 +95,20 @@ export function RefinementReply({
   disabled,
   onChange,
   onSubmit,
+  placeholder = "e.g. keep the old name, but focus on teachers instead",
 }: {
   value: string;
   roundCount: number;
   disabled: boolean;
   onChange: (value: string) => void;
   onSubmit: () => void;
+  placeholder?: string;
 }) {
   if (roundCount >= MAX_REFINEMENT_ROUNDS) {
     return (
       <p className="text-xs text-white/40">
-        That&apos;s {MAX_REFINEMENT_ROUNDS} rounds of back-and-forth. Update the
-        bucket with the draft you like best, or start a fresh refinement.
+        That&apos;s {MAX_REFINEMENT_ROUNDS} rounds of back-and-forth. Keep the
+        draft you like best, or start fresh.
       </p>
     );
   }
@@ -115,7 +142,7 @@ export function RefinementReply({
         maxLength={MAX_REFINEMENT_NOTE_LENGTH}
         rows={2}
         disabled={disabled}
-        placeholder="e.g. keep the old name, but focus on teachers instead"
+        placeholder={placeholder}
         className="w-full rounded-md border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none"
       />
       <button

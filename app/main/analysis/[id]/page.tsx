@@ -4,16 +4,19 @@ import {
   RecommendationBadge,
 } from "@/app/components/analysis-result-condition";
 import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
+import { GameplanView } from "@/app/components/gameplan-view";
 import { ExpandableSection } from "@/app/components/expandable-section";
 import { getAnalysisResult } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
 import type { ExecutionResult, PathwayId, Reasoning } from "@/lib/types";
-import { Ghost, Waypoints, Wrench } from "lucide-react";
+import { isGameplan } from "@/lib/types";
+import { Flag, Ghost, Waypoints, Wrench } from "lucide-react";
 
 const PathwayIcons: Record<PathwayId, React.ReactNode> = {
   analysis: <Waypoints className="w-4 h-4" />,
   execution: <Ghost className="w-4 h-4" />,
   refinement: <Wrench className="w-4 h-4" />,
+  gameplan: <Flag className="w-4 h-4" />,
 };
 
 function AnalysisReasoning({
@@ -124,6 +127,12 @@ export default async function AnalysisPage({
           })}
         </>
       )}
+      {isGameplan(analysisData) && (
+        <>
+          <p className="text-white/70">{analysisData.bucket_name}</p>
+          <GameplanView result={analysisData} />
+        </>
+      )}
       {analysisType !== "execution" && "reasoning" in analysisData && (
         <ExpandableSection
           title={`Reasoning · ${analysisData.reasoning.reasons.length}`}
@@ -132,7 +141,7 @@ export default async function AnalysisPage({
           <AnalysisReasoning reasoning={analysisData.reasoning} />
         </ExpandableSection>
       )}
-      {analysisType !== "execution" && (
+      {analysisType !== "execution" && analysisType !== "gameplan" && (
         <ExpandableSection
           title={`Results · ${
             "suggestions" in analysisData

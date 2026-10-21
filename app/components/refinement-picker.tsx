@@ -21,6 +21,7 @@ export function RefinementPicker({
   onFocusChange,
   note,
   onNoteChange,
+  pathway = "refinement",
 }: {
   buckets: BucketOption[];
   loading: boolean;
@@ -34,7 +35,10 @@ export function RefinementPicker({
   onFocusChange: (focus: RefinementFocusId[]) => void;
   note: string;
   onNoteChange: (note: string) => void;
+  // A gameplan takes only a note; the refinement directions don't apply.
+  pathway?: "refinement" | "gameplan";
 }) {
+  const planning = pathway === "gameplan";
   function toggleFocus(id: RefinementFocusId) {
     onFocusChange(
       focus.includes(id)
@@ -48,8 +52,9 @@ export function RefinementPicker({
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-bold">Choose a bucket</h2>
         <p className="text-sm text-white/50">
-          Refinement sharpens one bucket at a time, using the ideas in it as
-          context.
+          {planning
+            ? "A gameplan maps out how to finish one bucket, counting the ideas you've already done."
+            : "Refinement sharpens one bucket at a time, using the ideas in it as context."}
           {onRecommend ? " Pick one, or let Goblin recommend." : ""}
         </p>
       </div>
@@ -100,44 +105,54 @@ export function RefinementPicker({
         </div>
       )}
       <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-sm">How should Goblin refine it?</h3>
-          <p className="text-xs text-white/50">
-            Pick any that apply, or none for a general pass.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {REFINEMENT_FOCUSES.map((option) => {
-            const selected = focus.includes(option.id);
-            return (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={selected}
-                title={option.description}
-                onClick={() => toggleFocus(option.id)}
-                className={clsx(
-                  "text-left px-3 py-2 rounded-md border transition-colors",
-                  selected
-                    ? "border-green-500/50 bg-green-500/10 text-green-400"
-                    : "border-white/15 text-white/70 hover:border-white/40",
-                )}
-              >
-                <span className="block text-sm">{option.label}</span>
-                <span className="block text-xs text-white/40">
-                  {option.description}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {planning ? (
+          <h3 className="text-sm">Anything Goblin should plan around?</h3>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <h3 className="text-sm">How should Goblin refine it?</h3>
+            <p className="text-xs text-white/50">
+              Pick any that apply, or none for a general pass.
+            </p>
+          </div>
+        )}
+        {!planning && (
+          <div className="flex flex-wrap gap-2">
+            {REFINEMENT_FOCUSES.map((option) => {
+              const selected = focus.includes(option.id);
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  aria-pressed={selected}
+                  title={option.description}
+                  onClick={() => toggleFocus(option.id)}
+                  className={clsx(
+                    "text-left px-3 py-2 rounded-md border transition-colors",
+                    selected
+                      ? "border-green-500/50 bg-green-500/10 text-green-400"
+                      : "border-white/15 text-white/70 hover:border-white/40",
+                  )}
+                >
+                  <span className="block text-sm">{option.label}</span>
+                  <span className="block text-xs text-white/40">
+                    {option.description}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         <textarea
-          aria-label="Refinement note"
+          aria-label={planning ? "Gameplan note" : "Refinement note"}
           value={note}
           onChange={(event) => onNoteChange(event.target.value)}
           maxLength={MAX_REFINEMENT_NOTE_LENGTH}
           rows={2}
-          placeholder="Anything else? e.g. aim it at indie game devs"
+          placeholder={
+            planning
+              ? "e.g. weekends only, solo, ship something within a month"
+              : "Anything else? e.g. aim it at indie game devs"
+          }
           className="w-full rounded-md border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none"
         />
       </div>

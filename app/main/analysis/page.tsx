@@ -3,10 +3,11 @@ import { getAnalysisResults } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
 import type { AnalysisResult as AnalysisRecord } from "@/lib/db/schema";
 import type { ExecutionResult, PathwayId } from "@/lib/types";
-import { isBucketRefinement, isIdeaRefinement } from "@/lib/types";
+import { isBucketRefinement, isGameplan, isIdeaRefinement } from "@/lib/types";
 import {
   ChevronLeft,
   ChevronRight,
+  Flag,
   Ghost,
   Waypoints,
   Wrench,
@@ -26,6 +27,7 @@ const PathwayIcons: Record<PathwayId, React.ReactNode> = {
   analysis: <Waypoints className="w-3 h-3" />,
   execution: <Ghost className="w-3 h-3" />,
   refinement: <Wrench className="w-3 h-3" />,
+  gameplan: <Flag className="w-3 h-3" />,
 };
 
 function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
@@ -33,11 +35,13 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
   const updatedAt = formatDate(analysis.updatedAt);
   const icon = PathwayIcons[analysis.analysisType];
   const data = analysis.analysisData;
-  const refinedFrom = isBucketRefinement(data)
+  const subject = isBucketRefinement(data)
     ? data.original_name
     : isIdeaRefinement(data)
       ? data.original_title
-      : undefined;
+      : isGameplan(data)
+        ? data.bucket_name
+        : undefined;
   const isExecution = analysis.analysisType === "execution";
 
   return (
@@ -50,10 +54,8 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
           {icon}
           <p>{pathway.title}</p>
         </div>
-        {refinedFrom && (
-          <p className="text-sm text-white/80 truncate max-w-sm">
-            {refinedFrom}
-          </p>
+        {subject && (
+          <p className="text-sm text-white/80 truncate max-w-sm">{subject}</p>
         )}
         {isExecution && (
           <p className="text-sm text-white/80 truncate">
@@ -73,6 +75,7 @@ const FILTERS: { label: string; type?: PathwayId }[] = [
   { label: "All" },
   { label: PATHWAYS.execution.title, type: "execution" },
   { label: PATHWAYS.refinement.title, type: "refinement" },
+  { label: PATHWAYS.gameplan.title, type: "gameplan" },
 ];
 
 function analysisHref(type?: PathwayId, page = 1) {
