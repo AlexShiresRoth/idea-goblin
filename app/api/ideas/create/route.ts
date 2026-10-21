@@ -1,5 +1,6 @@
 import { AI_MODELS, chatUsage, recordRun } from "@/lib/ai";
 import { touchBuckets } from "@/lib/api/buckets";
+import { ensureProfile } from "@/lib/api/profiles";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { isBucketCategory } from "@/lib/constants";
 import { db } from "@/lib/db";
@@ -9,11 +10,9 @@ import {
   ideaBucketLinksTable,
   ideaBucketsTable,
   ideasTable,
-  profileTable,
 } from "@/lib/db/schema";
 import { findRelevantBucket, generateIdeaResponse } from "@/lib/prompts";
 import type { BucketChoice } from "@/lib/types";
-import { Session } from "@supabase/supabase-js";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
@@ -63,34 +62,11 @@ async function createIdeaBucketLink(ideaId: number, bucketId: number) {
   return newLink;
 }
 
-async function createProfile(session: Session) {
-  const newProfile = await db
-    .insert(profileTable)
-    .values({
-      id: session.user.id,
-      name: session.user.user_metadata.name || "Goblinner",
-      email: session.user.email as string,
-      activeIdeasAmt: 2,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .returning();
-
-  return newProfile;
-}
-
 export async function POST(request: Request) {
   try {
     const session = await AuthGuard();
 
-    let profile = await db
-      .select()
-      .from(profileTable)
-      .where(eq(profileTable.id, session.user.id));
-
-    if (!profile || profile.length === 0) {
-      profile = await createProfile(session);
-    }
+    const profile = await ensureProfile(session);
 
     const {
       description,
@@ -108,7 +84,7 @@ export async function POST(request: Request) {
     const buckets = await db
       .select()
       .from(ideaBucketsTable)
-      .where(eq(ideaBucketsTable.profileId, profile[0].id));
+      .where(eq(ideaBucketsTable.profileId, profile.id));
 
     // Validate the user's choice before spending any tokens on it.
     if (
@@ -128,7 +104,7 @@ export async function POST(request: Request) {
 
     const response = await generateIdeaResponse(client, description);
     await recordRun({
-      profileId: profile[0].id,
+      profileId: profile.id,
       route: "idea-create",
       model: AI_MODELS.rank,
       usage: chatUsage(response.usage),
@@ -163,7 +139,7 @@ export async function POST(request: Request) {
       category: idea.category,
       type: idea.type,
       description,
-      profileId: profile[0].id,
+      profileId: profile.id,
       status: "incubating",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -185,7 +161,7 @@ export async function POST(request: Request) {
         category: isBucketCategory(idea.bucketCategory)
           ? idea.bucketCategory
           : null,
-        profileId: profile[0].id,
+        profileId: profile.id,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -199,7 +175,7 @@ export async function POST(request: Request) {
       newIdea[0],
     );
     await recordRun({
-      profileId: profile[0].id,
+      profileId: profile.id,
       route: "bucket-classify",
       model: AI_MODELS.rank,
       usage: chatUsage(bucketResponse.usage),
@@ -227,7 +203,7 @@ export async function POST(request: Request) {
           category: isBucketCategory(bucket.newBucketCategory)
             ? bucket.newBucketCategory
             : null,
-          profileId: profile[0].id,
+          profileId: profile.id,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
