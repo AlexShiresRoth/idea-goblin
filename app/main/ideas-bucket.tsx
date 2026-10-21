@@ -17,6 +17,7 @@ import { createPortal } from "react-dom";
 import { AnalyzeVaultModal } from "../components/analyze-vault";
 import { BucketIcon, bucketStyleVars } from "../components/bucket-icon";
 import CreateIdeaModal from "../components/create-idea-modal";
+import ImportIdeasModal from "../components/import-ideas-modal";
 import { ToastContext } from "../context/toast.provider";
 import BucketVersions from "./bucket-versions";
 import IdeaComponent from "./idea";
@@ -173,6 +174,7 @@ function BucketDetail({
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <CreateIdeaModal type="bucket" defaultBucket={bucket.id} />
+          <ImportIdeasModal type="bucket" defaultBucket={bucket} />
           <button
             disabled={isDeleting || ideas.length === 0}
             onClick={() => setRefining(true)}

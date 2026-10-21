@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import CreateIdeaModal from "../components/create-idea-modal";
+import ImportIdeasModal from "../components/import-ideas-modal";
 import Sidebar from "./sidebar";
 
 import { Syne_Tactile as SyneTactile } from "next/font/google";
@@ -44,6 +45,7 @@ export default function Header() {
       <div className="hidden md:flex flex-8 min-w-0">
         <div className="flex items-center gap-2 p-3 px-4 flex-1">
           <CreateIdeaModal type="inline" />
+          <ImportIdeasModal type="inline" />
           <AnalyzeVault />
         </div>
       </div>
