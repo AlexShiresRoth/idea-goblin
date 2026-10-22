@@ -245,6 +245,9 @@ describe("IdeasBucket", () => {
       await user.click(
         await screen.findByRole("button", { name: /Save to bucket/ }),
       );
+      expect(
+        screen.queryByRole("button", { name: /Show Reasoning/ }),
+      ).not.toBeInTheDocument();
       expect(fetch).toHaveBeenCalledWith("/api/vault/save", {
         method: "POST",
         body: JSON.stringify({

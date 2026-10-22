@@ -561,12 +561,17 @@ export function AnalyzeVaultModal({
               )}
               {result != null && (
                 <>
-                  <ActionButton
-                    disabled={!reasoning || analyzing}
-                    action={() => reasoning && setShowReasoning(!showReasoning)}
-                  >
-                    <Brain className="w-3 h-3" /> Show Reasoning
-                  </ActionButton>
+                  {/* Gameplans have no reasoning section. */}
+                  {selectedPathway?.id !== "gameplan" && (
+                    <ActionButton
+                      disabled={!reasoning || analyzing}
+                      action={() =>
+                        reasoning && setShowReasoning(!showReasoning)
+                      }
+                    >
+                      <Brain className="w-3 h-3" /> Show Reasoning
+                    </ActionButton>
+                  )}
                   <ActionButton
                     action={() =>
                       !saved && (reasoning || gameplan) && saveAnalysis()
