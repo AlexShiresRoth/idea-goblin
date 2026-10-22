@@ -1,13 +1,13 @@
 "use client";
 
 import type { BucketChoice, BucketOption } from "@/lib/types";
-import clsx from "clsx";
 import { PlusIcon, XIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
+import { CharCounter } from "./char-counter";
 
 function Label({
   children,
@@ -108,23 +108,6 @@ function Button({
     >
       {children}
     </button>
-  );
-}
-
-function Counter({
-  valueLength,
-  maxLength,
-  className,
-}: {
-  valueLength: number;
-  maxLength: number;
-  className?: string;
-}) {
-  const color = valueLength >= maxLength ? "text-orange-500" : "text-white/50";
-  return (
-    <div className={clsx(color, "text-sm", className)}>
-      {valueLength} / {maxLength}
-    </div>
   );
 }
 
@@ -229,7 +212,7 @@ function CreateIdeaForm({
             onChange={(e) => setDescription(e.target.value)}
             rows={5}
           />
-          <Counter
+          <CharCounter
             valueLength={description.length}
             maxLength={500}
             className="absolute bottom-2 right-2"

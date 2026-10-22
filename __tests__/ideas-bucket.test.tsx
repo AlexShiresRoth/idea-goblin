@@ -226,7 +226,9 @@ describe("IdeasBucket", () => {
       expect(
         screen.queryByRole("button", { name: /More marketable/ }),
       ).not.toBeInTheDocument();
+      expect(screen.getByText("0 / 300")).toBeInTheDocument();
       await user.type(screen.getByLabelText("Gameplan note"), "weekends");
+      expect(screen.getByText("8 / 300")).toBeInTheDocument();
       await user.click(
         screen.getByRole("button", { name: "Plan Launch ideas" }),
       );
@@ -276,6 +278,10 @@ describe("IdeasBucket", () => {
       expect(
         screen.queryByRole("button", { name: "Add as idea" }),
       ).not.toBeInTheDocument();
+
+      // The reply box counts toward its limit too.
+      await user.type(screen.getByLabelText("Reply to this draft"), "shorter");
+      expect(screen.getByText("7 / 300")).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: /Save to bucket/ }));
 
