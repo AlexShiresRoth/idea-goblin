@@ -208,6 +208,49 @@ describe("POST /api/ideas/create", () => {
     });
   });
 
+  describe("title", () => {
+    function insertedIdea() {
+      return vi
+        .mocked(inserted.values as ReturnType<typeof vi.fn>)
+        .mock.calls.map(([values]) => values)
+        .find((values) => "embedding" in values);
+    }
+
+    it("keeps the user's own title, trimmed", async () => {
+      await create({ bucket: 10, title: "  Loot respec  " });
+
+      expect(insertedIdea().title).toBe("Loot respec");
+      // The Goblin still picks the category and type.
+      expect(insertedIdea().category).toBe("app");
+    });
+
+    it("lets the Goblin name the idea when the title is blank", async () => {
+      await create({ bucket: 10, title: "   " });
+
+      expect(insertedIdea().title).toBe("New");
+    });
+
+    it("names a new bucket after the user's title", async () => {
+      await create({ bucket: "new", title: "Loot respec" });
+
+      const values = vi.mocked(inserted.values as ReturnType<typeof vi.fn>).mock
+        .calls;
+      expect(values).toContainEqual([
+        expect.objectContaining({ name: "Loot respec", theme: "app" }),
+      ]);
+    });
+
+    it("rejects an overlong title before any model call", async () => {
+      const response = await create({ title: "x".repeat(201) });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "Title is too long",
+      });
+      expect(generateIdeaResponse).not.toHaveBeenCalled();
+    });
+  });
+
   it("gives a user-created bucket the category suggested for its idea", async () => {
     await create({ bucket: "new" });
 

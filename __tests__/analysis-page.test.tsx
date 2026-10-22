@@ -85,6 +85,20 @@ describe("AnalysisPage", () => {
     ).toHaveAttribute("aria-current", "page");
   });
 
+  it("filters by gameplan", async () => {
+    mockPage(0, 0);
+
+    await renderPage({ type: "gameplan" });
+
+    expect(getAnalysisResults).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "gameplan" }),
+    );
+    expect(screen.getByRole("link", { name: "Gameplan" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+  });
+
   it("ignores unknown types and invalid pages", async () => {
     mockPage(1, 1);
 

@@ -23,9 +23,13 @@ const client = new OpenAI({
 });
 
 const MAX_BUCKET_NAME_LENGTH = 100;
+// Same limit as editing an idea's title.
+const MAX_TITLE_LENGTH = 200;
 
 type CreateIdeaPayload = {
   description?: string;
+  // The user's own title; without one, the Goblin names the idea.
+  title?: string;
   bucket?: BucketChoice;
   bucketName?: string;
 };
@@ -76,7 +80,9 @@ export async function POST(request: Request) {
       description,
       bucket: bucketChoice = "auto",
       bucketName,
+      title,
     } = (await request.json()) as CreateIdeaPayload;
+    const userTitle = title?.trim() || undefined;
 
     if (!description || description.length < 3) {
       return NextResponse.json(
@@ -101,6 +107,10 @@ export async function POST(request: Request) {
       !buckets.some((existing) => existing.id === bucketChoice)
     ) {
       return NextResponse.json({ error: "Bucket not found" }, { status: 400 });
+    }
+
+    if (userTitle && userTitle.length > MAX_TITLE_LENGTH) {
+      return NextResponse.json({ error: "Title is too long" }, { status: 400 });
     }
 
     if (bucketName && bucketName.trim().length > MAX_BUCKET_NAME_LENGTH) {
@@ -129,6 +139,8 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    // The Goblin still picks the category and type; the user's title wins.
+    if (userTitle) idea.title = userTitle;
 
     const embedding = await client.embeddings.create({
       model: "text-embedding-3-small",

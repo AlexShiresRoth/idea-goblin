@@ -86,8 +86,9 @@ function analysisHref(type?: PathwayId, page = 1) {
   return query ? `/main/analysis?${query}` : "/main/analysis";
 }
 
+// Any type with a filter tab; others (like the retired "analysis") show all.
 function parseType(value: string | string[] | undefined) {
-  return value === "execution" || value === "refinement" ? value : undefined;
+  return FILTERS.find((filter) => filter.type && filter.type === value)?.type;
 }
 
 function parsePage(value: string | string[] | undefined) {
