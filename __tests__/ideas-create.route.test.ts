@@ -87,6 +87,16 @@ describe("POST /api/ideas/create", () => {
     vi.mocked(db.delete).mockReturnValue(deleted as never);
   });
 
+  it("returns 401 when signed out, before any work", async () => {
+    vi.mocked(AuthGuard).mockResolvedValue(null as never);
+
+    const response = await create();
+
+    expect(response.status).toBe(401);
+    expect(db.select).not.toHaveBeenCalled();
+    expect(generateIdeaResponse).not.toHaveBeenCalled();
+  });
+
   it("links the idea to the existing bucket and touches it", async () => {
     classifyAs(10);
 

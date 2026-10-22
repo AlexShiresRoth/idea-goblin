@@ -37,16 +37,17 @@ describe("AuthGuard", () => {
     expect(await AuthGuard()).toEqual({ user: { id: "user-1" } });
   });
 
-  it("throws when there is no verified user", async () => {
+  // Routes answer null with 401; a throw would surface as a 500.
+  it("returns null when there is no verified user", async () => {
     supabaseWith(null, { user: { id: "forged" } });
 
-    await expect(AuthGuard()).rejects.toThrow("Unauthorized");
+    expect(await AuthGuard()).toBeNull();
   });
 
-  it("throws when the user has no session", async () => {
+  it("returns null when the user has no session", async () => {
     supabaseWith({ id: "user-1" }, null);
 
-    await expect(AuthGuard()).rejects.toThrow("Unauthorized");
+    expect(await AuthGuard()).toBeNull();
   });
 });
 

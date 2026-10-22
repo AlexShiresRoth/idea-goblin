@@ -66,6 +66,9 @@ async function createIdeaBucketLink(ideaId: number, bucketId: number) {
 export async function POST(request: Request) {
   try {
     const session = await AuthGuard();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const profile = await ensureProfile(session);
 
