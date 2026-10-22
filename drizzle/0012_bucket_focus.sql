@@ -1,0 +1,1 @@
+ALTER TABLE "idea_buckets" ADD COLUMN "active_since" timestamp;

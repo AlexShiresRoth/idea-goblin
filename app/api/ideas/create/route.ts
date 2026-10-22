@@ -1,6 +1,7 @@
 import { AI_MODELS, chatUsage, recordRun } from "@/lib/ai";
 import { touchBuckets } from "@/lib/api/buckets";
 import { ensureProfile } from "@/lib/api/profiles";
+import { activeSlotsForNewBuckets } from "@/lib/focus";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { isBucketCategory } from "@/lib/constants";
 import { db } from "@/lib/db";
@@ -86,6 +87,10 @@ export async function POST(request: Request) {
       .from(ideaBucketsTable)
       .where(eq(ideaBucketsTable.profileId, profile.id));
 
+    // A new bucket starts as worked on while the user's focus has room.
+    const startsActive =
+      activeSlotsForNewBuckets(buckets, profile.activeIdeasAmt) > 0;
+
     // Validate the user's choice before spending any tokens on it.
     if (
       bucketChoice !== "auto" &&
@@ -164,6 +169,7 @@ export async function POST(request: Request) {
         profileId: profile.id,
         createdAt: new Date(),
         updatedAt: new Date(),
+        activeSince: startsActive ? new Date() : null,
       });
       await createIdeaBucketLink(newIdea[0].id, newBucket[0].id);
       return NextResponse.json(newIdea);
@@ -206,6 +212,7 @@ export async function POST(request: Request) {
           profileId: profile.id,
           createdAt: new Date(),
           updatedAt: new Date(),
+          activeSince: startsActive ? new Date() : null,
         });
         await createIdeaBucketLink(newIdea[0].id, newBucket[0].id);
         break;

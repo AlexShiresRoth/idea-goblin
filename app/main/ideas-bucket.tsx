@@ -1,5 +1,6 @@
 "use client";
 import { isDone } from "@/lib/constants";
+import { useFocus } from "../components/focus-provider";
 import { IdeaBucket, type IdeaView } from "@/lib/db/schema";
 import clsx from "clsx";
 import {
@@ -7,6 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUpIcon,
+  CircleParkingIcon,
+  CrosshairIcon,
   Loader2Icon,
   SparklesIcon,
   Trash2Icon,
@@ -44,6 +47,48 @@ function timeAgo(date: Date) {
 
 function doneCount(ideas: IdeaView[]) {
   return `${ideas.filter(isDone).length} of ${ideas.length} done`;
+}
+
+// "Working on" or "Parked", from whether the bucket has an active start.
+function FocusBadge({ active }: { active: boolean }) {
+  return active ? (
+    <span className="flex items-center gap-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 py-1 text-xs text-green-300">
+      <CrosshairIcon className="w-3 h-3" />
+      Working on
+    </span>
+  ) : (
+    <span className="flex items-center gap-1 rounded-full border border-white/20 px-2 py-1 text-xs text-white/60">
+      <CircleParkingIcon className="w-3 h-3" />
+      Parked
+    </span>
+  );
+}
+
+// Starts or stops working on the bucket; hidden outside a FocusProvider.
+function FocusToggle({ bucketId }: { bucketId: number }) {
+  const focus = useFocus();
+  if (!focus) return null;
+  const active = focus.isActive(bucketId);
+  return (
+    <button
+      type="button"
+      disabled={focus.saving}
+      onClick={() => (active ? focus.park(bucketId) : focus.workOn(bucketId))}
+      className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-green-400/80 transition-colors disabled:opacity-50"
+    >
+      {active ? (
+        <>
+          <CircleParkingIcon className="w-3 h-3" />
+          Park
+        </>
+      ) : (
+        <>
+          <CrosshairIcon className="w-3 h-3" />
+          Work on this
+        </>
+      )}
+    </button>
+  );
 }
 
 function ThemePill({ bucket }: { bucket: IdeaBucket }) {
@@ -144,6 +189,7 @@ function BucketDetail({
           {summaryOpen && (
             <div className="flex items-center gap-3">
               <ThemePill bucket={bucket} />
+              <FocusBadge active={bucket.activeSince != null} />
               <p className="text-xs text-white/50">
                 Updated {timeAgo(bucket.updatedAt)} ago
               </p>
@@ -184,6 +230,7 @@ function BucketDetail({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <FocusToggle bucketId={bucket.id} />
           <CreateIdeaModal type="bucket" defaultBucket={bucket.id} />
           <ImportIdeasModal type="bucket" defaultBucket={bucket} />
           <button
@@ -357,10 +404,17 @@ export default function IdeasBucket({
         data-bucket-id={bucket.id}
         // Category colors as CSS variables; everything inside inherits them.
         style={bucketStyleVars(bucket.category)}
-        className="flex bg-black flex-col gap-2 p-4 border border-white/20 rounded-lg items-start break-inside-avoid mb-2 hover:bg-black/60 hover:border-(--bucket-primary)/50 transition-colors cursor-pointer"
+        className={clsx(
+          "flex bg-black flex-col gap-2 p-4 border border-white/20 rounded-lg items-start break-inside-avoid mb-2 hover:bg-black/60 hover:border-(--bucket-primary)/50 transition-[colors,opacity] cursor-pointer",
+          // Parked buckets step back, but come forward on hover to stay usable.
+          bucket.activeSince == null && "opacity-50 hover:opacity-100",
+        )}
       >
-        <div className="flex w-full items-center justify-between">
-          <ThemePill bucket={bucket} />
+        <div className="flex w-full items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ThemePill bucket={bucket} />
+            <FocusBadge active={bucket.activeSince != null} />
+          </div>
           <p className="text-xs text-white/50">{timeAgo(bucket.updatedAt)}</p>
         </div>
         <h2 className="flex items-center gap-2 text-xl">{bucket.name}</h2>
