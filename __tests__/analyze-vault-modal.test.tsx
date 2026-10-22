@@ -124,6 +124,48 @@ describe("AnalyzeVaultModal", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
+  describe("a run that fails before any result", () => {
+    it("keeps the failed step on screen and can try again", async () => {
+      const fetchMock = mockFetch({
+        "/api/vault/analyze": vi
+          .fn()
+          .mockResolvedValueOnce(
+            ndjson([
+              { type: "status", step: "read", message: "Reading vault" },
+              { type: "error", message: "The goblin tripped" },
+            ]),
+          )
+          .mockResolvedValueOnce(ndjson([{ type: "done", data: execution }])),
+      });
+      const user = userEvent.setup();
+      renderModal();
+
+      await startExecution(user);
+
+      expect(await screen.findByText("The goblin tripped")).toBeInTheDocument();
+      expect(screen.getByText("Reading vault")).toBeInTheDocument();
+      // Still on the run, not back at the pathway picker.
+      expect(
+        screen.queryByRole("button", { name: /Start Idea Execution/ }),
+      ).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "Try again" }));
+
+      expect(bodiesFor(fetchMock, "/api/vault/analyze")).toEqual([
+        { pathway: "execution" },
+        { pathway: "execution" },
+      ]);
+      // The retried run's results replace the error.
+      expect(await screen.findAllByText("Newsletter tools")).not.toHaveLength(
+        0,
+      );
+      expect(screen.queryByText("The goblin tripped")).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Try again" }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("pathway selection", () => {
     it("lists the three pathways and enables Start once one is picked", async () => {
       mockFetch({});

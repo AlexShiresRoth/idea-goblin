@@ -22,6 +22,7 @@ import {
   Route,
   SaveIcon,
   SparklesIcon,
+  RotateCcwIcon,
   Wrench,
   Flag,
   XIcon,
@@ -426,7 +427,11 @@ export function AnalyzeVaultModal({
     setResult((await response.json()) as GameplanResult);
   };
 
-  const runStarted = analyzing || result != null || pickingBucket;
+  // A run that failed partway keeps its steps on screen, the failed one
+  // marked, instead of dropping back to the pathway picker.
+  const failedMidRun = !analyzing && error != null && steps.length > 0;
+  const runStarted =
+    analyzing || result != null || pickingBucket || failedMidRun;
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
@@ -636,6 +641,16 @@ export function AnalyzeVaultModal({
                     <p className="text-xs text-white/40 mt-3">
                       Results drop in here as the goblin digs them up.
                     </p>
+                  )}
+                  {failedMidRun && (
+                    <button
+                      type="button"
+                      onClick={() => startAnalysis(rounds)}
+                      className="action-button mt-3"
+                    >
+                      <RotateCcwIcon className="w-3 h-3" />
+                      Try again
+                    </button>
                   )}
                 </div>
               )}
