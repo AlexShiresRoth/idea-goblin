@@ -1,10 +1,15 @@
 "use client";
 
 import { isDone } from "@/lib/constants";
-import type { GameplanResult, GameplanStep } from "@/lib/types";
+import type {
+  GameplanResult,
+  GameplanStep,
+  GameplanStepRef,
+} from "@/lib/types";
 import clsx from "clsx";
 import {
   CircleCheckIcon,
+  CircleIcon,
   FlagIcon,
   Loader2Icon,
   PlusIcon,
@@ -18,6 +23,9 @@ import { ToastContext } from "../context/toast.provider";
 
 type IdeaRef = { id: number; title: string; status: string };
 
+// What a step needs for its actions; the first step has no effort rating.
+type StepFields = { title: string; detail: string; idea_id?: number | null };
+
 // Same limit as adding a single idea.
 const MAX_IDEA_DESCRIPTION_LENGTH = 500;
 
@@ -27,128 +35,91 @@ const EFFORT_STYLES: Record<GameplanStep["effort"], string> = {
   high: "border-red-500/40 text-red-400",
 };
 
-function AddAsIdea({
-  bucketId,
+// Adding a step as an idea calls `onLink` with the new idea's id, so the
+// plan's owner can link the step to it.
+export type LinkStep = (ref: GameplanStepRef, ideaId: number) => Promise<void>;
+
+function stepKey(ref: GameplanStepRef) {
+  return ref.kind === "first" ? "first" : `${ref.phase}-${ref.step}`;
+}
+
+// Checks a step off by marking its idea done (or open again).
+function StepCheck({
   title,
-  detail,
+  done,
+  busy,
+  onToggle,
 }: {
-  bucketId: number;
   title: string;
-  detail: string;
+  done: boolean;
+  busy: boolean;
+  onToggle: () => void;
 }) {
-  const router = useRouter();
-  const { setToasts } = useContext(ToastContext);
-  const [state, setState] = useState<"idle" | "adding" | "added">("idle");
-
-  async function add() {
-    setState("adding");
-    try {
-      const response = await fetch("/api/ideas/create", {
-        method: "POST",
-        body: JSON.stringify({
-          description: `${title}. ${detail}`.slice(
-            0,
-            MAX_IDEA_DESCRIPTION_LENGTH,
-          ),
-          bucket: bucketId,
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to add idea");
-      setState("added");
-      setToasts([
-        {
-          id: `gameplan-idea-${title}`,
-          message: `"${title}" added to the bucket`,
-          type: "success",
-        },
-      ]);
-      router.refresh();
-    } catch (error) {
-      console.error(error);
-      setState("idle");
-      setToasts([
-        {
-          id: `gameplan-idea-error-${title}`,
-          message: "Failed to add idea",
-          type: "error",
-        },
-      ]);
-    }
-  }
-
   return (
     <button
       type="button"
-      onClick={add}
-      disabled={state !== "idle"}
-      className="flex shrink-0 items-center gap-1 text-xs text-white/50 hover:text-green-400/80 transition-colors hover:cursor-pointer disabled:cursor-default disabled:opacity-60"
+      aria-label={done ? `Mark "${title}" not done` : `Mark "${title}" done`}
+      aria-pressed={done}
+      disabled={busy}
+      onClick={onToggle}
+      className="mt-0.5 shrink-0 text-white/40 hover:text-green-400/80 transition-colors hover:cursor-pointer disabled:cursor-default"
     >
-      {state === "adding" ? (
-        <Loader2Icon className="w-3 h-3 animate-spin" />
-      ) : state === "added" ? (
-        <CircleCheckIcon className="w-3 h-3" />
+      {busy ? (
+        <Loader2Icon className="w-3.5 h-3.5 animate-spin" />
+      ) : done ? (
+        <CircleCheckIcon className="w-3.5 h-3.5 text-green-500/80" />
       ) : (
-        <PlusIcon className="w-3 h-3" />
+        <CircleIcon className="w-3.5 h-3.5" />
       )}
-      {state === "added" ? "Added" : "Add as idea"}
     </button>
   );
 }
 
-function StepItem({
+function DoneMark() {
+  return (
+    <CircleCheckIcon
+      aria-label="Done"
+      className="w-3 h-3 mt-1 shrink-0 text-green-500/80"
+    />
+  );
+}
+
+// "From your idea", or the button to make the step one.
+function StepLink({
   step,
   idea,
-  bucketId,
+  canAdd,
+  busy,
+  onAdd,
 }: {
-  step: GameplanStep;
+  step: StepFields;
   idea?: IdeaRef;
-  bucketId?: number;
+  canAdd: boolean;
+  busy: boolean;
+  onAdd: () => void;
 }) {
-  const done = idea ? isDone(idea) : false;
-
+  if (step.idea_id != null) {
+    return (
+      <span className="text-xs text-white/40">
+        From your idea{idea ? `: ${idea.title}` : ""}
+      </span>
+    );
+  }
+  if (!canAdd) return null;
   return (
-    <li className="flex flex-col gap-1 rounded-md bg-white/5 px-3 py-2">
-      <div className="flex items-start justify-between gap-3">
-        <p
-          className={clsx(
-            "flex items-center gap-2 text-sm",
-            done && "text-white/50 line-through",
-          )}
-        >
-          {done && (
-            <CircleCheckIcon
-              aria-label="Done"
-              className="w-3 h-3 shrink-0 text-green-500/80"
-            />
-          )}
-          {step.title}
-        </p>
-        <span
-          className={clsx(
-            "shrink-0 rounded-full border px-2 text-xs",
-            EFFORT_STYLES[step.effort] ?? "border-white/20 text-white/50",
-          )}
-        >
-          {step.effort}
-        </span>
-      </div>
-      <p className="text-xs text-white/50">{step.detail}</p>
-      <div className="flex justify-end">
-        {step.idea_id != null ? (
-          <span className="text-xs text-white/40">
-            From your idea{idea ? `: ${idea.title}` : ""}
-          </span>
-        ) : (
-          bucketId != null && (
-            <AddAsIdea
-              bucketId={bucketId}
-              title={step.title}
-              detail={step.detail}
-            />
-          )
-        )}
-      </div>
-    </li>
+    <button
+      type="button"
+      onClick={onAdd}
+      disabled={busy}
+      className="flex shrink-0 items-center gap-1 text-xs text-white/50 hover:text-green-400/80 transition-colors hover:cursor-pointer disabled:cursor-default disabled:opacity-60"
+    >
+      {busy ? (
+        <Loader2Icon className="w-3 h-3 animate-spin" />
+      ) : (
+        <PlusIcon className="w-3 h-3" />
+      )}
+      Add as idea
+    </button>
   );
 }
 
@@ -180,20 +151,173 @@ function NoteList({
 }
 
 // Fields arrive a few at a time while a gameplan streams, so each part
-// renders once it exists. With `ideas`, steps from existing ideas show the
-// idea and whether it is done; with `bucketId`, other steps can be added as
-// ideas.
+// renders once it exists.
+//
+// With `ideas` (the bucket's current ideas), steps show their idea and its
+// done state, and can be checked off: that marks the idea done, so progress
+// lives in one place. Checking an unlinked step adds it as an idea first.
+// Steps can also be added as ideas in the plan's bucket; `onLink` then links
+// the step to the new idea.
 export function GameplanView({
   result,
   ideas,
   bucketId,
+  onLink,
 }: {
   result: Partial<GameplanResult>;
   ideas?: IdeaRef[];
   bucketId?: number;
+  onLink?: LinkStep;
 }) {
+  const router = useRouter();
+  const { setToasts } = useContext(ToastContext);
+  // Done states set here, shown before the refreshed ideas arrive.
+  const [doneOverrides, setDoneOverrides] = useState<Record<number, boolean>>(
+    {},
+  );
+  const [busyStep, setBusyStep] = useState<string | null>(null);
+
   const ideasById = new Map(ideas?.map((idea) => [idea.id, idea]));
   const targetBucket = bucketId ?? result.bucket_id;
+  const canAdd = targetBucket != null;
+  const checkable = ideas != null && canAdd;
+
+  const ideaFor = (id?: number | null) =>
+    id != null ? ideasById.get(id) : undefined;
+  const isStepDone = (step: StepFields) => {
+    if (step.idea_id == null) return false;
+    const override = doneOverrides[step.idea_id];
+    if (override !== undefined) return override;
+    const idea = ideasById.get(step.idea_id);
+    return idea ? isDone(idea) : false;
+  };
+
+  function toast(id: string, message: string, type: "success" | "error") {
+    setToasts([{ id, message, type }]);
+  }
+
+  // Creates the step as an idea in the bucket and links the step to it.
+  async function addStep(ref: GameplanStepRef, step: StepFields) {
+    const response = await fetch("/api/ideas/create", {
+      method: "POST",
+      body: JSON.stringify({
+        description: `${step.title}. ${step.detail}`.slice(
+          0,
+          MAX_IDEA_DESCRIPTION_LENGTH,
+        ),
+        bucket: targetBucket,
+      }),
+    });
+    if (!response.ok) throw new Error("Failed to add idea");
+    const [idea] = (await response.json()) as { id: number }[];
+    try {
+      await onLink?.(ref, idea.id);
+    } catch (error) {
+      console.error(error);
+      toast(
+        `gameplan-link-error-${step.title}`,
+        "Added the idea, but couldn't link it to the plan",
+        "error",
+      );
+    }
+    return idea.id;
+  }
+
+  async function setIdeaDone(ideaId: number, done: boolean) {
+    setDoneOverrides((current) => ({ ...current, [ideaId]: done }));
+    const response = await fetch("/api/ideas/status", {
+      method: "POST",
+      body: JSON.stringify({ ideaId, done }),
+    });
+    if (!response.ok) {
+      setDoneOverrides((current) => {
+        const rest = { ...current };
+        delete rest[ideaId];
+        return rest;
+      });
+      throw new Error("Failed to update idea");
+    }
+  }
+
+  async function addAsIdea(ref: GameplanStepRef, step: StepFields) {
+    setBusyStep(stepKey(ref));
+    try {
+      await addStep(ref, step);
+      toast(
+        `gameplan-idea-${step.title}`,
+        `"${step.title}" added to the bucket`,
+        "success",
+      );
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      toast(`gameplan-idea-error-${step.title}`, "Failed to add idea", "error");
+    } finally {
+      setBusyStep(null);
+    }
+  }
+
+  async function toggleStep(ref: GameplanStepRef, step: StepFields) {
+    const done = !isStepDone(step);
+    setBusyStep(stepKey(ref));
+    try {
+      const ideaId = step.idea_id ?? (await addStep(ref, step));
+      await setIdeaDone(ideaId, done);
+      toast(
+        `gameplan-done-${step.title}`,
+        done
+          ? `"${step.title}" is done. Nice work.`
+          : `"${step.title}" is back on the pile`,
+        "success",
+      );
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      toast(
+        `gameplan-done-error-${step.title}`,
+        "Failed to update the step",
+        "error",
+      );
+    } finally {
+      setBusyStep(null);
+    }
+  }
+
+  // The check-off button where steps can be checked; otherwise just a mark
+  // for steps already done.
+  function renderMark(
+    ref: GameplanStepRef,
+    step: StepFields,
+    fallback: React.ReactNode = null,
+  ) {
+    const done = isStepDone(step);
+    if (checkable) {
+      return (
+        <StepCheck
+          title={step.title}
+          done={done}
+          busy={busyStep === stepKey(ref)}
+          onToggle={() => toggleStep(ref, step)}
+        />
+      );
+    }
+    return done ? <DoneMark /> : fallback;
+  }
+
+  function renderLink(ref: GameplanStepRef, step: StepFields) {
+    return (
+      <StepLink
+        step={step}
+        idea={ideaFor(step.idea_id)}
+        canAdd={canAdd}
+        busy={busyStep === stepKey(ref)}
+        onAdd={() => addAsIdea(ref, step)}
+      />
+    );
+  }
+
+  const firstRef: GameplanStepRef = { kind: "first" };
+  const firstDone = result.first_step ? isStepDone(result.first_step) : false;
 
   return (
     <div className="flex flex-col gap-6">
@@ -213,17 +337,22 @@ export function GameplanView({
       {result.first_step && (
         <section className="flex flex-col gap-1 rounded-lg border border-green-500/30 px-4 py-3">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="flex items-center gap-2 text-sm text-green-400">
-              <ZapIcon className="w-3 h-3" />
-              Start today: {result.first_step.title}
-            </h3>
-            {targetBucket != null && (
-              <AddAsIdea
-                bucketId={targetBucket}
-                title={result.first_step.title}
-                detail={result.first_step.detail}
-              />
-            )}
+            <div className="flex items-start gap-2">
+              {renderMark(
+                firstRef,
+                result.first_step,
+                <ZapIcon className="w-3 h-3 mt-1 shrink-0 text-green-400" />,
+              )}
+              <h3
+                className={clsx(
+                  "text-sm text-green-400",
+                  firstDone && "line-through opacity-70",
+                )}
+              >
+                Start today: {result.first_step.title}
+              </h3>
+            </div>
+            {renderLink(firstRef, result.first_step)}
           </div>
           <p className="text-sm text-white/60">{result.first_step.detail}</p>
         </section>
@@ -231,28 +360,59 @@ export function GameplanView({
 
       {result.phases && result.phases.length > 0 && (
         <ol className="flex flex-col gap-4">
-          {result.phases.map((phase, index) => (
-            <li key={index} className="flex flex-col gap-2">
+          {result.phases.map((phase, phaseIndex) => (
+            <li key={phaseIndex} className="flex flex-col gap-2">
               <div className="flex flex-col gap-0.5">
                 <h3 className="text-sm">
-                  <span className="text-white/40">Phase {index + 1} · </span>
+                  <span className="text-white/40">
+                    Phase {phaseIndex + 1} ·{" "}
+                  </span>
                   {phase.title}
                 </h3>
                 <p className="text-xs text-white/50">{phase.goal}</p>
               </div>
               <ul className="flex flex-col gap-2">
-                {phase.steps.map((step, stepIndex) => (
-                  <StepItem
-                    key={stepIndex}
-                    step={step}
-                    idea={
-                      step.idea_id != null
-                        ? ideasById.get(step.idea_id)
-                        : undefined
-                    }
-                    bucketId={targetBucket}
-                  />
-                ))}
+                {phase.steps.map((step, stepIndex) => {
+                  const ref: GameplanStepRef = {
+                    kind: "phase",
+                    phase: phaseIndex,
+                    step: stepIndex,
+                  };
+                  const done = isStepDone(step);
+                  return (
+                    <li
+                      key={stepIndex}
+                      className="flex flex-col gap-1 rounded-md bg-white/5 px-3 py-2"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2">
+                          {renderMark(ref, step)}
+                          <p
+                            className={clsx(
+                              "text-sm",
+                              done && "text-white/50 line-through",
+                            )}
+                          >
+                            {step.title}
+                          </p>
+                        </div>
+                        <span
+                          className={clsx(
+                            "shrink-0 rounded-full border px-2 text-xs",
+                            EFFORT_STYLES[step.effort] ??
+                              "border-white/20 text-white/50",
+                          )}
+                        >
+                          {step.effort}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/50">{step.detail}</p>
+                      <div className="flex justify-end">
+                        {renderLink(ref, step)}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </li>
           ))}

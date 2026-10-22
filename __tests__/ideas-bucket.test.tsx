@@ -120,7 +120,7 @@ describe("IdeasBucket", () => {
     it("pages through open ideas only", async () => {
       const user = userEvent.setup();
       renderBucket([
-        ...Array.from({ length: 10 }, (_, i) =>
+        ...Array.from({ length: 15 }, (_, i) =>
           makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
         ),
         makeIdea({ id: 99, title: "Old win", status: "done" }),
@@ -176,6 +176,9 @@ describe("IdeasBucket", () => {
         if (url === "/api/vault/analyze") {
           return new Response(JSON.stringify({ type: "done", data: plan }));
         }
+        if (url === "/api/ideas/create") {
+          return { ok: true, json: async () => [{ id: 55 }] } as Response;
+        }
         return { ok: true, json: async () => [] } as Response;
       }) as never);
     }
@@ -197,6 +200,15 @@ describe("IdeasBucket", () => {
         "href",
         "/main/analysis/3",
       );
+
+      // Checking the step off reopens or completes its idea.
+      await user.click(
+        screen.getByRole("button", { name: 'Mark "Ship it" not done' }),
+      );
+      expect(fetch).toHaveBeenCalledWith("/api/ideas/status", {
+        method: "POST",
+        body: JSON.stringify({ ideaId: 1, done: false }),
+      });
     });
 
     it("makes a gameplan for this bucket and saves it to the bucket", async () => {
@@ -214,7 +226,9 @@ describe("IdeasBucket", () => {
       expect(
         screen.queryByRole("button", { name: /More marketable/ }),
       ).not.toBeInTheDocument();
+      expect(screen.getByText("0 / 300")).toBeInTheDocument();
       await user.type(screen.getByLabelText("Gameplan note"), "weekends");
+      expect(screen.getByText("8 / 300")).toBeInTheDocument();
       await user.click(
         screen.getByRole("button", { name: "Plan Launch ideas" }),
       );
@@ -231,6 +245,9 @@ describe("IdeasBucket", () => {
       await user.click(
         await screen.findByRole("button", { name: /Save to bucket/ }),
       );
+      expect(
+        screen.queryByRole("button", { name: /Show Reasoning/ }),
+      ).not.toBeInTheDocument();
       expect(fetch).toHaveBeenCalledWith("/api/vault/save", {
         method: "POST",
         body: JSON.stringify({
@@ -239,6 +256,43 @@ describe("IdeasBucket", () => {
           bucketId: 10,
         }),
       });
+    });
+    it("keeps steps added as ideas linked when the plan is saved", async () => {
+      routeFetch(null);
+      const user = userEvent.setup();
+      renderBucket(refineIdeas);
+
+      await user.click(screen.getByLabelText("button"));
+      await user.click(
+        await screen.findByRole("button", { name: "Make a gameplan" }),
+      );
+      await user.click(
+        screen.getByRole("button", { name: "Plan Launch ideas" }),
+      );
+      // Only the first step is unlinked in this plan.
+      const [modalAdd] = await screen.findAllByRole("button", {
+        name: "Add as idea",
+      });
+      await user.click(modalAdd);
+      // The phase step was already linked; now the first step is too.
+      await vi.waitFor(() =>
+        expect(screen.getAllByText("From your idea")).toHaveLength(2),
+      );
+      expect(
+        screen.queryByRole("button", { name: "Add as idea" }),
+      ).not.toBeInTheDocument();
+
+      // The reply box counts toward its limit too.
+      await user.type(screen.getByLabelText("Reply to this draft"), "shorter");
+      expect(screen.getByText("7 / 300")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /Save to bucket/ }));
+
+      const saveCall = vi
+        .mocked(fetch)
+        .mock.calls.find(([url]) => url === "/api/vault/save");
+      const body = JSON.parse(String(saveCall?.[1]?.body));
+      expect(body.data.first_step.idea_id).toBe(55);
     });
   });
 
@@ -464,50 +518,50 @@ describe("IdeasBucket", () => {
   it("hides pagination when the bucket fits on one page", async () => {
     const user = userEvent.setup();
     renderBucket(
-      Array.from({ length: 10 }, (_, i) =>
+      Array.from({ length: 15 }, (_, i) =>
         makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
       ),
     );
 
     await user.click(screen.getByLabelText("button"));
 
-    expect(screen.getByText("Idea 10")).toBeInTheDocument();
+    expect(screen.getByText("Idea 15")).toBeInTheDocument();
     expect(screen.queryByLabelText("Next ideas")).not.toBeInTheDocument();
   });
 
-  it("pages through ideas ten at a time", async () => {
+  it("pages through ideas fifteen at a time", async () => {
     const user = userEvent.setup();
     renderBucket(
-      Array.from({ length: 25 }, (_, i) =>
+      Array.from({ length: 40 }, (_, i) =>
         makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
       ),
     );
 
     await user.click(screen.getByLabelText("button"));
 
-    expect(screen.getByText("Ideas 25")).toBeInTheDocument();
+    expect(screen.getByText("Ideas 40")).toBeInTheDocument();
     expect(screen.getByText("1 / 3")).toBeInTheDocument();
     expect(screen.getByText("Idea 1")).toBeInTheDocument();
-    expect(screen.getByText("Idea 10")).toBeInTheDocument();
-    expect(screen.queryByText("Idea 11")).not.toBeInTheDocument();
+    expect(screen.getByText("Idea 15")).toBeInTheDocument();
+    expect(screen.queryByText("Idea 16")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Previous ideas")).toBeDisabled();
 
     await user.click(screen.getByLabelText("Next ideas"));
     expect(screen.getByText("2 / 3")).toBeInTheDocument();
-    expect(screen.queryByText("Idea 10")).not.toBeInTheDocument();
-    expect(screen.getByText("Idea 11")).toBeInTheDocument();
-    expect(screen.getByText("Idea 20")).toBeInTheDocument();
+    expect(screen.queryByText("Idea 15")).not.toBeInTheDocument();
+    expect(screen.getByText("Idea 16")).toBeInTheDocument();
+    expect(screen.getByText("Idea 30")).toBeInTheDocument();
 
     await user.click(screen.getByLabelText("Next ideas"));
     expect(screen.getByText("3 / 3")).toBeInTheDocument();
-    expect(screen.getByText("Idea 21")).toBeInTheDocument();
-    expect(screen.getByText("Idea 25")).toBeInTheDocument();
-    expect(screen.queryByText("Idea 20")).not.toBeInTheDocument();
+    expect(screen.getByText("Idea 31")).toBeInTheDocument();
+    expect(screen.getByText("Idea 40")).toBeInTheDocument();
+    expect(screen.queryByText("Idea 30")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Next ideas")).toBeDisabled();
 
     await user.click(screen.getByLabelText("Previous ideas"));
     expect(screen.getByText("2 / 3")).toBeInTheDocument();
-    expect(screen.getByText("Idea 11")).toBeInTheDocument();
+    expect(screen.getByText("Idea 16")).toBeInTheDocument();
   });
 
   it("falls back to the last page when ideas on the current page are removed", async () => {
@@ -516,7 +570,7 @@ describe("IdeasBucket", () => {
         makeIdea({ id: i + 1, title: `Idea ${i + 1}` }),
       );
     const user = userEvent.setup();
-    const { rerender } = renderBucket(makeIdeas(25));
+    const { rerender } = renderBucket(makeIdeas(40));
 
     await user.click(screen.getByLabelText("button"));
     await user.click(screen.getByLabelText("Next ideas"));
@@ -526,13 +580,13 @@ describe("IdeasBucket", () => {
     // Deleting an idea refreshes the route, which re-renders with fewer ideas.
     rerender(
       <ToastContext.Provider value={{ toasts: [], setToasts }}>
-        <IdeasBucket bucket={makeBucket()} ideas={makeIdeas(20)} />
+        <IdeasBucket bucket={makeBucket()} ideas={makeIdeas(30)} />
       </ToastContext.Provider>,
     );
 
     expect(screen.getByText("2 / 2")).toBeInTheDocument();
-    expect(screen.getByText("Idea 11")).toBeInTheDocument();
-    expect(screen.getByText("Idea 20")).toBeInTheDocument();
+    expect(screen.getByText("Idea 16")).toBeInTheDocument();
+    expect(screen.getByText("Idea 30")).toBeInTheDocument();
     expect(screen.getByLabelText("Next ideas")).toBeDisabled();
   });
 

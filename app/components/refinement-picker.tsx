@@ -7,6 +7,7 @@ import {
 } from "@/lib/constants";
 import type { BucketOption } from "@/lib/types";
 import clsx from "clsx";
+import { CharCounter } from "./char-counter";
 import { Loader2, SparklesIcon } from "lucide-react";
 
 export function RefinementPicker({
@@ -154,6 +155,11 @@ export function RefinementPicker({
               : "Anything else? e.g. aim it at indie game devs"
           }
           className="w-full rounded-md border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none"
+        />
+        <CharCounter
+          valueLength={note.length}
+          maxLength={MAX_REFINEMENT_NOTE_LENGTH}
+          className="self-end text-xs"
         />
       </div>
     </div>

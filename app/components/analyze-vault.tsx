@@ -29,11 +29,13 @@ import {
 import { useContext, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { linkStep } from "@/lib/gameplan";
 import { readNdjson } from "@/lib/ndjson";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
+import { GameplanView, type LinkStep } from "./gameplan-view";
 import { RefinementPicker } from "./refinement-picker";
 import { RefinementReply, RefinementRounds } from "./refinement-rounds";
 
@@ -137,6 +139,8 @@ export function AnalyzeVaultModal({
   const [result, setResult] = useState<AnalysisPayload | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  // The saved copy of this result, so later gameplan links update it too.
+  const [savedId, setSavedId] = useState<number | null>(null);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -236,6 +240,7 @@ export function AnalyzeVaultModal({
     if (isBucketPathway(selectedPathway.id) && !selectedBucket) return;
 
     setRounds(nextRounds);
+    setSavedId(null);
     setPickingBucket(false);
     setAnalyzing(true);
     setResult(null);
@@ -319,6 +324,10 @@ export function AnalyzeVaultModal({
       if (!response.ok) {
         throw new Error("Failed to save analysis");
       }
+      const body = (await response.json().catch(() => null)) as {
+        id?: number;
+      } | null;
+      setSavedId(body?.id ?? null);
 
       setSaved(true);
       setToasts([
@@ -394,11 +403,28 @@ export function AnalyzeVaultModal({
     setResult(round.draft);
     setRounds(rounds.slice(0, index));
     setSaved(false);
+    setSavedId(null);
     setApplied(false);
     setCached(false);
     setError(null);
     setSteps([]);
   }
+
+  // A step added as an idea is linked in the plan shown here, and in the
+  // saved copy once there is one.
+  const linkGameplanStep: LinkStep = async (step, ideaId) => {
+    if (!gameplan) return;
+    if (savedId == null) {
+      setResult(linkStep(gameplan, step, ideaId));
+      return;
+    }
+    const response = await fetch("/api/analysis/link-step", {
+      method: "POST",
+      body: JSON.stringify({ analysisId: savedId, ideaId, step }),
+    });
+    if (!response.ok) throw new Error("Failed to link step");
+    setResult((await response.json()) as GameplanResult);
+  };
 
   const runStarted = analyzing || result != null || pickingBucket;
 
@@ -535,12 +561,17 @@ export function AnalyzeVaultModal({
               )}
               {result != null && (
                 <>
-                  <ActionButton
-                    disabled={!reasoning || analyzing}
-                    action={() => reasoning && setShowReasoning(!showReasoning)}
-                  >
-                    <Brain className="w-3 h-3" /> Show Reasoning
-                  </ActionButton>
+                  {/* Gameplans have no reasoning section. */}
+                  {selectedPathway?.id !== "gameplan" && (
+                    <ActionButton
+                      disabled={!reasoning || analyzing}
+                      action={() =>
+                        reasoning && setShowReasoning(!showReasoning)
+                      }
+                    >
+                      <Brain className="w-3 h-3" /> Show Reasoning
+                    </ActionButton>
+                  )}
                   <ActionButton
                     action={() =>
                       !saved && (reasoning || gameplan) && saveAnalysis()
@@ -617,11 +648,19 @@ export function AnalyzeVaultModal({
               {showReasoning && reasoning && (
                 <p className="text-sm text-white/50">{reasoning}</p>
               )}
-              {result != null && selectedPathway && (
-                <AnalysisResultConditional
-                  result={result}
-                  type={selectedPathway.id}
+              {gameplan ? (
+                <GameplanView
+                  result={gameplan}
+                  onLink={analyzing ? undefined : linkGameplanStep}
                 />
+              ) : (
+                result != null &&
+                selectedPathway && (
+                  <AnalysisResultConditional
+                    result={result}
+                    type={selectedPathway.id}
+                  />
+                )
               )}
               {draft && !analyzing && (
                 <RefinementReply

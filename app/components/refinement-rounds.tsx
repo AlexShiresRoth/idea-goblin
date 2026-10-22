@@ -11,6 +11,7 @@ import type {
 } from "@/lib/types";
 import { HistoryIcon, MessageCircleIcon } from "lucide-react";
 import { BucketIcon } from "./bucket-icon";
+import { CharCounter } from "./char-counter";
 
 type Draft = BucketRefinementResult | GameplanResult;
 
@@ -145,14 +146,21 @@ export function RefinementReply({
         placeholder={placeholder}
         className="w-full rounded-md border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none"
       />
-      <button
-        type="submit"
-        disabled={!canSubmit}
-        className="action-button w-fit"
-      >
-        <MessageCircleIcon className="w-3 h-3" />
-        Refine again
-      </button>
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="action-button w-fit"
+        >
+          <MessageCircleIcon className="w-3 h-3" />
+          Refine again
+        </button>
+        <CharCounter
+          valueLength={value.length}
+          maxLength={MAX_REFINEMENT_NOTE_LENGTH}
+          className="text-xs"
+        />
+      </div>
     </form>
   );
 }

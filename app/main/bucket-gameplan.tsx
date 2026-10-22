@@ -5,7 +5,7 @@ import { FlagIcon, Loader2Icon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnalyzeVaultModal } from "../components/analyze-vault";
-import { GameplanView } from "../components/gameplan-view";
+import { SavedGameplanView } from "../components/saved-gameplan-view";
 
 type SavedGameplan = { id: number; createdAt: string; data: GameplanResult };
 
@@ -98,7 +98,9 @@ export default function BucketGameplan({
               New gameplan
             </button>
           </div>
-          <GameplanView
+          <SavedGameplanView
+            key={gameplan.id}
+            analysisId={gameplan.id}
             result={gameplan.data}
             ideas={ideas}
             bucketId={bucket.id}

@@ -89,11 +89,16 @@ export type GameplanResult = {
   // What "complete" means for this bucket.
   finish_line: string;
   where_you_are: string;
-  first_step: { title: string; detail: string };
+  // idea_id is set once the step has been added to the bucket as an idea.
+  first_step: { title: string; detail: string; idea_id?: number | null };
   phases: { title: string; goal: string; steps: GameplanStep[] }[];
   cut: string[];
   risks: string[];
 };
+
+// A step in a gameplan: the first step, or a step within a phase.
+export type GameplanStepRef =
+  { kind: "first" } | { kind: "phase"; phase: number; step: number };
 
 // One back-and-forth on a draft: what Goblin produced and the user's reply
 // to it, which steers the next draft.
