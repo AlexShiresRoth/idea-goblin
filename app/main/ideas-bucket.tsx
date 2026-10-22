@@ -24,7 +24,7 @@ import BucketGameplan from "./bucket-gameplan";
 import BucketVersions from "./bucket-versions";
 import IdeaComponent from "./idea";
 
-const IDEAS_PER_PAGE = 10;
+const IDEAS_PER_PAGE = 15;
 
 function timeAgo(date: Date) {
   const now = new Date();
