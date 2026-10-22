@@ -343,6 +343,23 @@ describe("IdeasBucket", () => {
     );
   });
 
+  it("shows a parked bucket faded with a Parked badge", () => {
+    renderBucket();
+
+    expect(screen.getByText("Parked")).toBeInTheDocument();
+    expect(screen.getByLabelText("button").className).toContain("opacity-50");
+  });
+
+  it("shows an active bucket at full strength", () => {
+    renderBucket(undefined, makeBucket({ activeSince: new Date() }));
+
+    expect(screen.getByText("Working on")).toBeInTheDocument();
+    expect(screen.queryByText("Parked")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("button").className).not.toContain(
+      "opacity-50",
+    );
+  });
+
   it("uses the default style for buckets without a category", () => {
     renderBucket();
 

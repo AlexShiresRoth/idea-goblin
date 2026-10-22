@@ -26,6 +26,7 @@ export const profileTable = pgTable("profiles", {
     .references(() => authUsers.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   email: text("email").notNull(),
+  // How many buckets can be actively worked on at once; the rest are parked.
   activeIdeasAmt: integer("active_ideas_amt").notNull().default(2),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -43,6 +44,8 @@ export const ideaBucketsTable = pgTable("idea_buckets", {
     .references(() => profileTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  // Set while the bucket is being worked on; null means parked.
+  activeSince: timestamp("active_since"),
 });
 
 export const ideaBucketLinksTable = pgTable("idea_bucket_links", {

@@ -30,7 +30,7 @@ vi.mock("@/lib/db", () => ({
   db: { select: vi.fn(), transaction: vi.fn() },
 }));
 vi.mock("@/lib/api/profiles", () => ({
-  ensureProfile: vi.fn(async () => ({ id: "user-1" })),
+  ensureProfile: vi.fn(async () => ({ id: "user-1", activeIdeasAmt: 2 })),
 }));
 vi.mock("@/lib/api/buckets", () => ({ touchBuckets: vi.fn() }));
 vi.mock("@/lib/prompts/import", () => ({
@@ -349,6 +349,46 @@ describe("POST /api/ideas/import", () => {
         name: "Side quests",
         description: "Things to tinker with",
       }),
+    ]);
+  });
+
+  it("starts a new user's first buckets as worked on, up to the limit", async () => {
+    vi.mocked(db.select)
+      .mockReset()
+      .mockReturnValueOnce(mockQuery([]) as never);
+    nearest(null);
+
+    await readEvents(
+      await importRows({
+        rows: [
+          row("A dungeon crawler", { type: "named", name: "Games" }),
+          row("A synth app", { type: "named", name: "Music" }),
+          row("A tax tracker", { type: "named", name: "Money" }),
+        ],
+      }),
+    );
+
+    expect(
+      ofTable(ideaBucketsTable).map((bucket) => [
+        (bucket as { name: string }).name,
+        (bucket as { activeSince: Date | null }).activeSince instanceof Date,
+      ]),
+    ).toEqual([
+      ["Games", true],
+      ["Music", true],
+      ["Money", false],
+    ]);
+  });
+
+  it("starts new buckets parked once anything is parked", async () => {
+    await readEvents(
+      await importRows({
+        rows: [row("A synth app", { type: "named", name: "Music" })],
+      }),
+    );
+
+    expect(ofTable(ideaBucketsTable)).toEqual([
+      expect.objectContaining({ name: "Music", activeSince: null }),
     ]);
   });
 

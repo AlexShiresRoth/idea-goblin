@@ -21,6 +21,7 @@ import {
   type ImportRow,
   type ImportSummary,
 } from "@/lib/import/schema";
+import { activeSlotsForNewBuckets } from "@/lib/focus";
 import { encodeEvent, NDJSON_HEADERS } from "@/lib/ndjson";
 import {
   describeBuckets,
@@ -93,11 +94,13 @@ function streamImport({
   rows,
   buckets,
   allowDuplicates,
+  focusLimit,
 }: {
   profileId: string;
   rows: ImportRow[];
   buckets: IdeaBucket[];
   allowDuplicates: boolean;
+  focusLimit: number;
 }) {
   return new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -342,6 +345,8 @@ function streamImport({
         if (kept.length > 0) {
           await db.transaction(async (tx) => {
             const createdIds = new Map<string, number>();
+            // The first new buckets fill any room left in the user's focus.
+            let activeSlots = activeSlotsForNewBuckets(buckets, focusLimit);
             for (const [key, bucket] of newBuckets) {
               const [created] = await tx
                 .insert(ideaBucketsTable)
@@ -350,6 +355,7 @@ function streamImport({
                   profileId,
                   createdAt: now,
                   updatedAt: now,
+                  activeSince: activeSlots-- > 0 ? now : null,
                 })
                 .returning();
               createdIds.set(key, created.id);
@@ -473,7 +479,13 @@ export async function POST(request: Request) {
     }
 
     return new Response(
-      streamImport({ profileId: profile.id, rows, buckets, allowDuplicates }),
+      streamImport({
+        profileId: profile.id,
+        rows,
+        buckets,
+        allowDuplicates,
+        focusLimit: profile.activeIdeasAmt,
+      }),
       { headers: NDJSON_HEADERS },
     );
   } catch (error) {

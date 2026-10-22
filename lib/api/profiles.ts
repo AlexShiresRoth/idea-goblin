@@ -25,3 +25,12 @@ export async function ensureProfile(session: Session) {
     .returning();
   return created;
 }
+
+// How many buckets the user can work on at once; the rest are parked.
+export async function getFocusLimit(profileId: string) {
+  const [profile] = await db
+    .select({ limit: profileTable.activeIdeasAmt })
+    .from(profileTable)
+    .where(eq(profileTable.id, profileId));
+  return profile?.limit ?? 2;
+}

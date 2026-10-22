@@ -153,6 +153,51 @@ describe("POST /api/ideas/create", () => {
     expect(values).toContainEqual([expect.objectContaining({ name: "New" })]);
   });
 
+  describe("focus", () => {
+    function withBuckets(buckets: ReturnType<typeof makeBucket>[]) {
+      vi.mocked(db.select)
+        .mockReset()
+        .mockReturnValueOnce(
+          mockQuery([{ id: userId, activeIdeasAmt: 2 }]) as never,
+        )
+        .mockReturnValueOnce(mockQuery(buckets) as never);
+    }
+
+    function newBucketValues() {
+      return vi
+        .mocked(inserted.values as ReturnType<typeof vi.fn>)
+        .mock.calls.map(([values]) => values)
+        .find((values) => "theme" in values);
+    }
+
+    it("starts a new bucket as worked on while focus has room", async () => {
+      withBuckets([makeBucket({ id: 10, activeSince: new Date() })]);
+
+      await create({ bucket: "new" });
+
+      expect(newBucketValues().activeSince).toBeInstanceOf(Date);
+    });
+
+    it("starts a new bucket parked once anything is parked", async () => {
+      withBuckets([makeBucket({ id: 10, activeSince: null })]);
+
+      await create({ bucket: "new" });
+
+      expect(newBucketValues().activeSince).toBeNull();
+    });
+
+    it("starts a new bucket parked when focus is full", async () => {
+      withBuckets([
+        makeBucket({ id: 10, activeSince: new Date() }),
+        makeBucket({ id: 11, activeSince: new Date() }),
+      ]);
+
+      await create({ bucket: "new" });
+
+      expect(newBucketValues().activeSince).toBeNull();
+    });
+  });
+
   it("gives a user-created bucket the category suggested for its idea", async () => {
     await create({ bucket: "new" });
 
