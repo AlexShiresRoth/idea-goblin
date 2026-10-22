@@ -1,6 +1,8 @@
 import "server-only";
 import { createServerClient } from "./client";
 
+// The signed-in user's session, or null when signed out. Callers return 401
+// on null; throwing here would turn every signed-out request into a 500.
 export async function AuthGuard() {
   const supabase = await createServerClient();
 
@@ -9,16 +11,12 @@ export async function AuthGuard() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Unauthorized");
+    return null;
   }
 
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
-
-  return session;
+  return session ?? null;
 }
