@@ -200,6 +200,15 @@ describe("IdeasBucket", () => {
         "href",
         "/main/analysis/3",
       );
+
+      // Checking the step off reopens or completes its idea.
+      await user.click(
+        screen.getByRole("button", { name: 'Mark "Ship it" not done' }),
+      );
+      expect(fetch).toHaveBeenCalledWith("/api/ideas/status", {
+        method: "POST",
+        body: JSON.stringify({ ideaId: 1, done: false }),
+      });
     });
 
     it("makes a gameplan for this bucket and saves it to the bucket", async () => {
