@@ -219,7 +219,7 @@ export default async function AnalysisPage({
           <div className="p-4 w-full flex-1 flex items-center justify-center">
             <p className="text-sm text-white/50">
               {type
-                ? `No saved ${PATHWAYS[type].title.toLowerCase()} results yet.`
+                ? `Nothing saved under ${PATHWAYS[type].title} yet.`
                 : "No saved analyses yet. Save one from Analyze Vault and the goblin keeps it here."}
             </p>
           </div>

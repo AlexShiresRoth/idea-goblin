@@ -4,8 +4,8 @@ import {
   RecommendationBadge,
 } from "@/app/components/analysis-result-condition";
 import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
-import { SavedGameplanView } from "@/app/components/saved-gameplan-view";
 import { ExpandableSection } from "@/app/components/expandable-section";
+import { SavedGameplanView } from "@/app/components/saved-gameplan-view";
 import { getAnalysisResult } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
 import type { ExecutionResult, PathwayId, Reasoning } from "@/lib/types";
@@ -92,72 +92,76 @@ export default async function AnalysisPage({
           redirectTo="/main/analysis"
         />
       </div>
-      {analysisType === "execution" && "summary" in analysisData && (
-        <>
-          {analysisData.summary && (
-            <aside className="rounded-lg border border-white/15 bg-white/5 border-l-2 border-l-white/40 px-4 py-3 flex flex-col gap-2">
-              <span className="text-xs uppercase tracking-wide text-white/40">
-                Summary
-              </span>
-              <p className="text-sm text-white/70 max-w-3xl">
-                {analysisData.summary}
-              </p>
-            </aside>
-          )}
-          {analysisData.choices.map((choice, index) => {
-            const title =
-              choice.title ??
-              choice.main_idea ??
-              choice.reasoning?.main_idea ??
-              `Idea ${index + 1}`;
-            const preview = choice.main_idea ?? choice.reasoning?.main_idea;
+      <div className="flex flex-col gap-4 min-h-0 overflow-y-scroll">
+        {analysisType === "execution" && "summary" in analysisData && (
+          <>
+            {analysisData.summary && (
+              <aside className="rounded-lg border border-white/15 bg-white/5 border-l-2 border-l-white/40 px-4 py-3 flex flex-col gap-2">
+                <span className="text-xs uppercase tracking-wide text-white/40">
+                  Summary
+                </span>
+                <p className="text-sm text-white/70 max-w-3xl">
+                  {analysisData.summary}
+                </p>
+              </aside>
+            )}
+            {analysisData.choices.map((choice, index) => {
+              const title =
+                choice.title ??
+                choice.main_idea ??
+                choice.reasoning?.main_idea ??
+                `Idea ${index + 1}`;
+              const preview = choice.main_idea ?? choice.reasoning?.main_idea;
 
-            return (
-              <ExpandableSection
-                key={choice.bucket_id}
-                title={title}
-                leading={
-                  <RecommendationBadge recommendation={choice.recommendation} />
-                }
-                preview={preview !== title ? preview : undefined}
-              >
-                <ExecutionChoiceReasoning choice={choice} />
-              </ExpandableSection>
-            );
-          })}
-        </>
-      )}
-      {isGameplan(analysisData) && (
-        <>
-          <p className="text-white/70">{analysisData.bucket_name}</p>
-          <SavedGameplanView analysisId={analysis.id} result={analysisData} />
-        </>
-      )}
-      {analysisType !== "execution" && "reasoning" in analysisData && (
-        <ExpandableSection
-          title={`Reasoning · ${analysisData.reasoning.reasons.length}`}
-          preview={analysisData.reasoning.main_idea}
-        >
-          <AnalysisReasoning reasoning={analysisData.reasoning} />
-        </ExpandableSection>
-      )}
-      {analysisType !== "execution" && analysisType !== "gameplan" && (
-        <ExpandableSection
-          title={`Results · ${
-            "suggestions" in analysisData
-              ? analysisData.suggestions.length
-              : "choices" in analysisData
-                ? analysisData.choices.length
-                : 1
-          }`}
-          defaultOpen
-        >
-          <AnalysisResultConditional
-            result={analysisData}
-            type={analysisType}
-          />
-        </ExpandableSection>
-      )}
+              return (
+                <ExpandableSection
+                  key={choice.bucket_id}
+                  title={title}
+                  leading={
+                    <RecommendationBadge
+                      recommendation={choice.recommendation}
+                    />
+                  }
+                  preview={preview !== title ? preview : undefined}
+                >
+                  <ExecutionChoiceReasoning choice={choice} />
+                </ExpandableSection>
+              );
+            })}
+          </>
+        )}
+        {isGameplan(analysisData) && (
+          <>
+            <p className="text-white/70">{analysisData.bucket_name}</p>
+            <SavedGameplanView analysisId={analysis.id} result={analysisData} />
+          </>
+        )}
+        {analysisType !== "execution" && "reasoning" in analysisData && (
+          <ExpandableSection
+            title={`Reasoning · ${analysisData.reasoning.reasons.length}`}
+            preview={analysisData.reasoning.main_idea}
+          >
+            <AnalysisReasoning reasoning={analysisData.reasoning} />
+          </ExpandableSection>
+        )}
+        {analysisType !== "execution" && analysisType !== "gameplan" && (
+          <ExpandableSection
+            title={`Results · ${
+              "suggestions" in analysisData
+                ? analysisData.suggestions.length
+                : "choices" in analysisData
+                  ? analysisData.choices.length
+                  : 1
+            }`}
+            defaultOpen
+          >
+            <AnalysisResultConditional
+              result={analysisData}
+              type={analysisType}
+            />
+          </ExpandableSection>
+        )}
+      </div>
     </div>
   );
 }

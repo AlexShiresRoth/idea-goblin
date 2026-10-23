@@ -78,10 +78,10 @@ describe("AnalysisPage", () => {
       expect.objectContaining({ type: "refinement" }),
     );
     expect(
-      screen.getByText("No saved idea refinement results yet."),
+      screen.getByText("Nothing saved under Sharpen a Bucket yet."),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Idea Refinement" }),
+      screen.getByRole("link", { name: "Sharpen a Bucket" }),
     ).toHaveAttribute("aria-current", "page");
   });
 
@@ -121,7 +121,7 @@ describe("AnalysisPage", () => {
       "/main/analysis",
     );
     expect(
-      screen.getByRole("link", { name: "Idea Execution" }),
+      screen.getByRole("link", { name: "Pick a Winner" }),
     ).toHaveAttribute("href", "/main/analysis?type=execution");
   });
 

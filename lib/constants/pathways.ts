@@ -12,13 +12,13 @@ export const PATHWAYSJSON: Record<
   },
   execution: {
     id: "execution",
-    title: "Idea Execution",
+    title: "Pick a Winner",
     description:
       "Goblin will score what is worth your attention, then weigh feasibility and effort to recommend pursue, park, or kill.",
   },
   refinement: {
     id: "refinement",
-    title: "Idea Refinement",
+    title: "Sharpen a Bucket",
     description:
       "Pick a bucket, or let Goblin recommend one, then sharpen it using the ideas inside and keep versions as you go.",
   },
