@@ -20,7 +20,8 @@ export type AiRoute =
   | "gameplan"
   | "idea-create"
   | "bucket-classify"
-  | "idea-import";
+  | "idea-import"
+  | "idea-transcribe";
 
 // Fresh (non-cached) generations allowed per user per window.
 export const RATE_LIMITS: Partial<
@@ -32,6 +33,7 @@ export const RATE_LIMITS: Partial<
   gameplan: { max: 10, windowMinutes: 60 },
   // One run per import, however many model calls it makes.
   "idea-import": { max: 5, windowMinutes: 60 },
+  "idea-transcribe": { max: 10, windowMinutes: 60 },
 };
 
 type Usage = { input: number; output: number; reasoning: number };

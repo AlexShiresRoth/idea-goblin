@@ -3,6 +3,7 @@
 import {
   parseCsv,
   parsePastedList,
+  parseTranscribed,
   type ParsedRow,
   type ParseResult,
 } from "@/lib/import/parse";
@@ -11,14 +12,18 @@ import {
   MAX_IMPORT_DESCRIPTION_LENGTH,
   MAX_IMPORT_FILE_BYTES,
   MAX_IMPORT_ROWS,
+  MAX_TRANSCRIBE_FILE_BYTES,
+  TRANSCRIBE_FILE_TYPES,
+  TRANSCRIBE_IMAGE_TYPES,
   type ImportRow,
   type ImportSummary,
   type ImportTarget,
+  type TranscribedIdea,
 } from "@/lib/import/schema";
 import { readNdjson } from "@/lib/ndjson";
 import type { BucketOption } from "@/lib/types";
 import clsx from "clsx";
-import { Loader2, UploadIcon, XIcon } from "lucide-react";
+import { CameraIcon, Loader2, UploadIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
@@ -26,6 +31,18 @@ import ActionButton from "./action-button";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
 
 type Destination = "auto" | "one" | "column";
+
+type Source = "paste" | "file" | "scan";
+
+const SOURCE_LABELS: Record<Source, string> = {
+  paste: "Paste a list",
+  file: "Upload CSV",
+  scan: "Photo or PDF",
+};
+
+// Longest side of a photo sent for reading. Enough for handwriting, and keeps
+// phone photos well under the upload limit.
+const MAX_SCAN_IMAGE_SIDE = 2048;
 
 // A row's bucket as a <select> value: "auto", "existing:<id>" or
 // "named:<name>".
@@ -61,6 +78,37 @@ function toPreviewRows({ rows }: ParseResult): PreviewRow[] {
   }));
 }
 
+// Scales a large photo down and re-encodes it as JPEG. Falls back to the
+// original when the browser can't decode it.
+async function shrinkImage(file: File): Promise<Blob> {
+  if (typeof createImageBitmap !== "function") return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(
+      1,
+      MAX_SCAN_IMAGE_SIDE / Math.max(bitmap.width, bitmap.height),
+    );
+    if (scale === 1 && file.size <= MAX_TRANSCRIBE_FILE_BYTES) {
+      bitmap.close();
+      return file;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas
+      .getContext("2d")
+      ?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.85),
+    );
+    return blob ?? file;
+  } catch (err) {
+    console.error(err);
+    return file;
+  }
+}
+
 function ImportIdeasForm({
   onClose,
   defaultBucket,
@@ -72,9 +120,11 @@ function ImportIdeasForm({
   const [stage, setStage] = useState<
     "input" | "preview" | "importing" | "summary"
   >("input");
-  const [source, setSource] = useState<"paste" | "file">("paste");
+  const [source, setSource] = useState<Source>("paste");
   const [pasteText, setPasteText] = useState("");
   const [fileName, setFileName] = useState<string>();
+  const [scanName, setScanName] = useState<string>();
+  const [transcribing, setTranscribing] = useState(false);
   const [inputError, setInputError] = useState<string>();
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [buckets, setBuckets] = useState<BucketOption[]>(
@@ -158,6 +208,55 @@ function ImportIdeasForm({
     readInput(parseCsv(await file.text()));
   }
 
+  async function readScan(file: File) {
+    setScanName(file.name);
+    // Images can be shrunk here, so only their type is checked up front.
+    const isImage = TRANSCRIBE_IMAGE_TYPES.includes(file.type);
+    if (!TRANSCRIBE_FILE_TYPES.includes(file.type)) {
+      setInputError("Use a PNG, JPEG, WebP or GIF image, or a PDF.");
+      return;
+    }
+    const upload = isImage ? await shrinkImage(file) : file;
+    if (upload.size > MAX_TRANSCRIBE_FILE_BYTES) {
+      setInputError(
+        `That file is over ${MAX_TRANSCRIBE_FILE_BYTES / 1024 / 1024}MB.`,
+      );
+      return;
+    }
+
+    setInputError(undefined);
+    setTranscribing(true);
+    try {
+      const body = new FormData();
+      body.append("file", upload, file.name);
+      const response = await fetch("/api/ideas/import/transcribe", {
+        method: "POST",
+        body,
+      });
+      if (!response.ok) {
+        setInputError(
+          response.status === 500
+            ? "The goblin couldn't read that file."
+            : await response.text(),
+        );
+        return;
+      }
+      const { ideas } = (await response.json()) as {
+        ideas: TranscribedIdea[];
+      };
+      if (ideas.length === 0) {
+        setInputError("The goblin couldn't find any ideas in that file.");
+        return;
+      }
+      readInput(parseTranscribed(ideas));
+    } catch (err) {
+      console.error(err);
+      setInputError("The goblin couldn't read that file.");
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
   function changeDestination(next: Destination) {
     setDestination(next);
     // A new destination applies to every row.
@@ -238,6 +337,9 @@ function ImportIdeasForm({
     );
   }
 
+  // Scanned ideas have no lines to point at, so they're numbered instead.
+  const rowLabel = source === "scan" ? "Idea" : "Line";
+
   const latest = summaries.at(-1);
   const totalCreated = summaries.reduce((sum, item) => sum + item.created, 0);
 
@@ -258,12 +360,13 @@ function ImportIdeasForm({
       {stage === "input" && (
         <div className="flex flex-col gap-4">
           <div className="flex gap-2" role="tablist">
-            {(["paste", "file"] as const).map((option) => (
+            {(["paste", "file", "scan"] as const).map((option) => (
               <button
                 key={option}
                 type="button"
                 role="tab"
                 aria-selected={source === option}
+                disabled={transcribing}
                 onClick={() => {
                   setSource(option);
                   setInputError(undefined);
@@ -275,7 +378,7 @@ function ImportIdeasForm({
                     : "border-white/15 text-white/60 hover:border-white/40",
                 )}
               >
-                {option === "paste" ? "Paste a list" : "Upload CSV"}
+                {SOURCE_LABELS[option]}
               </button>
             ))}
           </div>
@@ -306,6 +409,47 @@ function ImportIdeasForm({
                   Preview
                 </button>
               </div>
+            </div>
+          ) : source === "scan" ? (
+            <div className="flex flex-col gap-2">
+              <label
+                className={clsx(
+                  "flex flex-col items-center gap-2 rounded-md border border-dashed border-white/20 px-4 py-8 text-sm text-white/60",
+                  transcribing
+                    ? "opacity-60"
+                    : "hover:border-white/40 hover:cursor-pointer",
+                )}
+              >
+                {transcribing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Reading your notes...
+                  </>
+                ) : (
+                  <>
+                    <CameraIcon className="w-4 h-4" />
+                    {scanName ?? "Choose a photo or PDF"}
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept={TRANSCRIBE_FILE_TYPES.join(",")}
+                  aria-label="Photo or PDF"
+                  disabled={transcribing}
+                  className="sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    // Lets the same file be picked again after an error.
+                    event.target.value = "";
+                    if (file) void readScan(file);
+                  }}
+                />
+              </label>
+              <p className="text-xs text-white/40">
+                A photo of handwritten notes, a whiteboard or sticky notes, a
+                screenshot, or a PDF. Goblin reads out the ideas for you to
+                check before importing. Up to {MAX_IMPORT_ROWS} ideas.
+              </p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -407,7 +551,7 @@ function ImportIdeasForm({
               const note = row.error
                 ? row.error
                 : row.duplicateOf !== undefined
-                  ? `Same as line ${row.duplicateOf}`
+                  ? `Same as ${rowLabel.toLowerCase()} ${row.duplicateOf}`
                   : undefined;
               return (
                 <li
@@ -432,7 +576,7 @@ function ImportIdeasForm({
                     />
                     <span className="flex flex-col gap-0.5 min-w-0">
                       <span className="text-xs text-white/40">
-                        Line {row.line}
+                        {rowLabel} {row.line}
                         {row.title ? ` · ${row.title}` : ""}
                       </span>
                       <span className="text-sm text-white/80 line-clamp-2">

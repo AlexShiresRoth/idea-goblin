@@ -141,7 +141,7 @@ describe("Analysis detail page", () => {
     await renderPage();
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Idea Execution" }),
+      screen.getByRole("heading", { level: 1, name: "Pick a Winner" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText("Ship the tutoring app first."),
@@ -199,7 +199,7 @@ describe("Analysis detail page", () => {
     await renderPage();
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "Idea Refinement" }),
+      screen.getByRole("heading", { level: 1, name: "Sharpen a Bucket" }),
     ).toBeInTheDocument();
 
     // Results are open by default.

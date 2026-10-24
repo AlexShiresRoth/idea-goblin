@@ -7,7 +7,7 @@ import {
   CheckCircleIcon,
   InfoIcon,
 } from "lucide-react";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { type Toast, ToastContext } from "../context/toast.provider";
 
@@ -37,13 +37,17 @@ function Toast({ toast }: { toast: Toast }) {
   );
 }
 
+const noopSubscribe = () => () => {};
+
 export function ToastWrapper({ children }: { children: React.ReactNode }) {
   const { toasts } = useContext(ToastContext);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // False during server render and hydration, true after, so the portal
+  // only targets document.body in the browser.
+  const mounted = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
 
   return (
     <div>

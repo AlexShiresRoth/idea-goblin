@@ -1,4 +1,8 @@
-import { parseCsv, parsePastedList } from "@/lib/import/parse";
+import {
+  parseCsv,
+  parsePastedList,
+  parseTranscribed,
+} from "@/lib/import/parse";
 import { describe, expect, it } from "vitest";
 
 describe("parsePastedList", () => {
@@ -95,5 +99,19 @@ describe("parseCsv", () => {
 
   it("reports an empty file", () => {
     expect(parseCsv("").error).toBe("The file is empty");
+  });
+});
+
+describe("parseTranscribed", () => {
+  it("numbers ideas in order, keeping titles and flagging repeats", () => {
+    const { rows } = parseTranscribed([
+      { title: "Dog bowl", description: "A smart dog bowl" },
+      { description: "  " },
+      { description: "a smart  dog bowl" },
+    ]);
+    expect(rows).toEqual([
+      { line: 1, title: "Dog bowl", description: "A smart dog bowl" },
+      { line: 3, description: "a smart  dog bowl", duplicateOf: 1 },
+    ]);
   });
 });

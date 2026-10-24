@@ -112,9 +112,9 @@ function refinementDraft(n: number): BucketRefinementResult {
 }
 
 async function startExecution(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: /Idea Execution/ }));
+  await user.click(screen.getByRole("button", { name: /Pick a Winner/ }));
   await user.click(
-    screen.getByRole("button", { name: "Start Idea Execution" }),
+    screen.getByRole("button", { name: "Start" }),
   );
 }
 
@@ -146,7 +146,7 @@ describe("AnalyzeVaultModal", () => {
       expect(screen.getByText("Reading vault")).toBeInTheDocument();
       // Still on the run, not back at the pathway picker.
       expect(
-        screen.queryByRole("button", { name: /Start Idea Execution/ }),
+        screen.queryByRole("button", { name: "Start" }),
       ).not.toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "Try again" }));
@@ -173,7 +173,7 @@ describe("AnalyzeVaultModal", () => {
       renderModal();
 
       expect(screen.getByText("Analyze Vault")).toBeInTheDocument();
-      for (const title of ["Idea Execution", "Idea Refinement", "Gameplan"]) {
+      for (const title of ["Pick a Winner", "Sharpen a Bucket", "Gameplan"]) {
         expect(
           screen.getByRole("button", { name: new RegExp(title) }),
         ).toBeInTheDocument();
@@ -184,12 +184,12 @@ describe("AnalyzeVaultModal", () => {
 
       await user.click(screen.getByRole("button", { name: /^Gameplan/ }));
       expect(
-        screen.getByRole("button", { name: "Start Gameplan" }),
+        screen.getByRole("button", { name: "Start" }),
       ).toBeEnabled();
 
-      await user.click(screen.getByRole("button", { name: /Idea Refinement/ }));
+      await user.click(screen.getByRole("button", { name: /Sharpen a Bucket/ }));
       expect(
-        screen.getByRole("button", { name: "Start Idea Refinement" }),
+        screen.getByRole("button", { name: "Start" }),
       ).toBeEnabled();
     });
 
@@ -284,7 +284,7 @@ describe("AnalyzeVaultModal", () => {
       ).toBeDisabled();
       expect(setToasts).toHaveBeenCalledWith([
         expect.objectContaining({
-          message: "Idea Execution stashed in the hoard",
+          message: "Stashed in the hoard",
           type: "success",
         }),
       ]);
@@ -429,9 +429,9 @@ describe("AnalyzeVaultModal", () => {
     }
 
     async function openPicker(user: ReturnType<typeof userEvent.setup>) {
-      await user.click(screen.getByRole("button", { name: /Idea Refinement/ }));
+      await user.click(screen.getByRole("button", { name: /Sharpen a Bucket/ }));
       await user.click(
-        screen.getByRole("button", { name: "Start Idea Refinement" }),
+        screen.getByRole("button", { name: "Start" }),
       );
       await screen.findByRole("button", { name: /Garden apps/ });
     }
@@ -467,9 +467,9 @@ describe("AnalyzeVaultModal", () => {
       const user = userEvent.setup();
       renderModal();
 
-      await user.click(screen.getByRole("button", { name: /Idea Refinement/ }));
+      await user.click(screen.getByRole("button", { name: /Sharpen a Bucket/ }));
       await user.click(
-        screen.getByRole("button", { name: "Start Idea Refinement" }),
+        screen.getByRole("button", { name: "Start" }),
       );
 
       expect(

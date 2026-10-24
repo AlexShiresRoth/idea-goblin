@@ -4,6 +4,11 @@ import { z } from "zod";
 import { AI_MODELS } from "../ai";
 import { BUCKET_CATEGORY_NAMES } from "../constants/bucket-categories";
 import type { IdeaBucket } from "../db/schema";
+import {
+  MAX_IMPORT_DESCRIPTION_LENGTH,
+  MAX_IMPORT_ROWS,
+  MAX_IMPORT_TITLE_LENGTH,
+} from "../import/schema";
 
 import "server-only";
 
@@ -180,6 +185,57 @@ export async function describeBuckets(
       },
     ],
     text: { format: zodTextFormat(DescribedBucketsSchema, "buckets") },
+    reasoning: { effort: "low" },
+  });
+}
+
+const TranscribedIdeasSchema = z.object({
+  ideas: z.array(
+    z.object({
+      title: z.string().nullable(),
+      description: z.string(),
+    }),
+  ),
+});
+
+// Reads ideas out of a photo of notes or a PDF, for the import preview.
+export async function transcribeIdeas(
+  client: OpenAI,
+  file: { name: string; type: string; data: string },
+) {
+  const dataUrl = `data:${file.type};base64,${file.data}`;
+  return client.responses.parse({
+    model: AI_MODELS.rank,
+    input: [
+      {
+        role: "system",
+        content: `
+          You transcribe ideas from a user's notes: a photo of handwriting, a whiteboard,
+          sticky notes, a screenshot, or a document.
+          Return each separate idea once, in the order it appears.
+
+          Rules:
+          - Keep the user's own words. Fix obvious misspellings, but do not embellish or add detail.
+          - Join lines that continue the same idea; split lists into one idea per item.
+          - When an idea has a clear heading or name, use it as the title (under ${MAX_IMPORT_TITLE_LENGTH} characters); otherwise leave title null.
+          - Keep each description under ${MAX_IMPORT_DESCRIPTION_LENGTH} characters.
+          - Skip text that is not an idea: dates, page numbers, headers, signatures, doodle labels.
+          - Skip words you cannot read rather than guessing.
+          - Return at most ${MAX_IMPORT_ROWS} ideas. If there are none, return an empty list.
+        `.trim(),
+      },
+      {
+        role: "user",
+        content: [
+          file.type === "application/pdf"
+            ? { type: "input_file", filename: file.name, file_data: dataUrl }
+            : { type: "input_image", image_url: dataUrl, detail: "high" },
+        ],
+      },
+    ],
+    text: {
+      format: zodTextFormat(TranscribedIdeasSchema, "transcribed_ideas"),
+    },
     reasoning: { effort: "low" },
   });
 }

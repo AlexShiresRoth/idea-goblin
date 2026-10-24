@@ -20,10 +20,7 @@ export function DeleteAnalysisButton({
   const [canDismiss, setCanDismiss] = useState(false);
 
   useEffect(() => {
-    if (!confirmOpen) {
-      setCanDismiss(false);
-      return;
-    }
+    if (!confirmOpen) return;
     const timeout = window.setTimeout(() => setCanDismiss(true), 250);
     return () => window.clearTimeout(timeout);
   }, [confirmOpen]);
@@ -31,6 +28,7 @@ export function DeleteAnalysisButton({
   function openConfirm(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     event.stopPropagation();
+    setCanDismiss(false);
     setConfirmOpen(true);
   }
 
@@ -115,8 +113,8 @@ export function DeleteAnalysisButton({
                   Delete this analysis?
                 </h2>
                 <p className="text-sm text-white/60">
-                  This cannot be undone. The saved run will be removed from
-                  your history.
+                  This cannot be undone. The saved run will be removed from your
+                  history.
                 </p>
               </div>
               <div className="flex justify-end gap-2">

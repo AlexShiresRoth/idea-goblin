@@ -132,19 +132,21 @@ export default function Idea({ idea }: { idea: IdeaView }) {
 
   return (
     <div className="flex border-b border-white/20 w-full">
-      <button
-        data-testid="toggle-expanded"
-        onClick={() => setExpanded(!expanded)}
-        className="hover:cursor-pointer hover:bg-white/5 transition-colors p-2 border-r border-white/20 h-full"
-      >
-        {!expanded ? (
-          <PlusIcon className="w-4 h-4" />
-        ) : (
-          <MinusIcon className="w-4 h-4" />
-        )}
-      </button>
+      <div className="p-4 border-r border-white/20 flex items-center">
+        <button
+          data-testid="toggle-expanded"
+          onClick={() => setExpanded(!expanded)}
+          className="hover:cursor-pointer hover:bg-white/5 transition-colors"
+        >
+          {!expanded ? (
+            <PlusIcon className="w-4 h-4" />
+          ) : (
+            <MinusIcon className="w-4 h-4" />
+          )}
+        </button>
+      </div>
 
-      <div className="flex flex-col w-full">
+      <div className="flex flex-col w-full" data-testid="idea-content">
         {editing ? (
           <form className="flex flex-col p-4 gap-2 w-full" onSubmit={saveIdea}>
             <input

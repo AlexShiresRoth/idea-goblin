@@ -33,7 +33,7 @@ export default function MobileNav() {
           className={clsx(
             "absolute bottom-24 inset-x-4 flex flex-col gap-2 transition-all",
             open
-              ? "opacity-100 translate-y-0"
+              ? "opacity-100 translate-y-0 bg-black"
               : "opacity-0 translate-y-3 pointer-events-none",
           )}
         >

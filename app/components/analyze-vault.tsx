@@ -334,7 +334,7 @@ export function AnalyzeVaultModal({
       setToasts([
         {
           id: `saved-${selectedPathway.id}-${Date.now()}`,
-          message: `${selectedPathway.title} stashed in the hoard`,
+          message: "Stashed in the hoard",
           type: "success",
         },
       ]);
@@ -493,7 +493,7 @@ export function AnalyzeVaultModal({
               >
                 {selectedPathway && <Route className="w-3 h-3" />}
                 {selectedPathway
-                  ? `Start ${selectedPathway.title}`
+                  ? "Start"
                   : "Select a pathway"}
               </button>
             </div>
