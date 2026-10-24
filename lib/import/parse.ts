@@ -5,6 +5,7 @@ import {
   MAX_IMPORT_ROWS,
   MAX_IMPORT_TITLE_LENGTH,
   MIN_IMPORT_DESCRIPTION_LENGTH,
+  type TranscribedIdea,
 } from "./schema";
 
 export type ParsedRow = {
@@ -112,5 +113,17 @@ export function parseCsv(text: string): ParseResult {
     description: cell(cells, descriptionColumn) ?? "",
     bucket: cell(cells, bucketColumn),
   }));
+  return { rows: finalize(rows) };
+}
+
+// Ideas read from a photo or PDF, numbered in the order they were found.
+export function parseTranscribed(ideas: TranscribedIdea[]): ParseResult {
+  const rows = ideas
+    .map((idea, index) => ({
+      line: index + 1,
+      title: idea.title?.trim() || undefined,
+      description: idea.description.trim(),
+    }))
+    .filter((row) => row.description.length > 0);
   return { rows: finalize(rows) };
 }

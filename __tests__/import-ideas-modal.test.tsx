@@ -277,4 +277,57 @@ describe("ImportIdeasModal", () => {
       await screen.findByText(/header row with a "description" column/),
     ).toBeInTheDocument();
   });
+
+  it("reads ideas from a photo into the preview", async () => {
+    importResponses = [
+      Response.json({
+        ideas: [
+          { title: "Dog bowl", description: "A smart dog bowl" },
+          { description: "A cat GPS collar" },
+        ],
+      }),
+    ];
+    const user = userEvent.setup();
+    render(<ImportIdeasModal type="inline" />);
+    await user.click(screen.getByRole("button", { name: /Import/ }));
+    await user.click(screen.getByRole("tab", { name: "Photo or PDF" }));
+    await user.upload(
+      screen.getByLabelText("Photo or PDF"),
+      new File(["img"], "notes.jpg", { type: "image/jpeg" }),
+    );
+
+    expect(await screen.findByText("Idea 1 · Dog bowl")).toBeInTheDocument();
+    const [, init] = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => url === "/api/ideas/import/transcribe")!;
+    expect((init?.body as FormData).get("file")).toBeInstanceOf(File);
+
+    await user.click(screen.getByRole("button", { name: "Import 2 ideas" }));
+    expect(importBodies()[0].rows).toEqual([
+      {
+        title: "Dog bowl",
+        description: "A smart dog bowl",
+        target: { type: "auto" },
+      },
+      { description: "A cat GPS collar", target: { type: "auto" } },
+    ]);
+  });
+
+  it("says so when a photo has no ideas in it", async () => {
+    importResponses = [Response.json({ ideas: [] })];
+    const user = userEvent.setup();
+    render(<ImportIdeasModal type="inline" />);
+    await user.click(screen.getByRole("button", { name: /Import/ }));
+    await user.click(screen.getByRole("tab", { name: "Photo or PDF" }));
+    await user.upload(
+      screen.getByLabelText("Photo or PDF"),
+      new File(["%PDF"], "notes.pdf", { type: "application/pdf" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "The goblin couldn't find any ideas in that file.",
+      ),
+    ).toBeInTheDocument();
+  });
 });

@@ -4,6 +4,19 @@ import { z } from "zod";
 // both apply the same limits.
 export const MAX_IMPORT_ROWS = 100;
 export const MAX_IMPORT_FILE_BYTES = 256 * 1024;
+// Photos and PDFs of notes, read by the model. Kept under Vercel's 4.5MB
+// request body limit.
+export const MAX_TRANSCRIBE_FILE_BYTES = 4 * 1024 * 1024;
+export const TRANSCRIBE_IMAGE_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+];
+export const TRANSCRIBE_FILE_TYPES = [
+  ...TRANSCRIBE_IMAGE_TYPES,
+  "application/pdf",
+];
 export const MIN_IMPORT_DESCRIPTION_LENGTH = 3;
 // Same limits as adding or editing a single idea.
 export const MAX_IMPORT_DESCRIPTION_LENGTH = 500;
@@ -45,6 +58,8 @@ export const ImportRequestSchema = z.object({
   // Set by "import anyway" to keep ideas that look like existing ones.
   allowDuplicates: z.boolean().optional(),
 });
+
+export type TranscribedIdea = { title?: string; description: string };
 
 export type ImportTarget = z.infer<typeof ImportTargetSchema>;
 export type ImportRow = z.infer<typeof ImportRowSchema>;

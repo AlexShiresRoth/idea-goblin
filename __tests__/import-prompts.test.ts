@@ -4,6 +4,7 @@ import {
   describeBuckets,
   describeIdeas,
   sortIdeasIntoBuckets,
+  transcribeIdeas,
 } from "@/lib/prompts/import";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -93,6 +94,44 @@ describe("import prompts", () => {
       );
       // Loose groups are described honestly, not given an invented theme.
       expect(system).toContain("only loosely related");
+    });
+  });
+
+  describe("transcribeIdeas", () => {
+    it("sends an image as a high-detail data URL", async () => {
+      await transcribeIdeas(client, {
+        name: "notes.png",
+        type: "image/png",
+        data: "abc",
+      });
+
+      const [params] = parse.mock.calls[0];
+      expect(params.model).toBe(AI_MODELS.rank);
+      expect(params.text.format).toEqual({ name: "transcribed_ideas" });
+      expect(params.input[1].content).toEqual([
+        {
+          type: "input_image",
+          image_url: "data:image/png;base64,abc",
+          detail: "high",
+        },
+      ]);
+    });
+
+    it("sends a PDF as a file", async () => {
+      await transcribeIdeas(client, {
+        name: "notes.pdf",
+        type: "application/pdf",
+        data: "abc",
+      });
+
+      const [params] = parse.mock.calls[0];
+      expect(params.input[1].content).toEqual([
+        {
+          type: "input_file",
+          filename: "notes.pdf",
+          file_data: "data:application/pdf;base64,abc",
+        },
+      ]);
     });
   });
 });
