@@ -1,6 +1,5 @@
 "use client";
 import { isDone } from "@/lib/constants";
-import { useFocus } from "../components/focus-provider";
 import { IdeaBucket, type IdeaView } from "@/lib/db/schema";
 import clsx from "clsx";
 import {
@@ -21,6 +20,7 @@ import { createPortal } from "react-dom";
 import { AnalyzeVaultModal } from "../components/analyze-vault";
 import { BucketIcon, bucketStyleVars } from "../components/bucket-icon";
 import CreateIdeaModal from "../components/create-idea-modal";
+import { useFocus } from "../components/focus-provider";
 import ImportIdeasModal from "../components/import-ideas-modal";
 import { ToastContext } from "../context/toast.provider";
 import BucketGameplan from "./bucket-gameplan";
@@ -270,11 +270,11 @@ function BucketDetail({
 
       {/* Stacked and scrolled as one on small screens; side by side with
           independent scrolling from md up. */}
-      <div className="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:overflow-hidden">
         <section className="flex flex-col md:min-h-0 md:overflow-y-auto">
           <div
             data-testid="idea-header"
-            className="sticky top-0 z-10 flex items-center justify-between border-b border-white/20 bg-black px-4 py-2 md:px-8"
+            className="sticky top-0 z-10 flex items-center justify-between border-b border-white/20 bg-black h-10 py-2 px-4 md:px-8"
           >
             <p className="text-white/60">
               Ideas {openIdeas.length}
@@ -347,7 +347,7 @@ function BucketDetail({
           <div
             role="tablist"
             aria-label="Bucket side panel"
-            className="sticky top-0 z-10 flex gap-4 border-b border-white/20 bg-black px-4"
+            className="sticky top-0 z-10 flex h-10 gap-4 border-b border-white/20 bg-black px-4 md:px-8"
           >
             {(["gameplan", "versions"] as const).map((tab) => (
               <button
@@ -357,7 +357,7 @@ function BucketDetail({
                 aria-selected={sideTab === tab}
                 onClick={() => setSideTab(tab)}
                 className={clsx(
-                  "-mb-px border-b-2 py-2 text-sm transition-colors hover:cursor-pointer",
+                  "-mb-px flex items-center border-b-2 text-sm transition-colors hover:cursor-pointer",
                   sideTab === tab
                     ? "border-(--bucket-primary) text-white"
                     : "border-transparent text-white/50 hover:text-white/80",

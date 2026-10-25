@@ -319,6 +319,27 @@ export function GameplanView({
   const firstRef: GameplanStepRef = { kind: "first" };
   const firstDone = result.first_step ? isStepDone(result.first_step) : false;
 
+  // Once the first step is done, "Start today" moves on to the plan's next
+  // open step. With every step done, it stays on the first one.
+  const nextStep = firstDone
+    ? result.phases
+        ?.flatMap((phase, phaseIndex) =>
+          phase.steps.map((step, stepIndex) => ({
+            ref: {
+              kind: "phase",
+              phase: phaseIndex,
+              step: stepIndex,
+            } as GameplanStepRef,
+            step,
+            phase: `Phase ${phaseIndex + 1} · ${phase.title}`,
+          })),
+        )
+        .find(({ step }) => !isStepDone(step))
+    : undefined;
+  const todayRef = nextStep?.ref ?? firstRef;
+  const today = nextStep?.step ?? result.first_step;
+  const todayDone = nextStep ? false : firstDone;
+
   return (
     <div className="flex flex-col gap-6">
       {result.finish_line && (
@@ -334,28 +355,45 @@ export function GameplanView({
         </section>
       )}
 
-      {result.first_step && (
-        <section className="flex flex-col gap-1 rounded-lg border border-green-500/30 px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-2">
-              {renderMark(
-                firstRef,
-                result.first_step,
-                <ZapIcon className="w-3 h-3 mt-1 shrink-0 text-green-400" />,
-              )}
-              <h3
-                className={clsx(
-                  "text-sm text-green-400",
-                  firstDone && "line-through opacity-70",
-                )}
-              >
-                Start today: {result.first_step.title}
-              </h3>
+      {result.first_step && today && (
+        <div className="flex flex-col gap-2">
+          {nextStep && (
+            <div className="flex items-start gap-2 px-4">
+              {renderMark(firstRef, result.first_step)}
+              <p className="text-xs text-white/40 line-through">
+                {result.first_step.title}
+              </p>
             </div>
-            {renderLink(firstRef, result.first_step)}
-          </div>
-          <p className="text-sm text-white/60">{result.first_step.detail}</p>
-        </section>
+          )}
+          <section className="flex flex-col gap-1 rounded-lg border border-green-500/30 px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2">
+                {renderMark(
+                  todayRef,
+                  today,
+                  <ZapIcon className="w-3 h-3 mt-1 shrink-0 text-green-400" />,
+                )}
+                <div className="flex flex-col gap-0.5">
+                  <h3
+                    className={clsx(
+                      "text-sm text-green-400",
+                      todayDone && "line-through opacity-70",
+                    )}
+                  >
+                    Start today: {today.title}
+                  </h3>
+                  {nextStep && (
+                    <span className="text-xs text-white/40">
+                      {nextStep.phase}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {renderLink(todayRef, today)}
+            </div>
+            <p className="text-sm text-white/60">{today.detail}</p>
+          </section>
+        </div>
       )}
 
       {result.phases && result.phases.length > 0 && (
