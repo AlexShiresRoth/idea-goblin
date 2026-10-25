@@ -129,13 +129,42 @@ describe("GameplanView", () => {
     expect(onLink).toHaveBeenCalledWith({ kind: "first" }, 78);
   });
 
-  it("shows a linked first step as done when its idea is", () => {
+  it("moves Start today to the next open step once the first is done", () => {
     renderView({
       result: {
         ...gameplan,
         first_step: { ...gameplan.first_step, idea_id: 5 },
       },
-      ideas: [{ id: 5, title: "Form tool", status: "done" }],
+      ideas: [
+        { id: 5, title: "Form tool", status: "done" },
+        { id: 1, title: "Landing copy", status: "done" },
+      ],
+    });
+
+    expect(screen.getByText("Start today: Ship the page")).toBeInTheDocument();
+    expect(screen.getByText("Phase 1 · Build")).toBeInTheDocument();
+    expect(screen.getByText("Pick a form tool").className).toContain(
+      "line-through",
+    );
+    // The first step can still be reopened from its line.
+    expect(
+      screen.getByRole("button", { name: 'Mark "Pick a form tool" not done' }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the first step, done, once every step is", () => {
+    renderView({
+      result: {
+        ...gameplan,
+        first_step: { ...gameplan.first_step, idea_id: 5 },
+        phases: [
+          { ...gameplan.phases[0], steps: [gameplan.phases[0].steps[0]] },
+        ],
+      },
+      ideas: [
+        { id: 5, title: "Form tool", status: "done" },
+        { id: 1, title: "Landing copy", status: "done" },
+      ],
     });
 
     expect(screen.getByText("From your idea: Form tool")).toBeInTheDocument();
