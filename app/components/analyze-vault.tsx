@@ -317,8 +317,9 @@ export function AnalyzeVaultModal({
         body: JSON.stringify({
           data: result,
           analysisType: selectedPathway.id,
-          // A gameplan belongs to its bucket, which shows the latest one.
-          ...(gameplan && { bucketId: gameplan.bucket_id }),
+          // A bucket-level result belongs to its bucket, so it's deleted
+          // with it; a gameplan's bucket also shows the latest one.
+          ...(draft && { bucketId: draft.bucket_id }),
         }),
       });
 
