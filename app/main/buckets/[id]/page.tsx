@@ -36,7 +36,10 @@ export default async function BucketPage({
       }))}
       limit={focusLimit}
     >
-      <BucketDetail bucket={bucket} ideas={ideasByBucket.get(bucket.id) ?? []} />
+      <BucketDetail
+        bucket={bucket}
+        ideas={ideasByBucket.get(bucket.id) ?? []}
+      />
     </FocusProvider>
   );
 }

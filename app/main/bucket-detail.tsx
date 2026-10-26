@@ -25,6 +25,7 @@ import ImportIdeasModal from "../components/import-ideas-modal";
 import { ToastContext } from "../context/toast.provider";
 import { doneCount, FocusBadge, ThemePill, timeAgo } from "./bucket-badges";
 import BucketGameplan from "./bucket-gameplan";
+import BucketShare from "./bucket-share";
 import BucketVersions from "./bucket-versions";
 import IdeaComponent from "./idea";
 
@@ -184,6 +185,7 @@ export default function BucketDetail({
           <FocusToggle bucketId={bucket.id} />
           <CreateIdeaModal type="bucket" defaultBucket={bucket.id} />
           <ImportIdeasModal type="bucket" defaultBucket={bucket} />
+          <BucketShare bucketId={bucket.id} shareToken={bucket.shareToken} />
           <button
             disabled={isDeleting || ideas.length === 0}
             onClick={() => setRefining(true)}
