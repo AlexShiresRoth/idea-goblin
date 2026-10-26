@@ -57,7 +57,7 @@ describe("BucketShare", () => {
     expect(screen.getByRole("button", { name: "Shared" })).toBeInTheDocument();
   });
 
-  it("copies the link", async () => {
+  it("copies the link and says so on the button", async () => {
     const user = userEvent.setup();
     const writeText = vi
       .spyOn(navigator.clipboard, "writeText")
@@ -68,9 +68,26 @@ describe("BucketShare", () => {
     await user.click(dialog.getByRole("button", { name: "Copy" }));
 
     expect(writeText).toHaveBeenCalledWith("http://localhost:3000/share/tok");
-    expect(setToasts).toHaveBeenCalledWith([
-      expect.objectContaining({ message: "Link copied", type: "success" }),
-    ]);
+    expect(dialog.getByRole("button", { name: "Copied" })).toBeInTheDocument();
+    expect(
+      await dialog.findByRole("button", { name: "Copy" }, { timeout: 3000 }),
+    ).toBeInTheDocument();
+  });
+
+  it("says so on the button when copying fails", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(
+      new Error("denied"),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    renderShare("tok");
+
+    const dialog = await openDialog(user);
+    await user.click(dialog.getByRole("button", { name: "Copy" }));
+
+    expect(
+      dialog.getByRole("button", { name: "Copy failed" }),
+    ).toBeInTheDocument();
   });
 
   it("replaces the link with a new one", async () => {
