@@ -10,6 +10,14 @@ function safeNext(next: string | null) {
   return "/main";
 }
 
+const EMAIL_OTP_TYPES = ["signup", "email", "recovery"] as const;
+
+function isEmailOtpType(
+  type: string | null,
+): type is (typeof EMAIL_OTP_TYPES)[number] {
+  return EMAIL_OTP_TYPES.includes(type as (typeof EMAIL_OTP_TYPES)[number]);
+}
+
 function baseUrl(request: Request) {
   const { origin } = new URL(request.url);
   // Behind the load balancer `request.url` is the internal deployment host, so
@@ -40,8 +48,12 @@ export async function GET(request: Request) {
   }
 
   const code = searchParams.get("code");
+  // Email templates that link with a token hash work in any browser; a PKCE
+  // code only works in the browser that asked for the email.
+  const tokenHash = searchParams.get("token_hash");
+  const otpType = searchParams.get("type");
 
-  if (!code) {
+  if (!code && !(tokenHash && isEmailOtpType(otpType))) {
     return errorRedirect(base, "missing_code");
   }
 
@@ -76,7 +88,10 @@ export async function GET(request: Request) {
     },
   );
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { error } =
+    tokenHash && isEmailOtpType(otpType)
+      ? await supabase.auth.verifyOtp({ type: otpType, token_hash: tokenHash })
+      : await supabase.auth.exchangeCodeForSession(code!);
   if (error) {
     return errorRedirect(base, error.message);
   }

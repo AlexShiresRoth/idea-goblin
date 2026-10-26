@@ -45,7 +45,7 @@ export default async function MainLayout({
               <SidebarContent name={session.user_metadata?.name} />
             </Sidebar>
             <Container>
-              <div className="flex flex-1 min-w-0 pb-20 md:pb-0">{children}</div>
+              <div className="flex flex-1 min-w-0 pb-2 md:pb-0">{children}</div>
             </Container>
           </div>
           <MobileNav />
