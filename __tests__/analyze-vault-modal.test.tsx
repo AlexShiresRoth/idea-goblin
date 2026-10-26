@@ -568,6 +568,27 @@ describe("AnalyzeVaultModal", () => {
       expect(refresh).toHaveBeenCalled();
     });
 
+    it("saves the draft linked to its bucket", async () => {
+      const fetchMock = mockFetch(
+        refinementRoutes({
+          "/api/vault/save": () => Response.json({ id: 7 }),
+        }),
+      );
+      const user = userEvent.setup();
+      renderModal();
+
+      await refineGarden(user);
+      await user.click(screen.getByRole("button", { name: "Save Analysis" }));
+
+      expect(bodiesFor(fetchMock, "/api/vault/save")).toEqual([
+        {
+          data: refinementDraft(1),
+          analysisType: "refinement",
+          bucketId: 2,
+        },
+      ]);
+    });
+
     it("toasts an error when the update fails", async () => {
       mockFetch(
         refinementRoutes({

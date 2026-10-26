@@ -2,14 +2,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { exchangeCodeForSession, cookieStore } = vi.hoisted(() => ({
+const { exchangeCodeForSession, verifyOtp, cookieStore } = vi.hoisted(() => ({
   exchangeCodeForSession: vi.fn(),
+  verifyOtp: vi.fn(),
   cookieStore: { getAll: vi.fn(() => []), set: vi.fn() },
 }));
 
 vi.mock("next/headers", () => ({ cookies: async () => cookieStore }));
 vi.mock("@supabase/ssr", () => ({
-  createServerClient: vi.fn(() => ({ auth: { exchangeCodeForSession } })),
+  createServerClient: vi.fn(() => ({
+    auth: { exchangeCodeForSession, verifyOtp },
+  })),
 }));
 
 import { GET } from "@/app/auth/callback/route";
@@ -28,6 +31,7 @@ describe("GET /auth/callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     exchangeCodeForSession.mockResolvedValue({ error: null });
+    verifyOtp.mockResolvedValue({ error: null });
   });
 
   it("signs in and goes to the board by default", async () => {
@@ -102,6 +106,34 @@ describe("GET /auth/callback", () => {
 
     expect(location(response).pathname).toBe("/auth/auth-code-error");
     expect(location(response).searchParams.get("reason")).toBe("Code expired");
+  });
+
+  it("verifies an email token hash and follows next", async () => {
+    const response = await callback(
+      "?token_hash=hash&type=recovery&next=/auth/update-password",
+    );
+
+    expect(verifyOtp).toHaveBeenCalledWith({
+      type: "recovery",
+      token_hash: "hash",
+    });
+    expect(exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(location(response).pathname).toBe("/auth/update-password");
+  });
+
+  it("rejects a token hash with an unknown type", async () => {
+    const response = await callback("?token_hash=hash&type=invite");
+
+    expect(location(response).searchParams.get("reason")).toBe("missing_code");
+    expect(verifyOtp).not.toHaveBeenCalled();
+  });
+
+  it("reports a failed token verification", async () => {
+    verifyOtp.mockResolvedValue({ error: { message: "Token expired" } });
+
+    const response = await callback("?token_hash=hash&type=email");
+
+    expect(location(response).searchParams.get("reason")).toBe("Token expired");
   });
 
   it("puts session cookies on both the cookie store and the redirect", async () => {
