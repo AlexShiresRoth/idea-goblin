@@ -121,3 +121,58 @@ Its value comes from people coming back to it, not reading it once.
 7. **Mobile bucket view.** On phones the Gameplan tab ends up below the
    whole ideas list. Use Ideas / Gameplan / Versions tabs there instead
    of stacking.
+
+### More sign-in options
+
+GitHub is the only way in today, which shuts out most people who aren't
+developers. Do this before bucket sharing: an invite is useless if the
+person you send it to can't sign in.
+
+1. **Google.** `AuthButton` already accepts `"google"`. Create an OAuth
+   client in Google Cloud, enable the provider in Supabase, and render a
+   second button on the landing page. The existing `/auth/callback`
+   handles it unchanged.
+2. **Email and password.**
+   - Sign-up and sign-in forms using `signUp` / `signInWithPassword`.
+     Ask for a name at sign-up and pass it as `options.data.name`, or
+     `ensureProfile` falls back to "Goblinner".
+   - Email confirmation, with `emailRedirectTo` pointing at
+     `/auth/callback?next=/main`.
+   - "Forgot password": `resetPasswordForEmail` plus an update-password
+     page.
+   - Configure custom SMTP in Supabase before launch; the built-in sender
+     is heavily rate-limited.
+3. **One account per person.** Supabase links identities that share a
+   verified email, so signing in with Google after GitHub reaches the same
+   ideas. Check this works, and show a clear message when an email is
+   already registered with a different method.
+
+### Share buckets
+
+Let people send a bucket to someone else. Depends on more sign-in options.
+
+1. **Bucket page.** `/main/buckets/[id]` for a single bucket. Buckets
+   only appear in the `/main` grid today; this page is useful on its own
+   and is what the shared view builds on.
+2. **Read-only share link.** A nullable, unique `share_token` on
+   `idea_buckets` and a public page at `/share/[token]`, outside `/main`
+   (which redirects signed-out visitors). Anyone with the link can view
+   it, signed in or not. It shows the ideas and the bucket's latest
+   gameplan, but not version history. The owner turns sharing on or off;
+   regenerating the token revokes old links. Bucket ids are serial, so
+   never put them in the shared URL. Mark the page noindex.
+3. **Save a copy.** A signed-in viewer can clone the bucket and its ideas
+   into their own account. Each copy has one owner, so focus, gameplans
+   and AI costs keep working unchanged.
+4. **Later: collaborators.** `bucket_members` (bucket, profile, viewer or
+   editor role) and `bucket_invites` (token, role, optional email,
+   expiry), with a "Shared with me" section on the board. Every route
+   checks `profileId = session.user.id` directly today, so this needs one
+   `getBucketAccess(bucketId, userId)` helper used everywhere first.
+   Questions to settle before building it:
+   - Ideas can sit in several buckets. Can an editor change an idea that
+     is also in the owner's other buckets?
+   - Whose focus slot does a shared bucket use?
+   - Who is charged credits when an editor runs a gameplan?
+
+   Likely a Pro feature.
