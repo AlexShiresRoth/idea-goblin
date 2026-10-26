@@ -4,7 +4,7 @@ import {
   type FocusBucket,
 } from "@/app/components/focus-provider";
 import { ToastContext } from "@/app/context/toast.provider";
-import IdeasBucket from "@/app/main/ideas-bucket";
+import BucketDetail from "@/app/main/bucket-detail";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -102,8 +102,7 @@ describe("focus", () => {
           ? new Date()
           : null,
       });
-      renderBoard(focusBuckets, <IdeasBucket bucket={bucket} ideas={[]} />);
-      await user.click(screen.getByLabelText("button"));
+      renderBoard(focusBuckets, <BucketDetail bucket={bucket} ideas={[]} />);
       return user;
     }
 
