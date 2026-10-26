@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { safeNext } from "@/lib/auth/safe-next";
 import { siteConfig } from "@/lib/site";
 import clsx from "clsx";
 import { Syne_Tactile } from "next/font/google";
@@ -19,7 +20,9 @@ const syneTactile = Syne_Tactile({
 export default async function Home({ searchParams }: PageProps<"/">) {
   await connection();
 
-  const { code, error, error_description } = await searchParams;
+  const { code, error, error_description, next: rawNext } = await searchParams;
+  // Set by links that need a sign-in first, like saving a shared bucket.
+  const next = safeNext(rawNext);
   if (typeof error === "string" || typeof error_description === "string") {
     const reason =
       typeof error_description === "string" ? error_description : error;
@@ -34,7 +37,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const session = await getSession();
 
   if (session) {
-    redirect("/main");
+    redirect(next);
   }
 
   return (
@@ -78,11 +81,17 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               <div>
                 <h2 className="text-2xl font-bold">Welcome to Idea Goblin.</h2>
               </div>
-              <EmailAuthForm />
+              <EmailAuthForm next={next} />
               <p>or sign in with</p>
               <div className="flex gap-2 md:flex-row flex-col mt-2">
-                <AuthButton provider={{ value: "google", label: "Google" }} />
-                <AuthButton provider={{ value: "github", label: "GitHub" }} />
+                <AuthButton
+                  provider={{ value: "google", label: "Google" }}
+                  next={next}
+                />
+                <AuthButton
+                  provider={{ value: "github", label: "GitHub" }}
+                  next={next}
+                />
               </div>
             </div>
           </div>

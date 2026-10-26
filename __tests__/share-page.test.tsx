@@ -1,4 +1,5 @@
 import { getSharedBucket } from "@/lib/api/buckets";
+import { getSession } from "@/lib/auth";
 import type { GameplanResult } from "@/lib/types";
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +16,7 @@ vi.mock("next/font/google", () => ({
   Syne_Tactile: () => ({ className: "syne" }),
 }));
 vi.mock("@/lib/api/buckets", () => ({ getSharedBucket: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ getSession: vi.fn() }));
 
 import SharedBucketPage, { generateMetadata } from "@/app/share/[token]/page";
 
@@ -47,6 +49,7 @@ function shared(
   overrides: Partial<Awaited<ReturnType<typeof getSharedBucket>>> = {},
 ) {
   return {
+    ownerId: "owner-1",
     bucket: {
       name: "Launch ideas",
       description: "Things to try this month",
@@ -86,6 +89,7 @@ describe("shared bucket page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getSharedBucket).mockResolvedValue(shared());
+    vi.mocked(getSession).mockResolvedValue(null);
   });
 
   it("shows the bucket, its ideas and its gameplan, read-only", async () => {
@@ -111,6 +115,33 @@ describe("shared bucket page", () => {
 
     // Nothing on the page changes the bucket.
     expect(screen.queryAllByRole("button")).toHaveLength(0);
+  });
+
+  it("asks a signed-out visitor to sign in, then come back, to save a copy", async () => {
+    await renderPage("tok");
+
+    expect(
+      screen.getByRole("link", { name: "Sign in to save a copy" }),
+    ).toHaveAttribute("href", "/?next=%2Fshare%2Ftok");
+  });
+
+  it("lets a signed-in visitor save a copy", async () => {
+    vi.mocked(getSession).mockResolvedValue({ id: "viewer-1" } as never);
+
+    await renderPage("tok");
+
+    expect(
+      screen.getByRole("button", { name: "Save a copy" }),
+    ).toBeInTheDocument();
+  });
+
+  it("tells the owner it's their bucket instead", async () => {
+    vi.mocked(getSession).mockResolvedValue({ id: "owner-1" } as never);
+
+    await renderPage("tok");
+
+    expect(screen.getByText(/This is your bucket/)).toBeInTheDocument();
+    expect(screen.queryByText(/save a copy/i)).not.toBeInTheDocument();
   });
 
   it("says when there's no gameplan or ideas", async () => {

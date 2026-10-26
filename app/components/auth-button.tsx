@@ -6,11 +6,11 @@ import { createClient } from "@/lib/auth/supabase-client";
 
 const supabase = createClient();
 
-export async function signIn(provider: "github" | "google") {
+export async function signIn(provider: "github" | "google", next = "/main") {
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: `${window.location.origin}/auth/callback?next=/main`,
+      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
   if (error) {
@@ -60,10 +60,13 @@ const providerIcons = {
   github: GitHubIcon,
 };
 
+// `next` is where to land once signed in.
 export default function AuthButton({
   provider,
+  next,
 }: {
   provider: { value: "github" | "google"; label: string };
+  next?: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const Icon = providerIcons[provider.value];
@@ -72,7 +75,7 @@ export default function AuthButton({
     <button
       onClick={() =>
         startTransition(async () => {
-          await signIn(provider.value);
+          await signIn(provider.value, next);
         })
       }
       className="border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:cursor-pointer px-4 py-2 rounded-md flex items-center justify-center gap-2"

@@ -24,7 +24,8 @@ const inputClass =
   "rounded-md border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700";
 const linkClass = "underline hover:cursor-pointer";
 
-export default function EmailAuthForm() {
+// `next` is where to land once signed in, including after confirming email.
+export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export default function EmailAuthForm() {
           password,
         });
         if (error) return setError(error.message);
-        router.push("/main");
+        router.push(next);
         return;
       }
 
@@ -61,12 +62,12 @@ export default function EmailAuthForm() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { name }, emailRedirectTo: callbackUrl("/main") },
+          options: { data: { name }, emailRedirectTo: callbackUrl(next) },
         });
         if (error) return setError(error.message);
         // No session means the email has to be confirmed first.
         if (data.session) {
-          router.push("/main");
+          router.push(next);
           return;
         }
         setMessage("Check your email for a link to confirm your account.");
@@ -131,7 +132,10 @@ export default function EmailAuthForm() {
         </p>
       )}
       {message && (
-        <p aria-live="polite" className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p
+          aria-live="polite"
+          className="text-sm text-zinc-600 dark:text-zinc-400"
+        >
           {message}
         </p>
       )}

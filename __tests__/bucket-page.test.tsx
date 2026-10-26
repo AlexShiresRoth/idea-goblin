@@ -1,8 +1,4 @@
-import {
-  getFocusLimit,
-  getIdeaBuckets,
-  getIdeasForBuckets,
-} from "@/lib/api/";
+import { getFocusLimit, getIdeaBuckets, getIdeasForBuckets } from "@/lib/api/";
 import { getSession } from "@/lib/auth";
 import type { IdeaBucket, IdeaView } from "@/lib/db/schema";
 import { render, screen } from "@testing-library/react";

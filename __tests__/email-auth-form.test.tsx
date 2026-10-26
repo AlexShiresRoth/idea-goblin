@@ -44,6 +44,32 @@ describe("EmailAuthForm", () => {
     });
   });
 
+  it("goes back where it was sent from, like a shared bucket", async () => {
+    auth.signInWithPassword.mockResolvedValue({ error: null });
+    auth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+    render(<EmailAuthForm next="/share/tok" />);
+
+    await fill({ Email: "a@b.co", Password: "hunter22" });
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/share/tok"));
+
+    // Confirming a new account's email lands there too.
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create an account" }),
+    );
+    await fill({ Name: "Gob" });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Create account" }),
+    );
+    expect(auth.signUp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fshare%2Ftok`,
+        }),
+      }),
+    );
+  });
+
   it("shows a sign-in error and stays put", async () => {
     auth.signInWithPassword.mockResolvedValue({
       error: { message: "Invalid login credentials" },

@@ -41,8 +41,6 @@ describe("BucketDetail", () => {
     );
   });
 
-
-
   it("minimizes the header summary and expands it again", async () => {
     const user = userEvent.setup();
     renderBucket(undefined, makeBucket({ description: "Full summary text" }));
@@ -70,13 +68,13 @@ describe("BucketDetail", () => {
       makeIdea({ id: 3, title: "Open two" }),
     ];
 
-
-
     it("moves done ideas into a collapsed section", async () => {
       const user = userEvent.setup();
       renderBucket(mixed);
 
-      const dialog = within(screen.getByRole("region", { name: "Launch ideas" }));
+      const dialog = within(
+        screen.getByRole("region", { name: "Launch ideas" }),
+      );
 
       expect(dialog.getByText("Ideas 2")).toBeInTheDocument();
       expect(dialog.getByText("Open one")).toBeInTheDocument();
@@ -277,12 +275,8 @@ describe("BucketDetail", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-
   // Set on the outermost element so the container's border can use them,
   // not just the theme pill inside it.
-
-
-
 
   it("shows its ideas, the bucket actions and a way back", () => {
     renderBucket();

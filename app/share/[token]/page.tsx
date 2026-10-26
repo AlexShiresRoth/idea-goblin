@@ -2,6 +2,7 @@ import { bucketStyleVars } from "@/app/components/bucket-icon";
 import { GameplanView } from "@/app/components/gameplan-view";
 import { ThemePill } from "@/app/main/bucket-badges";
 import { getSharedBucket } from "@/lib/api/buckets";
+import { getSession } from "@/lib/auth";
 import { isDone } from "@/lib/constants";
 import type { BucketSnapshotIdea } from "@/lib/db/schema";
 import { siteConfig } from "@/lib/site";
@@ -12,6 +13,7 @@ import { Syne_Tactile as SyneTactile } from "next/font/google";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import SaveCopy from "./save-copy";
 
 const syneTactile = SyneTactile({
   subsets: ["latin"],
@@ -60,10 +62,15 @@ function SharedIdea({ idea }: { idea: BucketSnapshotIdea }) {
 // A bucket someone shared by link: read-only, and open to anyone with the
 // link, signed in or not.
 export default async function SharedBucketPage({ params }: Props) {
-  const shared = await loadShared((await params).token);
+  const { token } = await params;
+  const [shared, session] = await Promise.all([
+    loadShared(token),
+    getSession(),
+  ]);
   if (!shared) notFound();
 
   const { bucket, ideas, gameplan } = shared;
+  const isOwner = session?.id === shared.ownerId;
   const openIdeas = ideas.filter((idea) => !isDone(idea));
   const doneIdeas = ideas.filter(isDone);
 
@@ -89,6 +96,15 @@ export default async function SharedBucketPage({ params }: Props) {
         <ThemePill bucket={bucket} />
         <h1 className="text-2xl">{bucket.name}</h1>
         <p className="text-sm text-white/50">{bucket.description}</p>
+        <div className="mt-2">
+          {isOwner ? (
+            <p className="text-xs text-white/40">
+              This is your bucket, as others see it.
+            </p>
+          ) : (
+            <SaveCopy token={token} signedIn={session != null} />
+          )}
+        </div>
       </header>
 
       <div className="flex-1 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

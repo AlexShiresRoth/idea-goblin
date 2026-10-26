@@ -75,8 +75,9 @@ export async function getBucketVersions(
     .orderBy(desc(bucketVersionsTable.createdAt));
 }
 
-// A bucket shared by link: what a visitor sees, which leaves out the owner
-// and the version history. Null when the token isn't a live share link.
+// A bucket shared by link: what a visitor sees, which leaves out the version
+// history, plus the owner's id for the server to check against. Null when the
+// token isn't a live share link.
 export async function getSharedBucket(token: string) {
   const [bucket] = await db
     .select({
@@ -109,6 +110,7 @@ export async function getSharedBucket(token: string) {
   ]);
 
   return {
+    ownerId: bucket.profileId,
     bucket: {
       name: bucket.name,
       description: bucket.description,

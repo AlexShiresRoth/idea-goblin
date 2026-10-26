@@ -54,12 +54,13 @@ describe("getSharedBucket", () => {
     expect(whereOf(queries[0]).params).toEqual(["nope"]);
   });
 
-  it("returns the bucket without its owner, its ideas and latest gameplan", async () => {
+  it("returns the bucket, its owner, its ideas and latest gameplan", async () => {
     mockSelects([bucketRow], [idea], [{ data: plan }]);
 
     const shared = await getSharedBucket("tok");
 
     expect(shared).toEqual({
+      ownerId: "owner-1",
       bucket: {
         name: "Launch ideas",
         description: "Things to try",
