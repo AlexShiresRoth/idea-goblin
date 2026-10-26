@@ -1,5 +1,6 @@
 "use client";
 import {
+  CheckIcon,
   CopyIcon,
   Link2Icon,
   Loader2Icon,
@@ -8,7 +9,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ToastContext } from "../context/toast.provider";
 
@@ -31,6 +32,14 @@ export default function BucketShare({
   const [open, setOpen] = useState(false);
   const [token, setToken] = useState(shareToken);
   const [busy, setBusy] = useState<ShareAction | null>(null);
+  // Shown on the Copy button: toasts sit under the dialog's backdrop.
+  const [copied, setCopied] = useState<"copied" | "failed" | null>(null);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(null), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   async function share(action: ShareAction) {
     setBusy(action);
@@ -61,22 +70,10 @@ export default function BucketShare({
     if (!token) return;
     try {
       await navigator.clipboard.writeText(shareUrl(token));
-      setToasts([
-        {
-          id: `share-copied-${bucketId}`,
-          message: "Link copied",
-          type: "success",
-        },
-      ]);
+      setCopied("copied");
     } catch (error) {
       console.error(error);
-      setToasts([
-        {
-          id: `share-copy-error-${bucketId}`,
-          message: "Couldn't copy the link",
-          type: "error",
-        },
-      ]);
+      setCopied("failed");
     }
   }
 
@@ -132,8 +129,16 @@ export default function BucketShare({
                       onClick={copy}
                       className="action-button"
                     >
-                      <CopyIcon className="w-3 h-3" />
-                      Copy
+                      {copied === "copied" ? (
+                        <CheckIcon className="w-3 h-3 text-green-400" />
+                      ) : (
+                        <CopyIcon className="w-3 h-3" />
+                      )}
+                      {copied === "copied"
+                        ? "Copied"
+                        : copied === "failed"
+                          ? "Copy failed"
+                          : "Copy"}
                     </button>
                   </div>
                   <div className="flex flex-wrap justify-end gap-4">
