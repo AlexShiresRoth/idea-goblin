@@ -86,6 +86,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
 
   return (
     <form
+      data-testid="email-auth-form"
       onSubmit={handleSubmit}
       className="flex w-full max-w-sm flex-col gap-3"
     >
@@ -94,6 +95,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
           Name
           <input
             name="name"
+            data-testid="email-auth-name"
             autoComplete="name"
             required
             className={inputClass}
@@ -104,6 +106,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
         Email
         <input
           name="email"
+          data-testid="email-auth-email"
           type="email"
           autoComplete="email"
           required
@@ -115,6 +118,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
           Password
           <input
             name="password"
+            data-testid="email-auth-password"
             type="password"
             autoComplete={
               mode === "signup" ? "new-password" : "current-password"
@@ -127,13 +131,18 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
       )}
 
       {error && (
-        <p role="alert" className="text-sm text-red-500">
+        <p
+          role="alert"
+          data-testid="email-auth-error"
+          className="text-sm text-red-500"
+        >
           {error}
         </p>
       )}
       {message && (
         <p
           aria-live="polite"
+          data-testid="email-auth-message"
           className="text-sm text-zinc-600 dark:text-zinc-400"
         >
           {message}
@@ -142,6 +151,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
 
       <button
         type="submit"
+        data-testid="email-auth-submit"
         disabled={isPending}
         className="rounded-md bg-zinc-900 px-4 py-2 text-white hover:cursor-pointer hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300"
       >
@@ -154,6 +164,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
             <button
               type="button"
               className={linkClass}
+              data-testid="email-auth-signup-mode"
               onClick={() => switchMode("signup")}
             >
               Create an account
@@ -161,6 +172,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
             <button
               type="button"
               className={linkClass}
+              data-testid="email-auth-reset-mode"
               onClick={() => switchMode("reset")}
             >
               Forgot password?
@@ -170,6 +182,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
           <button
             type="button"
             className={linkClass}
+            data-testid="email-auth-signin-mode"
             onClick={() => switchMode("signin")}
           >
             {mode === "signup"

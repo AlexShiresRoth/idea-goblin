@@ -51,10 +51,11 @@ export default function BucketGameplan({
   }, [bucket.id, reloadKey]);
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 p-4" data-testid="bucket-gameplan">
       {loading && !gameplan && (
         <p
           aria-live="polite"
+          data-testid="gameplan-loading"
           className="flex items-center gap-2 text-sm text-white/50"
         >
           <Loader2Icon className="w-3 h-3 animate-spin" />
@@ -62,7 +63,7 @@ export default function BucketGameplan({
         </p>
       )}
       {!loading && !gameplan && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3" data-testid="gameplan-empty">
           <p className="text-sm text-white/50">
             No gameplan yet. Goblin can map out how to finish this bucket: a
             finish line, a few phases, and a first step for today.
@@ -70,6 +71,7 @@ export default function BucketGameplan({
           <button
             type="button"
             onClick={() => setPlanning(true)}
+            data-testid="make-gameplan"
             className="action-button w-fit"
           >
             <FlagIcon className="w-3 h-3" />
@@ -84,6 +86,7 @@ export default function BucketGameplan({
               Saved {new Date(gameplan.createdAt).toLocaleDateString()} ·{" "}
               <Link
                 href={`/main/analysis/${gameplan.id}`}
+                data-testid="open-gameplan-analysis"
                 className="underline hover:text-white/70"
               >
                 open
@@ -92,6 +95,7 @@ export default function BucketGameplan({
             <button
               type="button"
               onClick={() => setPlanning(true)}
+              data-testid="new-gameplan"
               className="action-button"
             >
               <FlagIcon className="w-3 h-3" />

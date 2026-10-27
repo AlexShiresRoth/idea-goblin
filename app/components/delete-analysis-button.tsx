@@ -83,6 +83,7 @@ export function DeleteAnalysisButton({
     <>
       <button
         type="button"
+        data-testid="delete-analysis"
         onClick={openConfirm}
         disabled={isDeleting}
         className="flex items-center gap-1 text-white/50 hover:text-red-500/80 transition-colors text-sm hover:cursor-pointer disabled:cursor-not-allowed"
@@ -101,6 +102,7 @@ export function DeleteAnalysisButton({
             <div
               role="dialog"
               aria-modal="true"
+              data-testid="delete-analysis-dialog"
               aria-labelledby={`delete-analysis-${analysisId}`}
               className="w-full max-w-sm rounded-lg border border-white/20 bg-black p-5 flex flex-col gap-4"
               onClick={(event) => event.stopPropagation()}
@@ -121,6 +123,7 @@ export function DeleteAnalysisButton({
                 <button
                   type="button"
                   className="action-button"
+                  data-testid="delete-analysis-cancel"
                   onClick={closeConfirm}
                   disabled={isDeleting}
                 >
@@ -129,6 +132,7 @@ export function DeleteAnalysisButton({
                 </button>
                 <button
                   type="button"
+                  data-testid="delete-analysis-confirm"
                   onClick={deleteAnalysis}
                   disabled={isDeleting}
                   className="flex items-center gap-1 rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:cursor-pointer disabled:cursor-not-allowed"

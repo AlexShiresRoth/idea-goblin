@@ -17,6 +17,7 @@ export default function IdeasBucket({
     <Link
       href={`/main/buckets/${bucket.id}`}
       data-bucket-id={bucket.id}
+      data-testid="bucket-card"
       // Category colors as CSS variables; everything inside inherits them.
       style={bucketStyleVars(bucket.category)}
       className={clsx(
@@ -38,7 +39,9 @@ export default function IdeasBucket({
         {bucket.description.length > 200 && "..."}
       </p>
       {ideas.some(isDone) && (
-        <p className="text-xs text-white/40">{doneCount(ideas)}</p>
+        <p className="text-xs text-white/40" data-testid="bucket-done-count">
+          {doneCount(ideas)}
+        </p>
       )}
     </Link>
   );

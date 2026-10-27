@@ -74,11 +74,12 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 p-4">
+    <div className="flex flex-col gap-2 p-4" data-testid="bucket-versions">
       <p className="text-xs uppercase tracking-wide text-white/40">Versions</p>
       {loading && versions.length === 0 && (
         <p
           aria-live="polite"
+          data-testid="versions-loading"
           className="flex items-center gap-2 text-sm text-white/50"
         >
           <Loader2Icon className="w-3 h-3 animate-spin" />
@@ -86,7 +87,7 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
         </p>
       )}
       {!loading && versions.length === 0 && (
-        <p className="text-sm text-white/40">
+        <p className="text-sm text-white/40" data-testid="versions-empty">
           No versions yet. The goblin stashes one each time you apply a
           refinement.
         </p>
@@ -97,6 +98,7 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
         return (
           <div
             key={version.id}
+            data-testid="bucket-version"
             className="flex items-start justify-between gap-3 rounded-md bg-white/5 px-3 py-2"
           >
             <div className="flex flex-col gap-1 min-w-0 flex-1">
@@ -125,7 +127,11 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
                 </span>
               </button>
               {isOpen && (
-                <div id={detailsId} className="flex flex-col gap-1 pl-4.5">
+                <div
+                  id={detailsId}
+                  className="flex flex-col gap-1 pl-4.5"
+                  data-testid="version-details"
+                >
                   <p className="text-xs text-white/50">{version.description}</p>
                   {version.ideas.length > 0 && (
                     <ul className="flex flex-col gap-0.5 border-l border-white/15 pl-2">

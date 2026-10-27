@@ -48,6 +48,7 @@ function BucketSelect({
       id="bucket"
       name="bucket"
       value={String(value)}
+      data-testid="create-idea-bucket-select"
       onChange={(e) => {
         const next = e.target.value;
         onChange(next === "auto" || next === "new" ? next : Number(next));
@@ -75,15 +76,18 @@ function Button({
   type,
   isLoading,
   disabled,
+  testId,
 }: {
   children: React.ReactNode;
   type: "button" | "submit";
   isLoading?: boolean;
   disabled?: boolean;
+  testId?: string;
 }) {
   return (
     <button
       type={type}
+      data-testid={testId}
       disabled={isLoading || disabled}
       className="bg-green-500 text-sm text-black font-semibold rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
     >
@@ -278,16 +282,27 @@ function CreateIdeaForm({
   }
 
   return (
-    <div className="flex max-h-[90dvh] w-11/12 flex-col rounded-lg border border-white/20 bg-black p-4 md:w-1/3">
+    <div
+      className="flex max-h-[90dvh] w-11/12 flex-col rounded-lg border border-white/20 bg-black p-4 md:w-1/3"
+      data-testid="create-idea-modal"
+    >
       <div className="flex justify-between items-center border-b border-white/20 pb-4">
         <h2 className="text-2xl font-bold">
           {drafts.length > 1 ? "New Ideas" : "New Idea"}
         </h2>
-        <button onClick={onClose} className="hover:cursor-pointer">
+        <button
+          onClick={onClose}
+          className="hover:cursor-pointer"
+          data-testid="create-idea-close"
+        >
           <XIcon className="w-4 h-4" />
         </button>
       </div>
-      <form className="flex min-h-0 flex-col gap-4" onSubmit={handleSubmit}>
+      <form
+        className="flex min-h-0 flex-col gap-4"
+        onSubmit={handleSubmit}
+        data-testid="create-idea-form"
+      >
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1 pt-2">
           {drafts.map((draft, index) => {
             const first = index === 0;
@@ -295,6 +310,7 @@ function CreateIdeaForm({
             return (
               <div
                 key={draft.key}
+                data-testid="create-idea-draft"
                 className={clsx(
                   "flex flex-col gap-2",
                   !first && "border-t border-white/10 pt-4",
@@ -307,6 +323,7 @@ function CreateIdeaForm({
                       type="button"
                       aria-label={`Remove idea ${n}`}
                       onClick={() => removeDraft(draft.key)}
+                      data-testid="create-idea-remove-draft"
                       className="text-white/50 hover:text-white/80 hover:cursor-pointer"
                     >
                       <XIcon className="w-3 h-3" />
@@ -317,6 +334,7 @@ function CreateIdeaForm({
                 <input
                   id={first ? "title-0" : undefined}
                   aria-label={first ? undefined : `Idea ${n} title (optional)`}
+                  data-testid="create-idea-title-input"
                   value={draft.title}
                   onChange={(e) =>
                     updateDraft(draft.key, { title: e.target.value })
@@ -332,6 +350,7 @@ function CreateIdeaForm({
                   <textarea
                     id={first ? "description" : undefined}
                     aria-label={first ? undefined : `Idea ${n} description`}
+                    data-testid="create-idea-description-input"
                     value={draft.description}
                     onChange={(e) =>
                       updateDraft(draft.key, { description: e.target.value })
@@ -355,13 +374,17 @@ function CreateIdeaForm({
           <button
             type="button"
             onClick={addDraft}
+            data-testid="create-idea-add-draft"
             className="flex w-fit items-center gap-1 text-sm text-white/60 hover:text-green-400/80 hover:cursor-pointer"
           >
             <PlusIcon className="w-3 h-3" />
             Add another idea
           </button>
         ) : (
-          <p className="text-xs text-white/50">
+          <p
+            className="text-xs text-white/50"
+            data-testid="create-idea-limit-reached"
+          >
             That&apos;s {MAX_IDEAS_PER_FORM} at once. For longer lists, use
             Import.
           </p>
@@ -379,6 +402,7 @@ function CreateIdeaForm({
             <input
               id="bucket-name"
               name="bucket-name"
+              data-testid="create-idea-bucket-name-input"
               value={bucketName}
               onChange={(e) => setBucketName(e.target.value)}
               maxLength={100}
@@ -398,6 +422,7 @@ function CreateIdeaForm({
             type="submit"
             isLoading={isLoading}
             disabled={needsBucketName}
+            testId="create-idea-submit"
           >
             {isLoading
               ? "Creating..."
@@ -430,7 +455,7 @@ export default function CreateIdeaModal({
   return (
     <div>
       {type === "inline" && (
-        <ActionButton action={openModal}>
+        <ActionButton action={openModal} testId="create-idea-open">
           <PlusIcon className="w-3 h-3" />
           <span>New Idea</span>
         </ActionButton>
@@ -439,6 +464,7 @@ export default function CreateIdeaModal({
         <button
           type="button"
           onClick={openModal}
+          data-testid="create-idea-open"
           className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
         >
           <PlusIcon className="w-3 h-3" />
@@ -449,6 +475,7 @@ export default function CreateIdeaModal({
         <button
           type="button"
           onClick={openModal}
+          data-testid="create-idea-open"
           className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-green-400/80 transition-colors"
         >
           <PlusIcon className="w-3 h-3" />
@@ -458,21 +485,33 @@ export default function CreateIdeaModal({
       {!isOpen && type === "floating" && (
         <button
           onClick={openModal}
+          data-testid="create-idea-open"
           className="hidden md:block fixed bottom-12 md:bottom-15 right-5 md:right-15 bg-green-500 text-black rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
         >
           <PlusIcon className="w-6 h-6" />
         </button>
       )}
-      {isOpen &&
-        createPortal(
-          <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-100">
-            <CreateIdeaForm
-              onClose={() => setIsOpen(false)}
-              defaultBucket={defaultBucket}
-            />
-          </div>,
-          document.body,
-        )}
+      {isOpen && (
+        <CreateIdeaDialog
+          onClose={() => setIsOpen(false)}
+          defaultBucket={defaultBucket}
+        />
+      )}
     </div>
+  );
+}
+
+export function CreateIdeaDialog({
+  onClose,
+  defaultBucket,
+}: {
+  onClose: () => void;
+  defaultBucket?: BucketChoice;
+}) {
+  return createPortal(
+    <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-100">
+      <CreateIdeaForm onClose={onClose} defaultBucket={defaultBucket} />
+    </div>,
+    document.body,
   );
 }

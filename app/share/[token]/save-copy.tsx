@@ -21,6 +21,7 @@ export default function SaveCopy({
     return (
       <Link
         href={`/?next=${encodeURIComponent(`/share/${token}`)}`}
+        data-testid="save-copy-sign-in"
         className="action-button w-fit"
       >
         <CopyPlusIcon className="w-3 h-3" />
@@ -53,6 +54,7 @@ export default function SaveCopy({
         type="button"
         disabled={saving}
         onClick={save}
+        data-testid="save-copy-button"
         className="action-button w-fit"
       >
         {saving ? (
@@ -63,7 +65,11 @@ export default function SaveCopy({
         {saving ? "Saving..." : "Save a copy"}
       </button>
       {error && (
-        <p role="alert" className="text-xs text-red-400">
+        <p
+          role="alert"
+          className="text-xs text-red-400"
+          data-testid="save-copy-error"
+        >
           {error}
         </p>
       )}

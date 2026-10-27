@@ -19,12 +19,14 @@ import {
   MaximizeIcon,
   MinimizeIcon,
   PencilIcon,
+  PlusIcon,
   Route,
   SaveIcon,
   SparklesIcon,
   RotateCcwIcon,
   Wrench,
   Flag,
+  UploadIcon,
   XIcon,
 } from "lucide-react";
 import { useContext, useMemo, useState } from "react";
@@ -36,7 +38,9 @@ import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
+import { CreateIdeaDialog } from "./create-idea-modal";
 import { GameplanView, type LinkStep } from "./gameplan-view";
+import { ImportIdeasDialog } from "./import-ideas-modal";
 import { RefinementPicker } from "./refinement-picker";
 import { RefinementReply, RefinementRounds } from "./refinement-rounds";
 
@@ -437,6 +441,7 @@ export function AnalyzeVaultModal({
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
       <div
+        data-testid="analyze-vault-modal"
         className={clsx(
           "flex flex-col gap-4 rounded-lg border border-white/20 bg-black transition-all duration-300 min-h-0",
           // Fixed heights so long results scroll inside the modal.
@@ -444,7 +449,11 @@ export function AnalyzeVaultModal({
           !minMaxModal && "md:w-1/2 w-11/12 max-h-[85dvh] p-6 md:p-8",
         )}
       >
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-400" data-testid="analyze-vault-error">
+            {error}
+          </p>
+        )}
         {!runStarted && (
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
@@ -460,6 +469,7 @@ export function AnalyzeVaultModal({
                   type="button"
                   onClick={() => setSelectedPathway(pathway)}
                   key={pathway.id}
+                  data-testid={`analyze-pathway-${pathway.id}`}
                   className={clsx(
                     "flex flex-col gap-2 p-4 border border-white/20 rounded-lg hover:border-white/50 transition-colors cursor-pointer",
                     selectedPathway?.id === pathway.id && "border-white/50",
@@ -477,7 +487,11 @@ export function AnalyzeVaultModal({
             </div>
 
             <div className="flex justify-between w-full mt-4 py-4 border-t border-white/20">
-              <button className="action-button" onClick={onClose}>
+              <button
+                className="action-button"
+                onClick={onClose}
+                data-testid="analyze-vault-cancel"
+              >
                 <XIcon className="w-3 h-3" />
                 <span>Cancel</span>
               </button>
@@ -491,11 +505,10 @@ export function AnalyzeVaultModal({
                     : "opacity-50 cursor-not-allowed",
                 )}
                 onClick={beginPathway}
+                data-testid="analyze-vault-start"
               >
                 {selectedPathway && <Route className="w-3 h-3" />}
-                {selectedPathway
-                  ? "Start"
-                  : "Select a pathway"}
+                {selectedPathway ? "Start" : "Select a pathway"}
               </button>
             </div>
           </div>
@@ -525,6 +538,7 @@ export function AnalyzeVaultModal({
             <div className="flex justify-between w-full py-4 border-t border-white/20">
               <button
                 className="action-button"
+                data-testid="analyze-vault-back"
                 onClick={() => {
                   if (scoped) {
                     onClose();
@@ -547,6 +561,7 @@ export function AnalyzeVaultModal({
                     : "opacity-50 cursor-not-allowed",
                 )}
                 onClick={() => startAnalysis()}
+                data-testid="analyze-vault-submit"
               >
                 <Route className="w-3 h-3" />
                 {selectedPathway?.id === "gameplan" ? "Plan" : "Refine"}{" "}
@@ -560,7 +575,10 @@ export function AnalyzeVaultModal({
             <div className="flex items-center gap-2 flex-wrap shrink-0">
               <h2 className="text-2xl font-bold">{selectedPathway?.title}</h2>
               {analyzing && (
-                <span className="flex items-center gap-2 text-sm text-white/60">
+                <span
+                  className="flex items-center gap-2 text-sm text-white/60"
+                  data-testid="analyze-vault-progress"
+                >
                   <Loader2 className="w-3 h-3 animate-spin" />
                   {steps.at(-1)?.message ?? "Waking the goblin..."}
                 </span>
@@ -570,6 +588,7 @@ export function AnalyzeVaultModal({
                   {/* Gameplans have no reasoning section. */}
                   {selectedPathway?.id !== "gameplan" && (
                     <ActionButton
+                      testId="analyze-vault-show-reasoning"
                       disabled={!reasoning || analyzing}
                       action={() =>
                         reasoning && setShowReasoning(!showReasoning)
@@ -579,6 +598,7 @@ export function AnalyzeVaultModal({
                     </ActionButton>
                   )}
                   <ActionButton
+                    testId="analyze-vault-save"
                     action={() =>
                       !saved && (reasoning || gameplan) && saveAnalysis()
                     }
@@ -595,6 +615,7 @@ export function AnalyzeVaultModal({
                   </ActionButton>
                   {refinement && (
                     <ActionButton
+                      testId="analyze-vault-apply-refinement"
                       action={applyRefinement}
                       disabled={applying || applied}
                     >
@@ -604,7 +625,10 @@ export function AnalyzeVaultModal({
                   )}
                 </>
               )}
-              <ActionButton action={() => setMinMaxModal(!minMaxModal)}>
+              <ActionButton
+                action={() => setMinMaxModal(!minMaxModal)}
+                testId="analyze-vault-toggle-size"
+              >
                 {minMaxModal ? (
                   <>
                     <MinimizeIcon className="w-3 h-3" /> Minimize
@@ -615,7 +639,7 @@ export function AnalyzeVaultModal({
                   </>
                 )}
               </ActionButton>
-              <ActionButton action={onClose}>
+              <ActionButton action={onClose} testId="analyze-vault-close">
                 <XIcon className="w-3 h-3" /> Close
               </ActionButton>
             </div>
@@ -647,6 +671,7 @@ export function AnalyzeVaultModal({
                     <button
                       type="button"
                       onClick={() => startAnalysis(rounds)}
+                      data-testid="analyze-vault-retry"
                       className="action-button mt-3"
                     >
                       <RotateCcwIcon className="w-3 h-3" />
@@ -656,13 +681,21 @@ export function AnalyzeVaultModal({
                 </div>
               )}
               {cached && (
-                <p className="text-xs text-white/40">
+                <p
+                  className="text-xs text-white/40"
+                  data-testid="analyze-vault-cached"
+                >
                   Nothing changed since your last run, so the goblin handed back
                   the same result.
                 </p>
               )}
               {showReasoning && reasoning && (
-                <p className="text-sm text-white/50">{reasoning}</p>
+                <p
+                  className="text-sm text-white/50"
+                  data-testid="analyze-vault-reasoning"
+                >
+                  {reasoning}
+                </p>
               )}
               {gameplan ? (
                 <GameplanView
@@ -701,24 +734,91 @@ export function AnalyzeVaultModal({
   );
 }
 
+// Shown instead of the pathways when there are no buckets to analyze yet.
+function EmptyVaultDialog({
+  onClose,
+  onAddIdeas,
+}: {
+  onClose: () => void;
+  onAddIdeas: (how: "create" | "import") => void;
+}) {
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Analyze Vault"
+        data-testid="analyze-vault-empty"
+        className="flex flex-col gap-4 rounded-lg border border-white/20 bg-black md:w-1/2 w-11/12 p-6 md:p-8"
+      >
+        <div className="flex flex-col gap-2">
+          <h2 className="text-2xl font-bold">Analyze Vault</h2>
+          <p className="text-sm text-white/50">
+            The Goblin has nothing to chew on yet. Add your first idea and
+            it&apos;ll have a bucket to analyze.
+          </p>
+        </div>
+        <div className="flex flex-wrap justify-between gap-2 w-full mt-4 py-4 border-t border-white/20">
+          <button
+            className="action-button"
+            onClick={onClose}
+            data-testid="analyze-vault-cancel"
+          >
+            <XIcon className="w-3 h-3" />
+            <span>Cancel</span>
+          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="action-button"
+              onClick={() => onAddIdeas("import")}
+              data-testid="analyze-vault-empty-import"
+            >
+              <UploadIcon className="w-3 h-3" />
+              <span>Import ideas</span>
+            </button>
+            <button
+              type="button"
+              autoFocus
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-green-500 text-black hover:bg-green-600 hover:cursor-pointer transition-colors"
+              onClick={() => onAddIdeas("create")}
+              data-testid="analyze-vault-empty-create"
+            >
+              <PlusIcon className="w-3 h-3" />
+              <span>New Idea</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function AnalyzeVault({
   variant = "button",
   onTrigger,
+  hasBuckets = true,
 }: {
   variant?: "button" | "menu";
   onTrigger?: () => void;
+  hasBuckets?: boolean;
 }) {
-  const [displayModal, setDisplayModal] = useState(false);
+  const [dialog, setDialog] = useState<
+    "analyze" | "empty" | "create" | "import"
+  >();
 
   function openModal() {
     onTrigger?.();
-    setDisplayModal(true);
+    setDialog(hasBuckets ? "analyze" : "empty");
   }
+
+  const closeDialog = () => setDialog(undefined);
 
   return (
     <>
       {variant === "button" && (
-        <ActionButton action={openModal}>
+        <ActionButton action={openModal} testId="analyze-vault-open">
           <SparklesIcon className="w-3 h-3" />
           <span>Analyze Vault</span>
         </ActionButton>
@@ -727,6 +827,7 @@ export default function AnalyzeVault({
         <button
           type="button"
           onClick={openModal}
+          data-testid="analyze-vault-open"
           className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
         >
           <SparklesIcon className="w-3 h-3" />
@@ -734,9 +835,12 @@ export default function AnalyzeVault({
         </button>
       )}
 
-      {displayModal && (
-        <AnalyzeVaultModal onClose={() => setDisplayModal(false)} />
+      {dialog === "analyze" && <AnalyzeVaultModal onClose={closeDialog} />}
+      {dialog === "empty" && (
+        <EmptyVaultDialog onClose={closeDialog} onAddIdeas={setDialog} />
       )}
+      {dialog === "create" && <CreateIdeaDialog onClose={closeDialog} />}
+      {dialog === "import" && <ImportIdeasDialog onClose={closeDialog} />}
     </>
   );
 }

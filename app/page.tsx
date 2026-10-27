@@ -76,14 +76,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               <p>AI Powered Idea Management.</p>
             </div>
           </div>
-          <div className="flex flex-col w-full gap-4 md:mt-0 mt-8">
+          <div className="flex flex-col w-full gap-4 md:mt-0 mt-8 md:px-0 px-4">
             <div className="flex-2 flex flex-col items-center justify-center gap-4">
               <div>
                 <h2 className="text-2xl font-bold">Welcome to Idea Goblin.</h2>
               </div>
               <EmailAuthForm next={next} />
               <p>or sign in with</p>
-              <div className="flex gap-2 md:flex-row flex-col mt-2">
+              <div className="flex gap-2 md:flex-row flex-col mt-2 md:min-w-0 min-w-full">
                 <AuthButton
                   provider={{ value: "google", label: "Google" }}
                   next={next}

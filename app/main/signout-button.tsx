@@ -23,6 +23,7 @@ export default function SignoutButton() {
     <button
       disabled={signOutLoading}
       onClick={handleSignOut}
+      data-testid="sign-out"
       className="text-sm flex items-center gap-1 hover:bg-white/10 p-2 hover:cursor-pointer"
     >
       {signOutLoading && <Loader2 className="w-3 h-3 animate-spin" />}

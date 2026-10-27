@@ -30,7 +30,7 @@ export default function NavLinks({
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-col gap-2 w-full">
+    <nav className="flex flex-col gap-2 w-full" data-testid="nav-links">
       {LINKS.map((link) => {
         const Icon = link.icon;
         const active = link.isActive(pathname);
@@ -40,6 +40,7 @@ export default function NavLinks({
             key={link.href}
             href={link.href}
             onClick={onNavigate}
+            data-testid={`nav-link-${link.label.toLowerCase()}`}
             aria-current={active ? "page" : undefined}
             className={clsx(
               "flex items-center gap-2 text-sm transition-colors",

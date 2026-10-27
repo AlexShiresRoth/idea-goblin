@@ -18,6 +18,7 @@ const onClose = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
+  usePathname: () => "/main",
 }));
 
 type Handler = (init?: RequestInit) => Response | Promise<Response>;
@@ -113,9 +114,7 @@ function refinementDraft(n: number): BucketRefinementResult {
 
 async function startExecution(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: /Pick a Winner/ }));
-  await user.click(
-    screen.getByRole("button", { name: "Start" }),
-  );
+  await user.click(screen.getByRole("button", { name: "Start" }));
 }
 
 describe("AnalyzeVaultModal", () => {
@@ -183,14 +182,12 @@ describe("AnalyzeVaultModal", () => {
       ).toBeDisabled();
 
       await user.click(screen.getByRole("button", { name: /^Gameplan/ }));
-      expect(
-        screen.getByRole("button", { name: "Start" }),
-      ).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Start" })).toBeEnabled();
 
-      await user.click(screen.getByRole("button", { name: /Sharpen a Bucket/ }));
-      expect(
-        screen.getByRole("button", { name: "Start" }),
-      ).toBeEnabled();
+      await user.click(
+        screen.getByRole("button", { name: /Sharpen a Bucket/ }),
+      );
+      expect(screen.getByRole("button", { name: "Start" })).toBeEnabled();
     });
 
     it("cancels", async () => {
@@ -218,6 +215,63 @@ describe("AnalyzeVaultModal", () => {
 
       await user.click(screen.getByRole("button", { name: "Cancel" }));
       expect(screen.queryByText("Select a pathway")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("an empty vault", () => {
+    function renderEmpty() {
+      return render(
+        <ToastContext.Provider value={{ toasts: [], setToasts }}>
+          <AnalyzeVault hasBuckets={false} />
+        </ToastContext.Provider>,
+      );
+    }
+
+    it("points to adding an idea instead of the pathways", async () => {
+      mockFetch({ "/api/buckets/list": () => Response.json([]) });
+      const user = userEvent.setup();
+      renderEmpty();
+
+      await user.click(screen.getByRole("button", { name: "Analyze Vault" }));
+
+      expect(screen.getByTestId("analyze-vault-empty")).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /Pick a Winner/ }),
+      ).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: "New Idea" }));
+
+      expect(
+        screen.queryByTestId("analyze-vault-empty"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("create-idea-modal")).toBeInTheDocument();
+    });
+
+    it("can go to import instead", async () => {
+      mockFetch({ "/api/buckets/list": () => Response.json([]) });
+      const user = userEvent.setup();
+      renderEmpty();
+
+      await user.click(screen.getByRole("button", { name: "Analyze Vault" }));
+      await user.click(screen.getByRole("button", { name: "Import ideas" }));
+
+      expect(
+        screen.queryByTestId("analyze-vault-empty"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("import-ideas-modal")).toBeInTheDocument();
+    });
+
+    it("cancels", async () => {
+      mockFetch({});
+      const user = userEvent.setup();
+      renderEmpty();
+
+      await user.click(screen.getByRole("button", { name: "Analyze Vault" }));
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+      expect(
+        screen.queryByTestId("analyze-vault-empty"),
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -429,10 +483,10 @@ describe("AnalyzeVaultModal", () => {
     }
 
     async function openPicker(user: ReturnType<typeof userEvent.setup>) {
-      await user.click(screen.getByRole("button", { name: /Sharpen a Bucket/ }));
       await user.click(
-        screen.getByRole("button", { name: "Start" }),
+        screen.getByRole("button", { name: /Sharpen a Bucket/ }),
       );
+      await user.click(screen.getByRole("button", { name: "Start" }));
       await screen.findByRole("button", { name: /Garden apps/ });
     }
 
@@ -467,10 +521,10 @@ describe("AnalyzeVaultModal", () => {
       const user = userEvent.setup();
       renderModal();
 
-      await user.click(screen.getByRole("button", { name: /Sharpen a Bucket/ }));
       await user.click(
-        screen.getByRole("button", { name: "Start" }),
+        screen.getByRole("button", { name: /Sharpen a Bucket/ }),
       );
+      await user.click(screen.getByRole("button", { name: "Start" }));
 
       expect(
         await screen.findByText("Failed to load buckets"),

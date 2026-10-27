@@ -20,9 +20,13 @@ export function ExpandableSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className="flex flex-col gap-3 min-w-0 w-full">
+    <section
+      data-testid="expandable-section"
+      className="flex flex-col gap-3 min-w-0 w-full"
+    >
       <button
         type="button"
+        data-testid="expandable-section-toggle"
         onClick={() => setOpen((current) => !current)}
         className="flex items-center justify-between w-full min-w-0 text-left gap-3 py-2 border-b border-white/10 hover:border-white/30 transition-colors"
       >

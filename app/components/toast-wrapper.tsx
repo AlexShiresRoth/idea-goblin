@@ -20,6 +20,8 @@ function Toast({ toast }: { toast: Toast }) {
   });
   return (
     <div
+      data-testid="toast"
+      data-type={toast.type}
       className={clsx(
         "p-1 px-3 text-sm bg-black border min-w-fit flex items-center gap-2 rounded animate-toast",
         toast.type === "success" && "border-green-500/40 text-white/80",
@@ -54,7 +56,10 @@ export function ToastWrapper({ children }: { children: React.ReactNode }) {
       {children}
       {mounted &&
         createPortal(
-          <div className="flex flex-col gap-2 fixed top-0 right-0 p-4 z-1000">
+          <div
+            data-testid="toast-container"
+            className="flex flex-col gap-2 fixed top-0 right-0 p-4 z-1000"
+          >
             {toasts.map((toast) => (
               <Toast key={toast.id} toast={toast} />
             ))}

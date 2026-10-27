@@ -22,6 +22,15 @@ export async function getIdeaBuckets(profileId: string) {
   return buckets;
 }
 
+export async function hasIdeaBuckets(profileId: string) {
+  const [bucket] = await db
+    .select({ id: ideaBucketsTable.id })
+    .from(ideaBucketsTable)
+    .where(eq(ideaBucketsTable.profileId, profileId))
+    .limit(1);
+  return bucket != null;
+}
+
 // Buckets are ordered by updatedAt, so any idea added to one must touch it.
 export async function touchBuckets(bucketIds: number[]) {
   if (bucketIds.length === 0) return;
@@ -52,7 +61,10 @@ export async function getBucketIdeas(
 // Saves the bucket and every idea in it as one version, so the whole bucket
 // can be restored later.
 export async function snapshotBucket(
-  bucket: Pick<IdeaBucket, "id" | "name" | "description" | "theme" | "category">,
+  bucket: Pick<
+    IdeaBucket,
+    "id" | "name" | "description" | "theme" | "category"
+  >,
 ) {
   const ideas = await getBucketIdeas(bucket.id);
   await db.insert(bucketVersionsTable).values({

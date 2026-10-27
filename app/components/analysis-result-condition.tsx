@@ -53,7 +53,10 @@ function ExecutionMetrics({
   const effort = effortLevel[choice.estimated_effort];
 
   return (
-    <div className="grid grid-cols-3 gap-3 w-full pt-3 border-t border-white/10">
+    <div
+      data-testid="execution-metrics"
+      className="grid grid-cols-3 gap-3 w-full pt-3 border-t border-white/10"
+    >
       <div className="flex flex-col gap-1">
         <MetricLabel>Value</MetricLabel>
         {choice.score != null ? (
@@ -128,6 +131,7 @@ function JustificationToggle({ justifications }: { justifications: string }) {
     <div className="w-full">
       <button
         type="button"
+        data-testid="toggle-justifications"
         onClick={() => setOpen((current) => !current)}
         className="flex items-center gap-1 text-sm text-white/50 hover:text-white/80 transition-colors"
       >
@@ -136,7 +140,11 @@ function JustificationToggle({ justifications }: { justifications: string }) {
           className={clsx("w-3 h-3 transition-transform", open && "rotate-180")}
         />
       </button>
-      {open && <p className="text-sm text-white/60 mt-2">{justifications}</p>}
+      {open && (
+        <p data-testid="justifications" className="text-sm text-white/60 mt-2">
+          {justifications}
+        </p>
+      )}
     </div>
   );
 }
@@ -149,6 +157,7 @@ export function AnalysisItem({
   return (
     <div
       key={choice.bucket_id}
+      data-testid="analysis-choice"
       className="p-4 border border-white/20 rounded-md flex flex-col items-start gap-2 max-w-sm animate-fade-in flex-1 min-w-xs"
     >
       <div className="flex items-center justify-between w-full gap-1">
@@ -178,6 +187,8 @@ export function RecommendationBadge({
 }) {
   return (
     <span
+      data-testid="recommendation-badge"
+      data-recommendation={recommendation}
       className={clsx(
         "shrink-0 border rounded px-2 py-0.5 text-xs uppercase tracking-wide",
         recommendationTone[recommendation],
@@ -200,7 +211,10 @@ export function ExecutionChoiceCard({
     choice.title && choice.main_idea ? choice.main_idea : undefined;
 
   return (
-    <div className={clsx("flex flex-col items-start gap-3", className)}>
+    <div
+      data-testid="execution-choice"
+      className={clsx("flex flex-col items-start gap-3", className)}
+    >
       <div className="flex flex-col gap-1">
         <div className="flex items-start gap-2">
           <span className="mt-1">
@@ -228,7 +242,10 @@ function ExecutionChoices({ result }: { result: ExecutionResult }) {
   });
 
   return (
-    <div className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-md gap-4">
+    <div
+      data-testid="execution-choices"
+      className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-md gap-4"
+    >
       {sortedChoices.map((choice) => (
         <ExecutionChoiceCard
           key={choice.bucket_id}
@@ -270,7 +287,10 @@ export function RefinementCard({
   const fields = refinementFields(result);
 
   return (
-    <div className="flex flex-col gap-4 p-4 border border-white/20 rounded-md">
+    <div
+      data-testid="refinement-card"
+      className="flex flex-col gap-4 p-4 border border-white/20 rounded-md"
+    >
       <div className="flex flex-col gap-1">
         <span className="text-xs uppercase tracking-wide text-white/40">
           Original
@@ -295,6 +315,7 @@ export function RefinementCard({
           {fields.improvements.map((improvement, index) => (
             <li
               key={`${improvement}-${index}`}
+              data-testid="refinement-improvement"
               className="text-sm text-white/60 rounded-lg bg-white/5 px-4 py-3 border-l-2 border-white/30"
             >
               {improvement}
@@ -312,11 +333,15 @@ function RefinementSuggestions({ result }: { result: RefinementResult }) {
   }
 
   return (
-    <div className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-md gap-4">
+    <div
+      data-testid="refinement-suggestions"
+      className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-md gap-4"
+    >
       {result.suggestions.map((suggestion) => {
         return (
           <div
             key={suggestion.bucket_id}
+            data-testid="refinement-suggestion"
             className="p-4 border border-white/20 rounded-md flex flex-col items-start gap-2 max-w-sm flex-1 min-w-xs"
           >
             <p className="text-sm text-white/60">{suggestion.original_idea}</p>
