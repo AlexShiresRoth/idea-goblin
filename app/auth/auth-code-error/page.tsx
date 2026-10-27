@@ -17,9 +17,18 @@ export default async function AuthCodeError({ searchParams }: PageProps<"/auth/a
           The sign in link was already used or has expired. Please try again.
         </p>
         {typeof reason === "string" && reason ? (
-          <p className="font-mono text-sm text-zinc-500">{reason}</p>
+          <p
+            data-testid="auth-error-reason"
+            className="font-mono text-sm text-zinc-500"
+          >
+            {reason}
+          </p>
         ) : null}
-        <Link href="/" className="rounded-md px-4 py-2 underline hover:bg-zinc-100 dark:hover:bg-zinc-800">
+        <Link
+          href="/"
+          data-testid="auth-error-back"
+          className="rounded-md px-4 py-2 underline hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
           Back to sign in
         </Link>
       </main>

@@ -45,13 +45,14 @@ export function RefinementRounds({
   if (rounds.length === 0) return null;
 
   return (
-    <ol className="flex flex-col gap-3">
+    <ol className="flex flex-col gap-3" data-testid="refinement-rounds">
       {rounds.map((round, index) => {
         const summary = draftSummary(round.draft);
         return (
           <li
             key={index}
             className="flex flex-col gap-2 rounded-lg border border-white/10 p-3"
+            data-testid="refinement-round"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex flex-col gap-1 min-w-0">
@@ -73,6 +74,7 @@ export function RefinementRounds({
                 type="button"
                 disabled={disabled}
                 onClick={() => onRestore(index)}
+                data-testid="refinement-restore"
                 className="action-button shrink-0"
               >
                 <HistoryIcon className="w-3 h-3" />
@@ -107,7 +109,10 @@ export function RefinementReply({
 }) {
   if (roundCount >= MAX_REFINEMENT_ROUNDS) {
     return (
-      <p className="text-xs text-white/40">
+      <p
+        className="text-xs text-white/40"
+        data-testid="refinement-limit-reached"
+      >
         That&apos;s {MAX_REFINEMENT_ROUNDS} rounds of back-and-forth. Keep the
         draft you like best, or start fresh.
       </p>
@@ -119,6 +124,7 @@ export function RefinementReply({
   return (
     <form
       className="flex flex-col gap-2 pt-2 border-t border-white/10"
+      data-testid="refinement-reply-form"
       onSubmit={(event) => {
         event.preventDefault();
         if (canSubmit) onSubmit();
@@ -132,6 +138,7 @@ export function RefinementReply({
       </div>
       <textarea
         aria-label="Reply to this draft"
+        data-testid="refinement-reply-input"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
@@ -150,6 +157,7 @@ export function RefinementReply({
         <button
           type="submit"
           disabled={!canSubmit}
+          data-testid="refinement-reply-submit"
           className="action-button w-fit"
         >
           <MessageCircleIcon className="w-3 h-3" />

@@ -60,6 +60,7 @@ function FocusPicker({
         role="dialog"
         aria-modal="true"
         aria-label="Choose what you're working on"
+        data-testid="focus-picker"
         className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-4 rounded-lg border border-white/20 bg-black p-6"
       >
         <div className="flex items-start justify-between gap-4">
@@ -73,6 +74,7 @@ function FocusPicker({
           <button
             type="button"
             aria-label="Close"
+            data-testid="focus-picker-close"
             onClick={onClose}
             className="hover:cursor-pointer"
           >
@@ -95,6 +97,7 @@ function FocusPicker({
                 >
                   <input
                     type="checkbox"
+                    data-testid="focus-picker-option"
                     checked={checked}
                     onChange={() => toggle(bucket.id)}
                   />
@@ -119,6 +122,7 @@ function FocusPicker({
           </p>
           <button
             type="button"
+            data-testid="focus-picker-save"
             disabled={over > 0 || saving}
             onClick={() => onSave(selected)}
             className="flex items-center gap-2 rounded-md border border-white/20 px-4 py-2 text-sm transition-colors enabled:hover:cursor-pointer enabled:hover:bg-green-500 enabled:hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
@@ -227,7 +231,10 @@ export function FocusBar() {
   const active = focus.buckets.filter((bucket) => bucket.active);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
+    <div
+      data-testid="focus-bar"
+      className="flex flex-wrap items-center gap-2 text-sm"
+    >
       <CrosshairIcon className="w-3 h-3 text-green-400" />
       {active.length > 0 ? (
         <>
@@ -235,6 +242,7 @@ export function FocusBar() {
           {active.map((bucket) => (
             <span
               key={bucket.id}
+              data-testid="focus-bar-bucket"
               className="rounded-full border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-xs text-green-300"
             >
               {bucket.name}
@@ -248,6 +256,7 @@ export function FocusBar() {
       )}
       <button
         type="button"
+        data-testid="focus-change"
         onClick={focus.openPicker}
         className="text-xs text-white/50 underline hover:cursor-pointer hover:text-white/80"
       >

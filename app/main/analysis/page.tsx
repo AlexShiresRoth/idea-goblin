@@ -45,9 +45,13 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
   const isExecution = analysis.analysisType === "execution";
 
   return (
-    <div className="flex w-full flex-col gap-2  p-4 border-b border-white/10 hover:bg-white/5 transition-colors hover:border-white/50">
+    <div
+      data-testid="analysis-item"
+      className="flex w-full flex-col gap-2  p-4 border-b border-white/10 hover:bg-white/5 transition-colors hover:border-white/50"
+    >
       <Link
         href={`/main/analysis/${analysis.id}`}
+        data-testid="analysis-item-link"
         className="flex flex-col gap-2"
       >
         <div className="flex items-center gap-2">
@@ -98,13 +102,17 @@ function parsePage(value: string | string[] | undefined) {
 
 function FilterTabs({ activeType }: { activeType?: PathwayId }) {
   return (
-    <nav className="flex flex-wrap items-center gap-1">
+    <nav
+      data-testid="analysis-filters"
+      className="flex flex-wrap items-center gap-1"
+    >
       {FILTERS.map(({ label, type }) => {
         const active = type === activeType;
         return (
           <Link
             key={label}
             href={analysisHref(type)}
+            data-testid={`analysis-filter-${type ?? "all"}`}
             aria-current={active ? "page" : undefined}
             className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors ${
               active
@@ -124,10 +132,12 @@ function FilterTabs({ activeType }: { activeType?: PathwayId }) {
 function PageLink({
   href,
   label,
+  testId,
   children,
 }: {
   href?: string;
   label: string;
+  testId?: string;
   children: React.ReactNode;
 }) {
   const className = "flex items-center justify-center rounded-md p-1";
@@ -136,6 +146,7 @@ function PageLink({
       <span
         aria-label={label}
         aria-disabled
+        data-testid={testId}
         className={`${className} text-white/20`}
       >
         {children}
@@ -146,6 +157,7 @@ function PageLink({
     <Link
       href={href}
       aria-label={label}
+      data-testid={testId}
       className={`${className} text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors`}
     >
       {children}
@@ -165,9 +177,10 @@ function Pagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center gap-2">
+    <div data-testid="analysis-pagination" className="flex items-center gap-2">
       <PageLink
         label="Previous page"
+        testId="analysis-page-prev"
         href={page > 1 ? analysisHref(type, page - 1) : undefined}
       >
         <ChevronLeft className="w-4 h-4" />
@@ -177,6 +190,7 @@ function Pagination({
       </p>
       <PageLink
         label="Next page"
+        testId="analysis-page-next"
         href={page < totalPages ? analysisHref(type, page + 1) : undefined}
       >
         <ChevronRight className="w-4 h-4" />
@@ -214,9 +228,15 @@ export default async function AnalysisPage({
         <FilterTabs activeType={type} />
         <Pagination type={type} page={page} totalPages={totalPages} />
       </div>
-      <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
+      <div
+        data-testid="analysis-list"
+        className="flex flex-col flex-1 min-h-0 overflow-y-auto"
+      >
         {items.length === 0 ? (
-          <div className="p-4 w-full flex-1 flex items-center justify-center">
+          <div
+            data-testid="analysis-empty"
+            className="p-4 w-full flex-1 flex items-center justify-center"
+          >
             <p className="text-sm text-white/50">
               {type
                 ? `Nothing saved under ${PATHWAYS[type].title} yet.`

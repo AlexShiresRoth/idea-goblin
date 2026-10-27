@@ -73,6 +73,7 @@ export default function AuthButton({
 
   return (
     <button
+      data-testid={`oauth-${provider.value}`}
       onClick={() =>
         startTransition(async () => {
           await signIn(provider.value, next);

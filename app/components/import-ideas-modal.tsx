@@ -344,12 +344,16 @@ function ImportIdeasForm({
   const totalCreated = summaries.reduce((sum, item) => sum + item.created, 0);
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-white/20 bg-black p-4 md:p-6 w-full md:w-3/4 max-w-5xl max-h-[90dvh] min-h-0">
+    <div
+      className="flex flex-col gap-4 rounded-lg border border-white/20 bg-black p-4 md:p-6 w-full md:w-3/4 max-w-5xl max-h-[90dvh] min-h-0"
+      data-testid="import-ideas-modal"
+    >
       <div className="flex items-center justify-between border-b border-white/20 pb-4 shrink-0">
         <h2 className="text-2xl font-bold">Import ideas</h2>
         <button
           type="button"
           aria-label="Close import"
+          data-testid="import-ideas-close"
           onClick={onClose}
           className="hover:cursor-pointer"
         >
@@ -365,6 +369,7 @@ function ImportIdeasForm({
                 key={option}
                 type="button"
                 role="tab"
+                data-testid={`import-source-${option}`}
                 aria-selected={source === option}
                 disabled={transcribing}
                 onClick={() => {
@@ -387,6 +392,7 @@ function ImportIdeasForm({
             <div className="flex flex-col gap-2">
               <textarea
                 aria-label="Ideas to import"
+                data-testid="import-paste-input"
                 value={pasteText}
                 onChange={(event) => setPasteText(event.target.value)}
                 rows={10}
@@ -404,6 +410,7 @@ function ImportIdeasForm({
                   type="button"
                   disabled={!pasteText.trim()}
                   onClick={() => readInput(parsePastedList(pasteText))}
+                  data-testid="import-preview"
                   className="action-button"
                 >
                   Preview
@@ -423,7 +430,9 @@ function ImportIdeasForm({
                 {transcribing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Reading your notes...
+                    <span data-testid="import-transcribing">
+                      Reading your notes...
+                    </span>
                   </>
                 ) : (
                   <>
@@ -435,6 +444,7 @@ function ImportIdeasForm({
                   type="file"
                   accept={TRANSCRIBE_FILE_TYPES.join(",")}
                   aria-label="Photo or PDF"
+                  data-testid="import-scan-input"
                   disabled={transcribing}
                   className="sr-only"
                   onChange={(event) => {
@@ -460,6 +470,7 @@ function ImportIdeasForm({
                   type="file"
                   accept=".csv,text/csv"
                   aria-label="CSV file"
+                  data-testid="import-csv-input"
                   className="sr-only"
                   onChange={(event) => {
                     const file = event.target.files?.[0];
@@ -474,7 +485,14 @@ function ImportIdeasForm({
               </p>
             </div>
           )}
-          {inputError && <p className="text-sm text-red-400">{inputError}</p>}
+          {inputError && (
+            <p
+              className="text-sm text-red-400"
+              data-testid="import-input-error"
+            >
+              {inputError}
+            </p>
+          )}
         </div>
       )}
 
@@ -487,6 +505,7 @@ function ImportIdeasForm({
             <div className="flex flex-col gap-2 md:flex-row">
               <select
                 id="import-destination"
+                data-testid="import-destination"
                 value={destination}
                 onChange={(event) =>
                   changeDestination(event.target.value as Destination)
@@ -504,6 +523,7 @@ function ImportIdeasForm({
               {destination === "one" && (
                 <select
                   aria-label="Bucket for all ideas"
+                  data-testid="import-one-bucket"
                   value={oneBucket}
                   onChange={(event) => {
                     setOneBucket(event.target.value);
@@ -524,6 +544,7 @@ function ImportIdeasForm({
               {destination === "one" && oneBucket === "new" && (
                 <input
                   aria-label="New bucket name"
+                  data-testid="import-new-bucket-name"
                   value={newBucketName}
                   onChange={(event) => setNewBucketName(event.target.value)}
                   maxLength={MAX_IMPORT_BUCKET_NAME_LENGTH}
@@ -535,6 +556,7 @@ function ImportIdeasForm({
             {destination === "one" && oneBucket === "new" && (
               <input
                 aria-label="New bucket description"
+                data-testid="import-new-bucket-description"
                 value={newBucketDescription}
                 onChange={(event) =>
                   setNewBucketDescription(event.target.value)
@@ -546,7 +568,10 @@ function ImportIdeasForm({
             )}
           </div>
 
-          <ul className="flex flex-col gap-2 overflow-y-auto min-h-0 pr-1">
+          <ul
+            className="flex flex-col gap-2 overflow-y-auto min-h-0 pr-1"
+            data-testid="import-rows"
+          >
             {rows.map((row) => {
               const note = row.error
                 ? row.error
@@ -567,6 +592,7 @@ function ImportIdeasForm({
                     <input
                       type="checkbox"
                       aria-label={`Include line ${row.line}`}
+                      data-testid="import-row-include"
                       checked={row.included && !row.error}
                       disabled={Boolean(row.error)}
                       onChange={(event) =>
@@ -597,6 +623,7 @@ function ImportIdeasForm({
                   {!row.error && (
                     <select
                       aria-label={`Bucket for line ${row.line}`}
+                      data-testid="import-row-bucket"
                       value={targetFor(row)}
                       onChange={(event) =>
                         updateRow(row.line, { override: event.target.value })
@@ -637,6 +664,7 @@ function ImportIdeasForm({
             <button
               type="button"
               onClick={() => setStage("input")}
+              data-testid="import-back"
               className="action-button"
             >
               Back
@@ -645,6 +673,7 @@ function ImportIdeasForm({
               type="button"
               disabled={included.length === 0 || needsBucketName}
               onClick={startImport}
+              data-testid="import-submit"
               className="flex items-center gap-2 rounded-md border border-white/20 px-4 py-2 text-sm transition-colors enabled:hover:cursor-pointer enabled:hover:bg-green-500 enabled:hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <UploadIcon className="w-3 h-3" />
@@ -671,11 +700,14 @@ function ImportIdeasForm({
           </div>
           {error && (
             <>
-              <p className="text-sm text-red-400">{error}</p>
+              <p className="text-sm text-red-400" data-testid="import-error">
+                {error}
+              </p>
               <div className="flex justify-start">
                 <button
                   type="button"
                   onClick={() => setStage("preview")}
+                  data-testid="import-back-to-preview"
                   className="action-button"
                 >
                   Back to preview
@@ -687,7 +719,10 @@ function ImportIdeasForm({
       )}
 
       {stage === "summary" && latest && (
-        <div className="flex flex-col gap-4 min-h-0 overflow-y-auto">
+        <div
+          className="flex flex-col gap-4 min-h-0 overflow-y-auto"
+          data-testid="import-summary"
+        >
           <p className="text-lg">
             Added {totalCreated} idea{totalCreated === 1 ? "" : "s"} to the
             hoard.
@@ -695,7 +730,11 @@ function ImportIdeasForm({
           {latest.buckets.length > 0 && (
             <ul className="flex flex-col gap-1">
               {latest.buckets.map((bucket) => (
-                <li key={bucket.id} className="text-sm text-white/70">
+                <li
+                  key={bucket.id}
+                  className="text-sm text-white/70"
+                  data-testid="import-summary-bucket"
+                >
                   {bucket.name}: {bucket.count} idea
                   {bucket.count === 1 ? "" : "s"}
                   {bucket.created && (
@@ -715,7 +754,11 @@ function ImportIdeasForm({
               </p>
               <ul className="flex flex-col gap-1">
                 {latest.skipped.map((item, index) => (
-                  <li key={index} className="text-sm text-white/60">
+                  <li
+                    key={index}
+                    className="text-sm text-white/60"
+                    data-testid="import-skipped-row"
+                  >
                     {item.row.title || item.row.description}
                     <span className="text-white/40">
                       {" "}
@@ -733,13 +776,16 @@ function ImportIdeasForm({
                   )
                 }
                 className="action-button w-fit"
+                data-testid="import-anyway"
               >
                 Import these anyway
               </button>
             </div>
           )}
           <div className="flex justify-end">
-            <ActionButton action={onClose}>Done</ActionButton>
+            <ActionButton action={onClose} testId="import-done">
+              Done
+            </ActionButton>
           </div>
         </div>
       )}
@@ -767,7 +813,7 @@ export default function ImportIdeasModal({
   return (
     <div>
       {type === "inline" && (
-        <ActionButton action={openModal}>
+        <ActionButton action={openModal} testId="import-ideas-open">
           <UploadIcon className="w-3 h-3" />
           <span>Import</span>
         </ActionButton>
@@ -776,6 +822,7 @@ export default function ImportIdeasModal({
         <button
           type="button"
           onClick={openModal}
+          data-testid="import-ideas-open"
           className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
         >
           <UploadIcon className="w-3 h-3" />
@@ -786,6 +833,7 @@ export default function ImportIdeasModal({
         <button
           type="button"
           onClick={openModal}
+          data-testid="import-ideas-open"
           className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-green-400/80 transition-colors"
         >
           <UploadIcon className="w-3 h-3" />

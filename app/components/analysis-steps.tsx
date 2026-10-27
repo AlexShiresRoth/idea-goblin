@@ -33,7 +33,11 @@ export function AnalysisSteps({
   if (steps.length === 0) return null;
 
   return (
-    <ol aria-live="polite" className="flex flex-col gap-2">
+    <ol
+      aria-live="polite"
+      data-testid="analysis-steps"
+      className="flex flex-col gap-2"
+    >
       {steps.map((item, index) => {
         const current = index === steps.length - 1;
         const active = current && running;
@@ -43,6 +47,7 @@ export function AnalysisSteps({
         return (
           <li
             key={item.step}
+            data-testid="analysis-step"
             className={clsx(
               "flex items-center gap-2 text-sm animate-fade-in",
               active ? "text-white/80" : "text-white/50",

@@ -39,6 +39,7 @@ function FocusToggle({ bucketId }: { bucketId: number }) {
   return (
     <button
       type="button"
+      data-testid="focus-toggle"
       disabled={focus.saving}
       onClick={() => (active ? focus.park(bucketId) : focus.workOn(bucketId))}
       className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-green-400/80 transition-colors disabled:opacity-50"
@@ -120,6 +121,7 @@ export default function BucketDetail({
   return (
     <section
       aria-label={bucket.name}
+      data-testid="bucket-detail"
       style={bucketStyleVars(bucket.category)}
       className="flex min-h-0 min-w-0 flex-1 flex-col bg-black"
     >
@@ -143,6 +145,7 @@ export default function BucketDetail({
             <Link
               href="/main"
               aria-label="Back to board"
+              data-testid="back-to-board"
               title="Back to board"
               className="shrink-0 rounded p-1 text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
             >
@@ -150,6 +153,7 @@ export default function BucketDetail({
             </Link>
             {!summaryOpen && <ThemePill bucket={bucket} />}
             <h1
+              data-testid="bucket-name"
               className={clsx(
                 "min-w-0",
                 summaryOpen ? "text-2xl" : "truncate text-lg",
@@ -161,6 +165,7 @@ export default function BucketDetail({
               type="button"
               aria-expanded={summaryOpen}
               aria-controls={summaryId}
+              data-testid="toggle-bucket-summary"
               aria-label={summaryOpen ? "Hide summary" : "Show summary"}
               title={summaryOpen ? "Hide summary" : "Show summary"}
               onClick={() => setSummaryOpen(!summaryOpen)}
@@ -176,6 +181,7 @@ export default function BucketDetail({
           <p
             id={summaryId}
             hidden={!summaryOpen}
+            data-testid="bucket-description"
             className="text-sm text-white/50"
           >
             {bucket.description}
@@ -187,6 +193,7 @@ export default function BucketDetail({
           <ImportIdeasModal type="bucket" defaultBucket={bucket} />
           <BucketShare bucketId={bucket.id} shareToken={bucket.shareToken} />
           <button
+            data-testid="refine-bucket"
             disabled={isDeleting || ideas.length === 0}
             onClick={() => setRefining(true)}
             className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-orange-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -195,6 +202,7 @@ export default function BucketDetail({
             Refine
           </button>
           <button
+            data-testid="delete-bucket"
             disabled={isDeleting}
             onClick={() => !isDeleting && deleteBucket()}
             className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-red-500/80 transition-colors"
@@ -217,7 +225,10 @@ export default function BucketDetail({
       {/* Stacked and scrolled as one on small screens; side by side with
           independent scrolling from md up. */}
       <div className="min-h-0 flex-1 overflow-y-auto md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:overflow-hidden">
-        <section className="flex flex-col md:min-h-0 md:overflow-y-auto">
+        <section
+          className="flex flex-col md:min-h-0 md:overflow-y-auto"
+          data-testid="idea-list"
+        >
           <div
             data-testid="idea-header"
             className="sticky top-0 z-10 flex items-center justify-between border-b border-white/20 bg-black h-10 py-2 px-4 md:px-8"
@@ -234,17 +245,19 @@ export default function BucketDetail({
               <div className="flex items-center gap-2">
                 <button
                   aria-label="Previous ideas"
+                  data-testid="ideas-prev-page"
                   disabled={!canGoLeft}
                   onClick={() => canGoLeft && setStart(start - take)}
                   className="hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span>
+                <span data-testid="ideas-page-indicator">
                   {pageIndex} / {Math.ceil(openIdeas.length / take)}
                 </span>
                 <button
                   aria-label="Next ideas"
+                  data-testid="ideas-next-page"
                   disabled={!canGoRight}
                   onClick={() => setStart(start + take)}
                   className="hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -255,11 +268,17 @@ export default function BucketDetail({
             )}
           </div>
           {ideas.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-white/40 md:px-8">
+            <p
+              className="px-4 py-6 text-sm text-white/40 md:px-8"
+              data-testid="ideas-empty"
+            >
               No ideas in here yet. Add one to get the goblin chewing.
             </p>
           ) : openIdeas.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-white/40 md:px-8">
+            <p
+              className="px-4 py-6 text-sm text-white/40 md:px-8"
+              data-testid="ideas-all-done"
+            >
               Everything in here is done. Add another, or dig through the done
               pile below.
             </p>
@@ -271,6 +290,7 @@ export default function BucketDetail({
               <button
                 type="button"
                 aria-expanded={showDone}
+                data-testid="toggle-done-ideas"
                 onClick={() => setShowDone(!showDone)}
                 className="flex w-full items-center gap-2 px-4 py-2 text-sm text-white/50 hover:cursor-pointer hover:text-white/80 transition-colors md:px-8"
               >
@@ -293,6 +313,7 @@ export default function BucketDetail({
           <div
             role="tablist"
             aria-label="Bucket side panel"
+            data-testid="bucket-side-tabs"
             className="sticky top-0 z-10 flex h-10 gap-4 border-b border-white/20 bg-black px-4 md:px-8"
           >
             {(["gameplan", "versions"] as const).map((tab) => (
@@ -301,6 +322,7 @@ export default function BucketDetail({
                 type="button"
                 role="tab"
                 aria-selected={sideTab === tab}
+                data-testid={`side-tab-${tab}`}
                 onClick={() => setSideTab(tab)}
                 className={clsx(
                   "-mb-px flex items-center border-b-2 text-sm transition-colors hover:cursor-pointer",

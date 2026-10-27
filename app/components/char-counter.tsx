@@ -12,7 +12,10 @@ export function CharCounter({
 }) {
   const color = valueLength >= maxLength ? "text-orange-500" : "text-white/50";
   return (
-    <div className={clsx(color, "text-sm", className)}>
+    <div
+      className={clsx(color, "text-sm", className)}
+      data-testid="char-counter"
+    >
       {valueLength} / {maxLength}
     </div>
   );

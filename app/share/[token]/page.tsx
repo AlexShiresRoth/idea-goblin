@@ -40,7 +40,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 function SharedIdea({ idea }: { idea: BucketSnapshotIdea }) {
   const done = isDone(idea);
   return (
-    <details className="group border-b border-white/20">
+    <details
+      className="group border-b border-white/20"
+      data-testid="shared-idea"
+    >
       <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-4 text-sm hover:bg-white/5 transition-colors md:px-8">
         {done && (
           <CircleCheckIcon
@@ -77,6 +80,7 @@ export default async function SharedBucketPage({ params }: Props) {
   return (
     <div
       style={bucketStyleVars(bucket.category)}
+      data-testid="shared-bucket"
       className="flex min-h-dvh flex-col bg-black"
     >
       <nav className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 md:px-8">
@@ -94,11 +98,21 @@ export default async function SharedBucketPage({ params }: Props) {
 
       <header className="flex w-full flex-col gap-2 border-b border-(--bucket-primary)/40 px-4 py-6 md:px-8">
         <ThemePill bucket={bucket} />
-        <h1 className="text-2xl">{bucket.name}</h1>
-        <p className="text-sm text-white/50">{bucket.description}</p>
+        <h1 className="text-2xl" data-testid="shared-bucket-name">
+          {bucket.name}
+        </h1>
+        <p
+          className="text-sm text-white/50"
+          data-testid="shared-bucket-description"
+        >
+          {bucket.description}
+        </p>
         <div className="mt-2">
           {isOwner ? (
-            <p className="text-xs text-white/40">
+            <p
+              className="text-xs text-white/40"
+              data-testid="shared-owner-note"
+            >
               This is your bucket, as others see it.
             </p>
           ) : (
@@ -108,7 +122,11 @@ export default async function SharedBucketPage({ params }: Props) {
       </header>
 
       <div className="flex-1 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <section aria-label="Ideas" className="flex flex-col">
+        <section
+          aria-label="Ideas"
+          className="flex flex-col"
+          data-testid="shared-ideas"
+        >
           <h2 className="border-b border-white/20 px-4 py-2 text-white/60 md:px-8">
             Ideas {openIdeas.length}
             {doneIdeas.length > 0 && (
@@ -118,7 +136,10 @@ export default async function SharedBucketPage({ params }: Props) {
             )}
           </h2>
           {ideas.length === 0 && (
-            <p className="px-4 py-6 text-sm text-white/40 md:px-8">
+            <p
+              className="px-4 py-6 text-sm text-white/40 md:px-8"
+              data-testid="shared-ideas-empty"
+            >
               No ideas in here yet.
             </p>
           )}
@@ -126,7 +147,7 @@ export default async function SharedBucketPage({ params }: Props) {
             <SharedIdea key={idea.id} idea={idea} />
           ))}
           {doneIdeas.length > 0 && (
-            <details>
+            <details data-testid="shared-done-ideas">
               <summary className="cursor-pointer px-4 py-2 text-sm text-white/50 hover:text-white/80 transition-colors md:px-8">
                 Done {doneIdeas.length}
               </summary>
@@ -138,6 +159,7 @@ export default async function SharedBucketPage({ params }: Props) {
         </section>
         <section
           aria-label="Gameplan"
+          data-testid="shared-gameplan"
           className="border-t border-white/20 md:border-t-0 md:border-l"
         >
           <h2 className="border-b border-white/20 px-4 py-2 text-white/60 md:px-8">
@@ -147,7 +169,12 @@ export default async function SharedBucketPage({ params }: Props) {
             {gameplan ? (
               <GameplanView result={gameplan} ideas={ideas} readOnly />
             ) : (
-              <p className="text-sm text-white/40">No gameplan yet.</p>
+              <p
+                className="text-sm text-white/40"
+                data-testid="shared-gameplan-empty"
+              >
+                No gameplan yet.
+              </p>
             )}
           </div>
         </section>
@@ -155,7 +182,11 @@ export default async function SharedBucketPage({ params }: Props) {
 
       <footer className="border-t border-white/10 px-4 py-4 text-sm text-white/50 md:px-8">
         Made with {siteConfig.name}.{" "}
-        <Link href="/" className="underline hover:text-white/80">
+        <Link
+          href="/"
+          className="underline hover:text-white/80"
+          data-testid="shared-signup-link"
+        >
           Sort your own ideas
         </Link>
       </footer>

@@ -81,11 +81,12 @@ export default function BucketShare({
     <>
       <button
         type="button"
+        data-testid="bucket-share-open"
         onClick={() => setOpen(true)}
         className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-sky-300/80 transition-colors"
       >
         <Share2Icon className="w-3 h-3" />
-        {token ? "Shared" : "Share"}
+        Share
       </button>
       {open &&
         createPortal(
@@ -94,6 +95,7 @@ export default function BucketShare({
               role="dialog"
               aria-modal="true"
               aria-label="Share this bucket"
+              data-testid="bucket-share-dialog"
               className="flex w-full max-w-lg flex-col gap-4 rounded-lg border border-white/20 bg-black p-6"
             >
               <div className="flex items-start justify-between gap-4">
@@ -107,6 +109,7 @@ export default function BucketShare({
                 <button
                   type="button"
                   aria-label="Close"
+                  data-testid="bucket-share-close"
                   onClick={() => setOpen(false)}
                   className="hover:cursor-pointer"
                 >
@@ -120,6 +123,7 @@ export default function BucketShare({
                     <input
                       readOnly
                       aria-label="Share link"
+                      data-testid="share-link-input"
                       value={shareUrl(token)}
                       onFocus={(event) => event.target.select()}
                       className="min-w-0 flex-1 rounded border border-white/20 bg-white/5 px-2 py-1 text-sm text-white/80"
@@ -127,6 +131,7 @@ export default function BucketShare({
                     <button
                       type="button"
                       onClick={copy}
+                      data-testid="share-link-copy"
                       className="action-button"
                     >
                       {copied === "copied" ? (
@@ -146,6 +151,7 @@ export default function BucketShare({
                       type="button"
                       disabled={busy != null}
                       onClick={() => share("regenerate")}
+                      data-testid="share-link-regenerate"
                       title="Links already sent stop working"
                       className="flex items-center gap-1 text-xs text-white/50 hover:cursor-pointer hover:text-white/80 transition-colors disabled:opacity-50"
                     >
@@ -160,6 +166,7 @@ export default function BucketShare({
                       type="button"
                       disabled={busy != null}
                       onClick={() => share("disable")}
+                      data-testid="share-link-disable"
                       className="flex items-center gap-1 text-xs text-white/50 hover:cursor-pointer hover:text-red-500/80 transition-colors disabled:opacity-50"
                     >
                       {busy === "disable" ? (
@@ -180,6 +187,7 @@ export default function BucketShare({
                   type="button"
                   disabled={busy != null}
                   onClick={() => share("enable")}
+                  data-testid="share-link-enable"
                   className="action-button w-fit"
                 >
                   {busy === "enable" ? (

@@ -24,12 +24,14 @@ export default function MobileNav() {
           type="button"
           aria-label="Close menu"
           onClick={() => setOpen(false)}
+          data-testid="mobile-nav-backdrop"
           className={clsx(
             "absolute inset-0 bg-black/50 transition-opacity",
             open ? "opacity-100" : "opacity-0",
           )}
         />
         <div
+          data-testid="mobile-nav-menu"
           className={clsx(
             "absolute bottom-24 inset-x-4 flex flex-col gap-2 transition-all",
             open
@@ -51,6 +53,7 @@ export default function MobileNav() {
         aria-expanded={open}
         aria-label={open ? "Close menu" : "Open menu"}
         onClick={() => setOpen((current) => !current)}
+        data-testid="mobile-nav-toggle"
         className="fixed bottom-5 right-5 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-green-500 text-black shadow-md"
       >
         {open ? <XIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

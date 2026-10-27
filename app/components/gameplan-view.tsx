@@ -60,6 +60,7 @@ function StepCheck({
       type="button"
       aria-label={done ? `Mark "${title}" not done` : `Mark "${title}" done`}
       aria-pressed={done}
+      data-testid="gameplan-step-check"
       disabled={busy}
       onClick={onToggle}
       className="mt-0.5 shrink-0 text-white/40 hover:text-green-400/80 transition-colors hover:cursor-pointer disabled:cursor-default"
@@ -102,7 +103,7 @@ function StepLink({
 }) {
   if (step.idea_id != null) {
     return (
-      <span className="text-xs text-white/40">
+      <span data-testid="gameplan-step-idea" className="text-xs text-white/40">
         {readOnly ? "From the idea" : "From your idea"}
         {idea ? `: ${idea.title}` : ""}
       </span>
@@ -113,6 +114,7 @@ function StepLink({
     <button
       type="button"
       onClick={onAdd}
+      data-testid="gameplan-add-idea"
       disabled={busy}
       className="flex shrink-0 items-center gap-1 text-xs text-white/50 hover:text-green-400/80 transition-colors hover:cursor-pointer disabled:cursor-default disabled:opacity-60"
     >
@@ -137,7 +139,7 @@ function NoteList({
 }) {
   if (items.length === 0) return null;
   return (
-    <section className="flex flex-col gap-2">
+    <section data-testid="gameplan-notes" className="flex flex-col gap-2">
       <h3 className="flex items-center gap-2 text-sm text-white/70">
         {icon}
         {title}
@@ -348,9 +350,12 @@ export function GameplanView({
   const todayDone = nextStep ? false : firstDone;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-testid="gameplan" className="flex flex-col gap-6">
       {result.finish_line && (
-        <section className="flex flex-col gap-2 rounded-lg border border-white/15 border-l-2 border-l-green-500/60 bg-white/5 px-4 py-3">
+        <section
+          data-testid="gameplan-finish-line"
+          className="flex flex-col gap-2 rounded-lg border border-white/15 border-l-2 border-l-green-500/60 bg-white/5 px-4 py-3"
+        >
           <h3 className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/40">
             <FlagIcon className="w-3 h-3" />
             Finish line
@@ -372,7 +377,10 @@ export function GameplanView({
               </p>
             </div>
           )}
-          <section className="flex flex-col gap-1 rounded-lg border border-green-500/30 px-4 py-3">
+          <section
+            data-testid="gameplan-start-today"
+            className="flex flex-col gap-1 rounded-lg border border-green-500/30 px-4 py-3"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-2">
                 {renderMark(
@@ -404,9 +412,13 @@ export function GameplanView({
       )}
 
       {result.phases && result.phases.length > 0 && (
-        <ol className="flex flex-col gap-4">
+        <ol data-testid="gameplan-phases" className="flex flex-col gap-4">
           {result.phases.map((phase, phaseIndex) => (
-            <li key={phaseIndex} className="flex flex-col gap-2">
+            <li
+              key={phaseIndex}
+              data-testid="gameplan-phase"
+              className="flex flex-col gap-2"
+            >
               <div className="flex flex-col gap-0.5">
                 <h3 className="text-sm">
                   <span className="text-white/40">
@@ -427,6 +439,7 @@ export function GameplanView({
                   return (
                     <li
                       key={stepIndex}
+                      data-testid="gameplan-step"
                       className="flex flex-col gap-1 rounded-md bg-white/5 px-3 py-2"
                     >
                       <div className="flex items-start justify-between gap-3">

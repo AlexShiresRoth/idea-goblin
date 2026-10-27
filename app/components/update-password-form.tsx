@@ -34,6 +34,7 @@ export default function UpdatePasswordForm() {
 
   return (
     <form
+      data-testid="update-password-form"
       onSubmit={handleSubmit}
       className="flex w-full max-w-sm flex-col gap-3"
     >
@@ -41,6 +42,7 @@ export default function UpdatePasswordForm() {
         New password
         <input
           name="password"
+          data-testid="update-password-input"
           type="password"
           autoComplete="new-password"
           minLength={8}
@@ -52,6 +54,7 @@ export default function UpdatePasswordForm() {
         Confirm new password
         <input
           name="confirm"
+          data-testid="update-password-confirm"
           type="password"
           autoComplete="new-password"
           minLength={8}
@@ -61,13 +64,18 @@ export default function UpdatePasswordForm() {
       </label>
 
       {error && (
-        <p role="alert" className="text-sm text-red-500">
+        <p
+          role="alert"
+          data-testid="update-password-error"
+          className="text-sm text-red-500"
+        >
           {error}
         </p>
       )}
 
       <button
         type="submit"
+        data-testid="update-password-submit"
         disabled={isPending}
         className="rounded-md bg-zinc-900 px-4 py-2 text-white hover:cursor-pointer hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300"
       >

@@ -131,7 +131,7 @@ export default function Idea({ idea }: { idea: IdeaView }) {
   }
 
   return (
-    <div className="flex border-b border-white/20 w-full">
+    <div className="flex border-b border-white/20 w-full" data-testid="idea">
       <div className="p-4 border-r border-white/20 flex items-center">
         <button
           data-testid="toggle-expanded"
@@ -148,9 +148,14 @@ export default function Idea({ idea }: { idea: IdeaView }) {
 
       <div className="flex flex-col w-full" data-testid="idea-content">
         {editing ? (
-          <form className="flex flex-col p-4 gap-2 w-full" onSubmit={saveIdea}>
+          <form
+            className="flex flex-col p-4 gap-2 w-full"
+            onSubmit={saveIdea}
+            data-testid="edit-idea-form"
+          >
             <input
               aria-label="Idea title"
+              data-testid="edit-idea-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={200}
@@ -159,6 +164,7 @@ export default function Idea({ idea }: { idea: IdeaView }) {
             />
             <textarea
               aria-label="Idea description"
+              data-testid="edit-idea-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={500}
@@ -169,6 +175,7 @@ export default function Idea({ idea }: { idea: IdeaView }) {
             <div className="flex justify-end gap-4">
               <button
                 type="button"
+                data-testid="cancel-edit-idea"
                 onClick={() => setEditing(false)}
                 disabled={isSaving}
                 className="flex items-center gap-1 text-white/50 hover:text-white/80 transition-colors text-xs hover:cursor-pointer"
@@ -178,6 +185,7 @@ export default function Idea({ idea }: { idea: IdeaView }) {
               </button>
               <button
                 type="submit"
+                data-testid="save-idea"
                 disabled={isSaving}
                 className="flex items-center gap-1 text-white/50 hover:text-green-400/80 transition-colors text-xs hover:cursor-pointer disabled:opacity-50"
               >
@@ -194,10 +202,12 @@ export default function Idea({ idea }: { idea: IdeaView }) {
           <div
             aria-label="idea-content"
             role="button"
+            data-testid="idea-summary"
             className="flex flex-col p-4 gap-2 w-full hover:cursor-pointer hover:bg-white/5 transition-colors"
             onClick={() => setExpanded(!expanded)}
           >
             <p
+              data-testid="idea-title"
               className={clsx(
                 "flex items-center gap-2 text-sm",
                 done && "text-white/50 line-through",
@@ -213,13 +223,21 @@ export default function Idea({ idea }: { idea: IdeaView }) {
             </p>
             {expanded && (
               <div className="flex flex-col w-full gap-3">
-                <p className="text-sm text-white/70">{idea.description}</p>
+                <p
+                  className="text-sm text-white/70"
+                  data-testid="idea-description"
+                >
+                  {idea.description}
+                </p>
               </div>
             )}
           </div>
         )}
         {expanded && !editing && (
-          <div className="flex justify-end gap-4 p-2 border-t border-white/20">
+          <div
+            className="flex justify-end gap-4 p-2 border-t border-white/20"
+            data-testid="idea-actions"
+          >
             <button
               data-testid="toggle-done"
               onClick={() => !isMarking && toggleDone()}

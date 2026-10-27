@@ -35,6 +35,7 @@ function AnalysisReasoning({
         {reasoning.reasons.map((reason, index) => (
           <div
             key={`${reason.title}-${index}`}
+            data-testid="analysis-reason"
             className="flex flex-col gap-2 rounded-lg bg-white/5 px-4 py-3 border-l-2 border-white/30"
           >
             <div className="flex items-center gap-2">
@@ -73,13 +74,16 @@ export default async function AnalysisPage({
   const analysis = await getAnalysisResult(id);
 
   if (!analysis) {
-    return <div>Analysis not found</div>;
+    return <div data-testid="analysis-not-found">Analysis not found</div>;
   }
 
   const { analysisData, analysisType } = analysis;
 
   return (
-    <div className="p-4 flex flex-col gap-4 flex-1 w-full min-w-0">
+    <div
+      data-testid="analysis-detail"
+      className="p-4 flex flex-col gap-4 flex-1 w-full min-w-0"
+    >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           {PathwayIcons[analysisType]}
@@ -96,7 +100,10 @@ export default async function AnalysisPage({
         {analysisType === "execution" && "summary" in analysisData && (
           <>
             {analysisData.summary && (
-              <aside className="rounded-lg border border-white/15 bg-white/5 border-l-2 border-l-white/40 px-4 py-3 flex flex-col gap-2">
+              <aside
+                data-testid="analysis-summary"
+                className="rounded-lg border border-white/15 bg-white/5 border-l-2 border-l-white/40 px-4 py-3 flex flex-col gap-2"
+              >
                 <span className="text-xs uppercase tracking-wide text-white/40">
                   Summary
                 </span>

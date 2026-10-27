@@ -19,6 +19,7 @@ export default function Header() {
       <div className="md:hidden flex items-center p-3 px-4">
         <Link
           href="/main"
+          data-testid="home-link"
           className={clsx(
             syneTactile.className,
             "text-xl hover:text-primary transition-colors",
@@ -32,6 +33,7 @@ export default function Header() {
           <div className="flex w-11/12">
             <Link
               href="/main"
+              data-testid="home-link"
               className={clsx(
                 syneTactile.className,
                 "text-xl hover:text-primary transition-colors",

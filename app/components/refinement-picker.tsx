@@ -63,6 +63,7 @@ export function RefinementPicker({
         <button
           type="button"
           onClick={onRecommend}
+          data-testid="refinement-recommend"
           disabled={recommending || loading}
           className="action-button w-fit"
         >
@@ -77,12 +78,19 @@ export function RefinementPicker({
         </button>
       )}
       {recommendReason && (
-        <p className="text-sm text-white/60">{recommendReason}</p>
+        <p
+          className="text-sm text-white/60"
+          data-testid="refinement-recommend-reason"
+        >
+          {recommendReason}
+        </p>
       )}
       {loading ? (
-        <p className="text-sm text-white/50">Digging out your buckets...</p>
+        <p className="text-sm text-white/50" data-testid="refinement-loading">
+          Digging out your buckets...
+        </p>
       ) : buckets.length === 0 ? (
-        <p className="text-sm text-white/50">
+        <p className="text-sm text-white/50" data-testid="refinement-empty">
           The hoard is empty. Add an idea first.
         </p>
       ) : (
@@ -92,6 +100,7 @@ export function RefinementPicker({
               key={bucket.id}
               type="button"
               onClick={() => onSelect(bucket)}
+              data-testid="refinement-bucket-option"
               className={clsx(
                 "text-left p-3 rounded-md border border-white/15 hover:border-white/40 transition-colors",
                 selectedBucketId === bucket.id && "border-white/50 bg-white/5",
@@ -127,6 +136,7 @@ export function RefinementPicker({
                   aria-pressed={selected}
                   title={option.description}
                   onClick={() => toggleFocus(option.id)}
+                  data-testid="refinement-focus-option"
                   className={clsx(
                     "text-left px-3 py-2 rounded-md border transition-colors",
                     selected
@@ -145,6 +155,7 @@ export function RefinementPicker({
         )}
         <textarea
           aria-label={planning ? "Gameplan note" : "Refinement note"}
+          data-testid="refinement-note-input"
           value={note}
           onChange={(event) => onNoteChange(event.target.value)}
           maxLength={MAX_REFINEMENT_NOTE_LENGTH}
