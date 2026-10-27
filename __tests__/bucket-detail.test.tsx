@@ -278,7 +278,7 @@ describe("BucketDetail", () => {
   // Set on the outermost element so the container's border can use them,
   // not just the theme pill inside it.
 
-  it("shows its ideas, the bucket actions and a way back", () => {
+  it("shows its ideas and the bucket actions", () => {
     renderBucket();
 
     expect(
@@ -287,10 +287,6 @@ describe("BucketDetail", () => {
     expect(screen.getByText("Nested idea")).toBeInTheDocument();
     expect(screen.getByText("Delete")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to board" })).toHaveAttribute(
-      "href",
-      "/main",
-    );
   });
 
   it("deletes the bucket, toasts success, and returns to the board", async () => {

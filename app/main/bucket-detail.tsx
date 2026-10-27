@@ -3,7 +3,6 @@ import { isDone } from "@/lib/constants";
 import { IdeaBucket, type IdeaView } from "@/lib/db/schema";
 import clsx from "clsx";
 import {
-  ArrowLeftIcon,
   ChevronDownIcon,
   ChevronLeft,
   ChevronRight,
@@ -14,7 +13,6 @@ import {
   SparklesIcon,
   Trash2Icon,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useContext, useState } from "react";
 import { AnalyzeVaultModal } from "../components/analyze-vault";
@@ -142,15 +140,6 @@ export default function BucketDetail({
             </div>
           )}
           <div className="flex min-w-0 items-center gap-2">
-            <Link
-              href="/main"
-              aria-label="Back to board"
-              data-testid="back-to-board"
-              title="Back to board"
-              className="shrink-0 rounded p-1 text-white/50 hover:bg-white/10 hover:text-white/80 transition-colors"
-            >
-              <ArrowLeftIcon className="w-4 h-4" />
-            </Link>
             {!summaryOpen && <ThemePill bucket={bucket} />}
             <h1
               data-testid="bucket-name"

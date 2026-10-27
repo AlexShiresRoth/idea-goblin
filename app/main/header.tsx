@@ -6,6 +6,7 @@ import Sidebar from "./sidebar";
 import { Syne_Tactile as SyneTactile } from "next/font/google";
 import Link from "next/link";
 import AnalyzeVault from "../components/analyze-vault";
+import BackButton from "./back-button";
 
 const syneTactile = SyneTactile({
   subsets: ["latin"],
@@ -50,6 +51,9 @@ export default function Header() {
           <ImportIdeasModal type="inline" />
           <AnalyzeVault />
         </div>
+      </div>
+      <div className="ml-auto flex items-center p-3 px-4">
+        <BackButton />
       </div>
     </header>
   );
