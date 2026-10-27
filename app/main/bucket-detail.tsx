@@ -106,6 +106,7 @@ export default function BucketDetail({
         },
       ]);
       router.replace("/main");
+      router.refresh();
     } catch (error) {
       console.error(error);
       setToasts([

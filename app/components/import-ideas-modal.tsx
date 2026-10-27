@@ -840,16 +840,27 @@ export default function ImportIdeasModal({
           Import
         </button>
       )}
-      {isOpen &&
-        createPortal(
-          <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-dvh z-100 px-4">
-            <ImportIdeasForm
-              onClose={() => setIsOpen(false)}
-              defaultBucket={defaultBucket}
-            />
-          </div>,
-          document.body,
-        )}
+      {isOpen && (
+        <ImportIdeasDialog
+          onClose={() => setIsOpen(false)}
+          defaultBucket={defaultBucket}
+        />
+      )}
     </div>
+  );
+}
+
+export function ImportIdeasDialog({
+  onClose,
+  defaultBucket,
+}: {
+  onClose: () => void;
+  defaultBucket?: BucketOption;
+}) {
+  return createPortal(
+    <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-dvh z-100 px-4">
+      <ImportIdeasForm onClose={onClose} defaultBucket={defaultBucket} />
+    </div>,
+    document.body,
   );
 }

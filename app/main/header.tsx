@@ -14,7 +14,7 @@ const syneTactile = SyneTactile({
   variable: "--font-syne-tactile",
 });
 
-export default function Header() {
+export default function Header({ hasBuckets }: { hasBuckets: boolean }) {
   return (
     <header className="flex w-full items-center border-b border-white/10">
       <div className="md:hidden flex items-center p-3 px-4">
@@ -49,7 +49,7 @@ export default function Header() {
         <div className="flex items-center gap-2 p-3 px-4 flex-1">
           <CreateIdeaModal type="inline" />
           <ImportIdeasModal type="inline" />
-          <AnalyzeVault />
+          <AnalyzeVault hasBuckets={hasBuckets} />
         </div>
       </div>
       <div className="ml-auto flex items-center p-3 px-4">

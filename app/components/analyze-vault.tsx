@@ -19,12 +19,14 @@ import {
   MaximizeIcon,
   MinimizeIcon,
   PencilIcon,
+  PlusIcon,
   Route,
   SaveIcon,
   SparklesIcon,
   RotateCcwIcon,
   Wrench,
   Flag,
+  UploadIcon,
   XIcon,
 } from "lucide-react";
 import { useContext, useMemo, useState } from "react";
@@ -36,7 +38,9 @@ import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
+import { CreateIdeaDialog } from "./create-idea-modal";
 import { GameplanView, type LinkStep } from "./gameplan-view";
+import { ImportIdeasDialog } from "./import-ideas-modal";
 import { RefinementPicker } from "./refinement-picker";
 import { RefinementReply, RefinementRounds } from "./refinement-rounds";
 
@@ -504,9 +508,7 @@ export function AnalyzeVaultModal({
                 data-testid="analyze-vault-start"
               >
                 {selectedPathway && <Route className="w-3 h-3" />}
-                {selectedPathway
-                  ? "Start"
-                  : "Select a pathway"}
+                {selectedPathway ? "Start" : "Select a pathway"}
               </button>
             </div>
           </div>
@@ -732,19 +734,86 @@ export function AnalyzeVaultModal({
   );
 }
 
+// Shown instead of the pathways when there are no buckets to analyze yet.
+function EmptyVaultDialog({
+  onClose,
+  onAddIdeas,
+}: {
+  onClose: () => void;
+  onAddIdeas: (how: "create" | "import") => void;
+}) {
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Analyze Vault"
+        data-testid="analyze-vault-empty"
+        className="flex flex-col gap-4 rounded-lg border border-white/20 bg-black md:w-1/2 w-11/12 p-6 md:p-8"
+      >
+        <div className="flex flex-col gap-2">
+          <h2 className="text-2xl font-bold">Analyze Vault</h2>
+          <p className="text-sm text-white/50">
+            The Goblin has nothing to chew on yet. Add your first idea and
+            it&apos;ll have a bucket to analyze.
+          </p>
+        </div>
+        <div className="flex flex-wrap justify-between gap-2 w-full mt-4 py-4 border-t border-white/20">
+          <button
+            className="action-button"
+            onClick={onClose}
+            data-testid="analyze-vault-cancel"
+          >
+            <XIcon className="w-3 h-3" />
+            <span>Cancel</span>
+          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="action-button"
+              onClick={() => onAddIdeas("import")}
+              data-testid="analyze-vault-empty-import"
+            >
+              <UploadIcon className="w-3 h-3" />
+              <span>Import ideas</span>
+            </button>
+            <button
+              type="button"
+              autoFocus
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-green-500 text-black hover:bg-green-600 hover:cursor-pointer transition-colors"
+              onClick={() => onAddIdeas("create")}
+              data-testid="analyze-vault-empty-create"
+            >
+              <PlusIcon className="w-3 h-3" />
+              <span>New Idea</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function AnalyzeVault({
   variant = "button",
   onTrigger,
+  hasBuckets = true,
 }: {
   variant?: "button" | "menu";
   onTrigger?: () => void;
+  hasBuckets?: boolean;
 }) {
-  const [displayModal, setDisplayModal] = useState(false);
+  const [dialog, setDialog] = useState<
+    "analyze" | "empty" | "create" | "import"
+  >();
 
   function openModal() {
     onTrigger?.();
-    setDisplayModal(true);
+    setDialog(hasBuckets ? "analyze" : "empty");
   }
+
+  const closeDialog = () => setDialog(undefined);
 
   return (
     <>
@@ -766,9 +835,12 @@ export default function AnalyzeVault({
         </button>
       )}
 
-      {displayModal && (
-        <AnalyzeVaultModal onClose={() => setDisplayModal(false)} />
+      {dialog === "analyze" && <AnalyzeVaultModal onClose={closeDialog} />}
+      {dialog === "empty" && (
+        <EmptyVaultDialog onClose={closeDialog} onAddIdeas={setDialog} />
       )}
+      {dialog === "create" && <CreateIdeaDialog onClose={closeDialog} />}
+      {dialog === "import" && <ImportIdeasDialog onClose={closeDialog} />}
     </>
   );
 }

@@ -491,16 +491,27 @@ export default function CreateIdeaModal({
           <PlusIcon className="w-6 h-6" />
         </button>
       )}
-      {isOpen &&
-        createPortal(
-          <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-100">
-            <CreateIdeaForm
-              onClose={() => setIsOpen(false)}
-              defaultBucket={defaultBucket}
-            />
-          </div>,
-          document.body,
-        )}
+      {isOpen && (
+        <CreateIdeaDialog
+          onClose={() => setIsOpen(false)}
+          defaultBucket={defaultBucket}
+        />
+      )}
     </div>
+  );
+}
+
+export function CreateIdeaDialog({
+  onClose,
+  defaultBucket,
+}: {
+  onClose: () => void;
+  defaultBucket?: BucketChoice;
+}) {
+  return createPortal(
+    <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-100">
+      <CreateIdeaForm onClose={onClose} defaultBucket={defaultBucket} />
+    </div>,
+    document.body,
   );
 }

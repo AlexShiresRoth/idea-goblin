@@ -9,7 +9,7 @@ import ImportIdeasModal from "../components/import-ideas-modal";
 import NavLinks from "./nav-links";
 import SignoutButton from "./signout-button";
 
-export default function MobileNav() {
+export default function MobileNav({ hasBuckets }: { hasBuckets: boolean }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -42,7 +42,11 @@ export default function MobileNav() {
           <NavLinks variant="sheet" onNavigate={() => setOpen(false)} />
           <CreateIdeaModal type="menu" onTrigger={() => setOpen(false)} />
           <ImportIdeasModal type="menu" onTrigger={() => setOpen(false)} />
-          <AnalyzeVault variant="menu" onTrigger={() => setOpen(false)} />
+          <AnalyzeVault
+            variant="menu"
+            hasBuckets={hasBuckets}
+            onTrigger={() => setOpen(false)}
+          />
           <div className="rounded-md border border-white/15 bg-black px-2">
             <SignoutButton />
           </div>

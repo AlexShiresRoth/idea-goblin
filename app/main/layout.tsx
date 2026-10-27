@@ -1,3 +1,4 @@
+import { hasIdeaBuckets } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -35,11 +36,13 @@ export default async function MainLayout({
     redirect("/");
   }
 
+  const hasBuckets = await hasIdeaBuckets(session.id);
+
   return (
     <ToastProvider>
       <ToastWrapper>
         <main className="flex flex-col items-center h-screen">
-          <Header />
+          <Header hasBuckets={hasBuckets} />
           <div className="flex w-full h-full min-h-0">
             <Sidebar>
               <SidebarContent name={session.user_metadata?.name} />
@@ -48,7 +51,7 @@ export default async function MainLayout({
               <div className="flex flex-1 min-w-0 pb-2 md:pb-0">{children}</div>
             </Container>
           </div>
-          <MobileNav />
+          <MobileNav hasBuckets={hasBuckets} />
         </main>
       </ToastWrapper>
     </ToastProvider>
