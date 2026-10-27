@@ -7,7 +7,6 @@ import { isBucketCategory } from "@/lib/constants";
 import { db } from "@/lib/db";
 import {
   Idea,
-  IdeaBucket,
   ideaBucketLinksTable,
   ideaBucketsTable,
   ideasTable,
@@ -51,7 +50,7 @@ async function createIdea(idea: Omit<Idea, "id">) {
   return newIdea;
 }
 
-async function createIdeaBucket(bucket: Omit<IdeaBucket, "id">) {
+async function createIdeaBucket(bucket: typeof ideaBucketsTable.$inferInsert) {
   const newBucket = await db
     .insert(ideaBucketsTable)
     .values(bucket)

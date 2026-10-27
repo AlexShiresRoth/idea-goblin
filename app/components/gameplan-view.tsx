@@ -89,19 +89,22 @@ function StepLink({
   step,
   idea,
   canAdd,
+  readOnly,
   busy,
   onAdd,
 }: {
   step: StepFields;
   idea?: IdeaRef;
   canAdd: boolean;
+  readOnly: boolean;
   busy: boolean;
   onAdd: () => void;
 }) {
   if (step.idea_id != null) {
     return (
       <span className="text-xs text-white/40">
-        From your idea{idea ? `: ${idea.title}` : ""}
+        {readOnly ? "From the idea" : "From your idea"}
+        {idea ? `: ${idea.title}` : ""}
       </span>
     );
   }
@@ -157,17 +160,20 @@ function NoteList({
 // done state, and can be checked off: that marks the idea done, so progress
 // lives in one place. Checking an unlinked step adds it as an idea first.
 // Steps can also be added as ideas in the plan's bucket; `onLink` then links
-// the step to the new idea.
+// the step to the new idea. `readOnly` leaves out both, for someone else's
+// plan, but still shows which steps are done.
 export function GameplanView({
   result,
   ideas,
   bucketId,
   onLink,
+  readOnly = false,
 }: {
   result: Partial<GameplanResult>;
   ideas?: IdeaRef[];
   bucketId?: number;
   onLink?: LinkStep;
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const { setToasts } = useContext(ToastContext);
@@ -179,7 +185,7 @@ export function GameplanView({
 
   const ideasById = new Map(ideas?.map((idea) => [idea.id, idea]));
   const targetBucket = bucketId ?? result.bucket_id;
-  const canAdd = targetBucket != null;
+  const canAdd = !readOnly && targetBucket != null;
   const checkable = ideas != null && canAdd;
 
   const ideaFor = (id?: number | null) =>
@@ -310,6 +316,7 @@ export function GameplanView({
         step={step}
         idea={ideaFor(step.idea_id)}
         canAdd={canAdd}
+        readOnly={readOnly}
         busy={busyStep === stepKey(ref)}
         onAdd={() => addAsIdea(ref, step)}
       />

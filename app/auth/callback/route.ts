@@ -1,14 +1,7 @@
+import { safeNext } from "@/lib/auth/safe-next";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-
-function safeNext(next: string | null) {
-  // Only same-origin absolute paths; "//evil.com" is protocol-relative.
-  if (next && next.startsWith("/") && !next.startsWith("//")) {
-    return next;
-  }
-  return "/main";
-}
 
 const EMAIL_OTP_TYPES = ["signup", "email", "recovery"] as const;
 

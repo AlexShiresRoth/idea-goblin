@@ -46,6 +46,8 @@ export const ideaBucketsTable = pgTable("idea_buckets", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   // Set while the bucket is being worked on; null means parked.
   activeSince: timestamp("active_since"),
+  // Set while the bucket is shared by link; a new token revokes old links.
+  shareToken: text("share_token").unique(),
 });
 
 export const ideaBucketLinksTable = pgTable("idea_bucket_links", {

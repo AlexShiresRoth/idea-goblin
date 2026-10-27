@@ -51,6 +51,7 @@ describe("GET /auth/callback", () => {
 
   it.each([
     ["a protocol-relative URL", "//evil.com/steal"],
+    ["a backslash protocol-relative URL", "/\\evil.com/steal"],
     ["an absolute URL", "https://evil.com"],
     ["a relative path", "evil"],
   ])("never redirects to %s", async (_label, next) => {

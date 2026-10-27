@@ -1,7 +1,9 @@
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import "server-only";
 import { db } from "../db";
+import { isGameplan } from "../types";
 import {
+  analysisResultsTable,
   bucketVersionsTable,
   ideaBucketLinksTable,
   ideaBucketsTable,
@@ -71,4 +73,51 @@ export async function getBucketVersions(
     .from(bucketVersionsTable)
     .where(eq(bucketVersionsTable.bucketId, bucketId))
     .orderBy(desc(bucketVersionsTable.createdAt));
+}
+
+// A bucket shared by link: what a visitor sees, which leaves out the version
+// history, plus the owner's id for the server to check against. Null when the
+// token isn't a live share link.
+export async function getSharedBucket(token: string) {
+  const [bucket] = await db
+    .select({
+      id: ideaBucketsTable.id,
+      name: ideaBucketsTable.name,
+      description: ideaBucketsTable.description,
+      theme: ideaBucketsTable.theme,
+      category: ideaBucketsTable.category,
+      profileId: ideaBucketsTable.profileId,
+    })
+    .from(ideaBucketsTable)
+    .where(eq(ideaBucketsTable.shareToken, token))
+    .limit(1);
+  if (!bucket) return null;
+
+  const [ideas, [gameplan]] = await Promise.all([
+    getBucketIdeas(bucket.id),
+    db
+      .select({ data: analysisResultsTable.analysisData })
+      .from(analysisResultsTable)
+      .where(
+        and(
+          eq(analysisResultsTable.profileId, bucket.profileId),
+          eq(analysisResultsTable.bucketId, bucket.id),
+          eq(analysisResultsTable.analysisType, "gameplan"),
+        ),
+      )
+      .orderBy(desc(analysisResultsTable.createdAt))
+      .limit(1),
+  ]);
+
+  return {
+    ownerId: bucket.profileId,
+    bucket: {
+      name: bucket.name,
+      description: bucket.description,
+      theme: bucket.theme,
+      category: bucket.category,
+    },
+    ideas,
+    gameplan: gameplan && isGameplan(gameplan.data) ? gameplan.data : null,
+  };
 }

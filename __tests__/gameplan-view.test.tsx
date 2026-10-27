@@ -87,6 +87,20 @@ describe("GameplanView", () => {
     );
   });
 
+  it("shows someone else's plan read-only, with done steps still marked", () => {
+    renderView({
+      ideas: [{ id: 1, title: "Landing copy", status: "done" }],
+      readOnly: true,
+    });
+
+    expect(screen.getByText("From the idea: Landing copy")).toBeInTheDocument();
+    expect(screen.getByText("Write the copy").className).toContain(
+      "line-through",
+    );
+    expect(screen.getAllByLabelText("Done").length).toBeGreaterThan(0);
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+  });
+
   it("adds a step as an idea and links the step to it", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,
