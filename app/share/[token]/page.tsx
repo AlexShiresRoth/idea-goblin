@@ -92,7 +92,7 @@ export default async function SharedBucketPage({ params }: Props) {
         <span className="text-xs text-white/50">Shared bucket</span>
       </nav>
 
-      <header className="flex max-w-3xl flex-col gap-2 border-b border-(--bucket-primary)/40 px-4 py-6 md:px-8">
+      <header className="flex w-full flex-col gap-2 border-b border-(--bucket-primary)/40 px-4 py-6 md:px-8">
         <ThemePill bucket={bucket} />
         <h1 className="text-2xl">{bucket.name}</h1>
         <p className="text-sm text-white/50">{bucket.description}</p>
