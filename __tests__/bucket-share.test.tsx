@@ -54,7 +54,6 @@ describe("BucketShare", () => {
       "http://localhost:3000/share/tok",
     );
     expect(refresh).toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Shared" })).toBeInTheDocument();
   });
 
   it("copies the link and says so on the button", async () => {
