@@ -302,6 +302,21 @@ describe("AnalyzeVaultModal", () => {
       );
     });
 
+    it("prices each pathway card, in red when it can't be afforded", async () => {
+      mockFetch({ "/api/credits": () => Response.json(balance(3)) });
+      renderModal();
+
+      const costs = await screen.findAllByTestId("gold-cost");
+
+      expect(costs.map((cost) => cost.textContent)).toEqual([
+        "1 gold",
+        "5 gold",
+        "5 gold",
+      ]);
+      expect(costs[0]).not.toHaveClass("text-red-400");
+      expect(costs[1]).toHaveClass("text-red-400");
+    });
+
     it("blocks a run it can't afford and says when credits refill", async () => {
       mockFetch({ "/api/credits": () => Response.json(balance(3)) });
       const user = userEvent.setup();

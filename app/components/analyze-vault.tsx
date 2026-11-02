@@ -44,7 +44,7 @@ import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
 import { CreateIdeaDialog } from "./create-idea-modal";
-import { CreditLine } from "./credit-line";
+import { CreditLine, GoldCost } from "./credit-line";
 import { GameplanView, type LinkStep } from "./gameplan-view";
 import { ImportIdeasDialog } from "./import-ideas-modal";
 import { RefinementPicker } from "./refinement-picker";
@@ -505,26 +505,38 @@ export function AnalyzeVaultModal({
               </p>
             </div>
             <div className="md:grid grid-cols-3 gap-4 flex flex-col">
-              {PATHWAYS.map((pathway) => (
-                <button
-                  type="button"
-                  onClick={() => setSelectedPathway(pathway)}
-                  key={pathway.id}
-                  data-testid={`analyze-pathway-${pathway.id}`}
-                  className={clsx(
-                    "flex flex-col gap-2 p-4 border border-white/20 rounded-lg hover:border-white/50 transition-colors cursor-pointer",
-                    selectedPathway?.id === pathway.id && "border-white/50",
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    {pathway.icon}
-                    <h3 className="text-lg">{pathway.title}</h3>
-                  </div>
-                  <p className="text-sm text-white/50 text-left">
-                    {pathway.description}
-                  </p>
-                </button>
-              ))}
+              {PATHWAYS.map((pathway) => {
+                const cost = credits && creditCost(pathway.id, credits.plan);
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPathway(pathway)}
+                    key={pathway.id}
+                    data-testid={`analyze-pathway-${pathway.id}`}
+                    className={clsx(
+                      "flex flex-col gap-2 p-4 border border-white/20 rounded-lg hover:border-white/50 transition-colors cursor-pointer",
+                      selectedPathway?.id === pathway.id && "border-white/50",
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      {pathway.icon}
+                      <h3 className="text-lg">{pathway.title}</h3>
+                    </div>
+                    <p className="text-sm text-white/50 text-left">
+                      {pathway.description}
+                    </p>
+                    {/* Pinned bottom right, level across cards of different heights. */}
+                    {credits && cost != null && (
+                      <span className="mt-auto self-end">
+                        <GoldCost
+                          cost={cost}
+                          short={credits.remaining < cost}
+                        />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="flex justify-between w-full mt-4 py-4 border-t border-white/20">

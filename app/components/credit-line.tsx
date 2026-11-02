@@ -10,6 +10,25 @@ function resetDate(iso: string) {
   });
 }
 
+// A run's price, shown on each pathway card before one is picked. Red when
+// it costs more than what's left.
+export function GoldCost({ cost, short }: { cost: number; short?: boolean }) {
+  return (
+    <span
+      data-testid="gold-cost"
+      className={clsx(
+        "flex w-fit shrink-0 items-center gap-1 rounded-full border px-1.5 py-px text-[10px]",
+        short
+          ? "border-red-400/40 text-red-400"
+          : "border-amber-300/30 text-amber-300",
+      )}
+    >
+      <CoinsIcon className="w-2.5 h-2.5" />
+      {cost} gold
+    </span>
+  );
+}
+
 // The run's price next to what's left this month. Without a cost (no pathway
 // picked yet) it shows the balance alone.
 export function CreditLine({
