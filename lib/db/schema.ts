@@ -1,4 +1,5 @@
 import type { AnalysisPayload, PathwayId } from "@/lib/types";
+import type { Plan } from "@/lib/constants/credits";
 import {
   type AnyPgColumn,
   index,
@@ -28,6 +29,8 @@ export const profileTable = pgTable("profiles", {
   email: text("email").notNull(),
   // How many buckets can be actively worked on at once; the rest are parked.
   activeIdeasAmt: integer("active_ideas_amt").notNull().default(2),
+  // "free" or "pro"; sets the monthly credit allowance.
+  plan: text("plan").$type<Plan>().notNull().default("free"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -141,6 +144,8 @@ export const aiRunsTable = pgTable(
     inputTokens: integer("input_tokens").notNull().default(0),
     outputTokens: integer("output_tokens").notNull().default(0),
     reasoningTokens: integer("reasoning_tokens").notNull().default(0),
+    // Credits charged for the run; 0 for runs that aren't billed.
+    credits: integer("credits").notNull().default(0),
     result: jsonb("result"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },

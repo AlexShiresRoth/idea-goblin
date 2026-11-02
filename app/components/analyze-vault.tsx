@@ -1,5 +1,10 @@
 "use client";
-import { PATHWAYSJSON, type RefinementFocusId } from "@/lib/constants";
+import {
+  type CreditBalance,
+  creditCost,
+  PATHWAYSJSON,
+  type RefinementFocusId,
+} from "@/lib/constants";
 import type {
   AnalysisPayload,
   BucketOption,
@@ -29,7 +34,7 @@ import {
   UploadIcon,
   XIcon,
 } from "lucide-react";
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { linkStep } from "@/lib/gameplan";
@@ -39,6 +44,7 @@ import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
 import { CreateIdeaDialog } from "./create-idea-modal";
+import { CreditLine } from "./credit-line";
 import { GameplanView, type LinkStep } from "./gameplan-view";
 import { ImportIdeasDialog } from "./import-ideas-modal";
 import { RefinementPicker } from "./refinement-picker";
@@ -121,6 +127,17 @@ function isBucketPathway(id?: PathwayId): id is BucketPathwayId {
   return id === "refinement" || id === "gameplan";
 }
 
+// Without a balance the modal still works; the server enforces credits.
+async function fetchCredits(): Promise<CreditBalance | null> {
+  try {
+    const response = await fetch("/api/credits");
+    return response.ok ? ((await response.json()) as CreditBalance) : null;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
 // With `scopeBucket`, the modal opens straight on the bucket picker for
 // `scopePathway`, limited to that bucket and with it preselected.
 export function AnalyzeVaultModal({
@@ -168,6 +185,28 @@ export function AnalyzeVaultModal({
   const [recommendReason, setRecommendReason] = useState<string>();
   const [cached, setCached] = useState(false);
   const [steps, setSteps] = useState<AnalysisStep[]>([]);
+  const [credits, setCredits] = useState<CreditBalance | null>(null);
+
+  function loadCredits() {
+    void fetchCredits().then((balance) => balance && setCredits(balance));
+  }
+
+  useEffect(() => {
+    let ignore = false;
+    void fetchCredits().then((balance) => {
+      if (!ignore && balance) setCredits(balance);
+    });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const runCost =
+    selectedPathway && credits
+      ? creditCost(selectedPathway.id, credits.plan)
+      : undefined;
+  const shortOfCredits =
+    credits != null && runCost != null && credits.remaining < runCost;
   const reasoning = useMemo(
     () => getReasoningText(result, selectedPathway?.id),
     [result, selectedPathway?.id],
@@ -269,7 +308,8 @@ export function AnalyzeVaultModal({
         }),
       });
 
-      if (response.status === 429) {
+      // Rate limited or out of credits: the server's message says which.
+      if (response.status === 429 || response.status === 402) {
         setError(await response.text());
         return;
       }
@@ -304,6 +344,7 @@ export function AnalyzeVaultModal({
           setError(event.message ?? "Analysis failed");
         }
       });
+      loadCredits();
     } catch (err) {
       console.error(err);
       setError("Failed to start analysis");
@@ -495,21 +536,24 @@ export function AnalyzeVaultModal({
                 <XIcon className="w-3 h-3" />
                 <span>Cancel</span>
               </button>
-              <button
-                type="button"
-                disabled={!selectedPathway}
-                className={clsx(
-                  "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
-                  selectedPathway
-                    ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
-                    : "opacity-50 cursor-not-allowed",
-                )}
-                onClick={beginPathway}
-                data-testid="analyze-vault-start"
-              >
-                {selectedPathway && <Route className="w-3 h-3" />}
-                {selectedPathway ? "Start" : "Select a pathway"}
-              </button>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                {credits && <CreditLine balance={credits} cost={runCost} />}
+                <button
+                  type="button"
+                  disabled={!selectedPathway || shortOfCredits}
+                  className={clsx(
+                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
+                    selectedPathway && !shortOfCredits
+                      ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
+                      : "opacity-50 cursor-not-allowed",
+                  )}
+                  onClick={beginPathway}
+                  data-testid="analyze-vault-start"
+                >
+                  {selectedPathway && <Route className="w-3 h-3" />}
+                  {selectedPathway ? "Start" : "Select a pathway"}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -551,22 +595,25 @@ export function AnalyzeVaultModal({
                 <XIcon className="w-3 h-3" />
                 {scoped ? "Cancel" : "Back"}
               </button>
-              <button
-                type="button"
-                disabled={!selectedBucket}
-                className={clsx(
-                  "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
-                  selectedBucket
-                    ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
-                    : "opacity-50 cursor-not-allowed",
-                )}
-                onClick={() => startAnalysis()}
-                data-testid="analyze-vault-submit"
-              >
-                <Route className="w-3 h-3" />
-                {selectedPathway?.id === "gameplan" ? "Plan" : "Refine"}{" "}
-                {selectedBucket ? selectedBucket.name : "this bucket"}
-              </button>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                {credits && <CreditLine balance={credits} cost={runCost} />}
+                <button
+                  type="button"
+                  disabled={!selectedBucket || shortOfCredits}
+                  className={clsx(
+                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
+                    selectedBucket && !shortOfCredits
+                      ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
+                      : "opacity-50 cursor-not-allowed",
+                  )}
+                  onClick={() => startAnalysis()}
+                  data-testid="analyze-vault-submit"
+                >
+                  <Route className="w-3 h-3" />
+                  {selectedPathway?.id === "gameplan" ? "Plan" : "Refine"}{" "}
+                  {selectedBucket ? selectedBucket.name : "this bucket"}
+                </button>
+              </div>
             </div>
           </div>
         )}
