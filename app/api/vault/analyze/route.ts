@@ -10,8 +10,10 @@ import {
 } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { getBucketIdeas } from "@/lib/api/buckets";
+import { getCreditBalance } from "@/lib/api/credits";
 import {
   BUCKET_CATEGORY_NAMES,
+  creditCost,
   isDone,
   MAX_REFINEMENT_NOTE_LENGTH,
   MAX_REFINEMENT_ROUNDS,
@@ -36,6 +38,9 @@ const MAX_IDEAS_PER_REFINEMENT = 30;
 const RANK_MAX_OUTPUT_TOKENS = 4000;
 // A gameplan is the longest output on the premium model, so it gets a ceiling.
 const GAMEPLAN_MAX_OUTPUT_TOKENS = 8000;
+// Refinements run well under 1k output tokens; the cap keeps a fixed credit
+// price safe against a runaway response.
+const REFINEMENT_MAX_OUTPUT_TOKENS = 4000;
 
 const AnalysisChoiceSchema = z.object({
   main_idea: z.string(),
@@ -241,6 +246,7 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
     response_schema: RefinementSchema,
     itemsKey: "improvements",
     itemSchema: z.string(),
+    max_output_tokens: REFINEMENT_MAX_OUTPUT_TOKENS,
   },
   gameplan: {
     user_content: "Make a gameplan to finish this idea bucket.",
@@ -356,7 +362,17 @@ type StreamOptions = {
   context: string;
   // How many items the result should hold, when known up front.
   total?: number;
+  // Charged once the run finishes; failed runs cost nothing.
+  credits: number;
 };
+
+function formatResetDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
 
 function progressMessage(pathway: Pathway, count: number, total?: number) {
   if (pathway === "refinement") {
@@ -406,6 +422,7 @@ function streamPathway({
   inputHash,
   context,
   total,
+  credits,
 }: StreamOptions) {
   const config = PATHWAY_PROMPTS[pathway];
 
@@ -475,6 +492,7 @@ function streamPathway({
           usage: responseUsage(final.usage),
           inputHash,
           result: final.output_parsed ?? undefined,
+          credits,
         });
 
         if (final.output_parsed) {
@@ -519,6 +537,7 @@ export async function POST(request: Request) {
 
     const profileId = session.user.id;
     const config = PATHWAY_PROMPTS[pathway];
+    const balance = await getCreditBalance(profileId);
     let model: string;
     let userContent: string;
     let context: string;
@@ -561,7 +580,11 @@ export async function POST(request: Request) {
       const userNote = note?.trim().slice(0, MAX_REFINEMENT_NOTE_LENGTH);
 
       context = `Rummaged through "${bucket.name}" and its ${ideas.length} idea${ideas.length === 1 ? "" : "s"}`;
-      model = AI_MODELS.refine;
+      // Free refinements run on the mini model, at a lower credit price.
+      model =
+        pathway === "refinement" && balance.plan === "free"
+          ? AI_MODELS.rank
+          : AI_MODELS.refine;
 
       if (pathway === "refinement") {
         // Unknown focus ids are dropped.
@@ -653,6 +676,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const credits = creditCost(pathway, balance.plan);
+    if (balance.remaining < credits) {
+      return new Response(
+        `The Goblin is out of gold: this run costs ${credits} and you have ${balance.remaining} left. Your gold refills on ${formatResetDate(balance.resetsAt)}.`,
+        { status: 402 },
+      );
+    }
+
     const stream = streamPathway({
       pathway,
       profileId,
@@ -662,6 +693,7 @@ export async function POST(request: Request) {
       inputHash,
       context,
       total,
+      credits,
     });
 
     return new Response(stream, { headers: NDJSON_HEADERS });

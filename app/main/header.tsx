@@ -16,8 +16,8 @@ const syneTactile = SyneTactile({
 
 export default function Header({ hasBuckets }: { hasBuckets: boolean }) {
   return (
-    <header className="flex w-full items-center border-b border-white/10">
-      <div className="md:hidden flex items-center p-3 px-4">
+    <header className="flex w-full items-stretch border-b border-white/10">
+      <div className="md:hidden flex flex-1 items-center justify-between p-3 px-4">
         <Link
           href="/main"
           data-testid="home-link"
@@ -28,32 +28,29 @@ export default function Header({ hasBuckets }: { hasBuckets: boolean }) {
         >
           Idea Goblin
         </Link>
+        <BackButton />
       </div>
       <Sidebar>
-        <div className="flex w-full items-center justify-center p-4 border-r border-white/10 flex-1">
-          <div className="flex w-11/12">
-            <Link
-              href="/main"
-              data-testid="home-link"
-              className={clsx(
-                syneTactile.className,
-                "text-xl hover:text-primary transition-colors",
-              )}
-            >
-              Idea Goblin
-            </Link>
-          </div>
+        <div className="flex w-full items-center p-4 border-r border-white/10">
+          <Link
+            href="/main"
+            data-testid="home-link"
+            className={clsx(
+              syneTactile.className,
+              "px-2 text-xl hover:text-primary transition-colors",
+            )}
+          >
+            Idea Goblin
+          </Link>
         </div>
       </Sidebar>
-      <div className="hidden md:flex flex-8 min-w-0">
-        <div className="flex items-center gap-2 p-3 px-4 flex-1">
-          <CreateIdeaModal type="inline" />
-          <ImportIdeasModal type="inline" />
-          <AnalyzeVault hasBuckets={hasBuckets} />
+      <div className="hidden md:flex flex-1 min-w-0 items-center gap-2 p-3 px-4">
+        <CreateIdeaModal type="inline" />
+        <ImportIdeasModal type="inline" />
+        <AnalyzeVault hasBuckets={hasBuckets} />
+        <div className="ml-auto">
+          <BackButton />
         </div>
-      </div>
-      <div className="ml-auto flex items-center p-3 px-4">
-        <BackButton />
       </div>
     </header>
   );

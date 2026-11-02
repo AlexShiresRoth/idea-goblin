@@ -2,6 +2,8 @@
 import { findCachedResult, isRateLimited, recordRun } from "@/lib/ai";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { getBucketIdeas } from "@/lib/api/buckets";
+import { getCreditBalance } from "@/lib/api/credits";
+import type { CreditBalance } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBucket, makeSession, mockQuery, readEvents } from "./helpers";
@@ -17,6 +19,7 @@ vi.mock("openai/helpers/zod", () => ({ zodTextFormat: vi.fn(() => ({})) }));
 vi.mock("@/lib/auth/auth-guard", () => ({ AuthGuard: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: { select: vi.fn() } }));
 vi.mock("@/lib/api/buckets", () => ({ getBucketIdeas: vi.fn() }));
+vi.mock("@/lib/api/credits", () => ({ getCreditBalance: vi.fn() }));
 vi.mock("@/lib/ai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/ai")>()),
   findCachedResult: vi.fn(),
@@ -60,6 +63,17 @@ function fakeStream(output: unknown) {
   };
 }
 
+function balance(overrides: Partial<CreditBalance> = {}): CreditBalance {
+  return {
+    plan: "pro",
+    allowance: 200,
+    used: 0,
+    remaining: 200,
+    resetsAt: "2026-12-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
 function analyze(body: unknown) {
   return POST(
     new Request("http://localhost/api/vault/analyze", {
@@ -75,6 +89,7 @@ describe("POST /api/vault/analyze", () => {
     vi.mocked(AuthGuard).mockResolvedValue(makeSession() as never);
     vi.mocked(findCachedResult).mockResolvedValue(null);
     vi.mocked(isRateLimited).mockResolvedValue(false);
+    vi.mocked(getCreditBalance).mockResolvedValue(balance());
     vi.mocked(db.select).mockReturnValue(
       mockQuery([makeBucket({ id: 10 })]) as never,
     );
@@ -104,6 +119,7 @@ describe("POST /api/vault/analyze", () => {
         route: "execution",
         usage: { input: 100, output: 50, reasoning: 10 },
         result: executionResult,
+        credits: 1,
       }),
     );
   });
@@ -157,6 +173,32 @@ describe("POST /api/vault/analyze", () => {
     expect(stream).not.toHaveBeenCalled();
   });
 
+  it("returns 402 with the refill date when out of credits", async () => {
+    vi.mocked(getCreditBalance).mockResolvedValue(
+      balance({ used: 200, remaining: 0 }),
+    );
+
+    const response = await analyze({ pathway: "execution" });
+
+    expect(response.status).toBe(402);
+    expect(await response.text()).toBe(
+      "The Goblin is out of gold: this run costs 1 and you have 0 left. Your gold refills on Dec 1.",
+    );
+    expect(stream).not.toHaveBeenCalled();
+  });
+
+  it("serves a cached result even when out of credits", async () => {
+    vi.mocked(getCreditBalance).mockResolvedValue(
+      balance({ used: 200, remaining: 0 }),
+    );
+    vi.mocked(findCachedResult).mockResolvedValue(executionResult);
+
+    const response = await analyze({ pathway: "execution" });
+
+    expect(response.status).toBe(200);
+    expect(stream).not.toHaveBeenCalled();
+  });
+
   it("returns 400 when the vault has no buckets", async () => {
     vi.mocked(db.select).mockReturnValue(mockQuery([]) as never);
     const response = await analyze({ pathway: "execution" });
@@ -183,10 +225,28 @@ describe("POST /api/vault/analyze", () => {
     const [params] = stream.mock.calls[0];
     expect(params.model).toBe(AI_MODELS.refine);
     expect(params.reasoning).toBeUndefined();
-    expect(params.max_output_tokens).toBeUndefined();
+    expect(params.max_output_tokens).toBe(4000);
     expect(params.input[1].content).toContain("bucket_id: 5");
     expect(params.input[1].content).toContain(
       "- Waitlist: Collect emails first",
+    );
+  });
+
+  it("refines on the rank model for free plans, at the free price", async () => {
+    vi.mocked(getCreditBalance).mockResolvedValue(
+      balance({ plan: "free", allowance: 20, remaining: 20 }),
+    );
+    vi.mocked(db.select).mockReturnValue(
+      mockQuery([makeBucket({ id: 5 })]) as never,
+    );
+    vi.mocked(getBucketIdeas).mockResolvedValue([]);
+    stream.mockReturnValue(fakeStream(executionResult));
+
+    await readEvents(await analyze({ pathway: "refinement", bucketId: 5 }));
+
+    expect(stream.mock.calls[0][0].model).toBe(AI_MODELS.rank);
+    expect(recordRun).toHaveBeenCalledWith(
+      expect.objectContaining({ route: "refinement", credits: 5 }),
     );
   });
 

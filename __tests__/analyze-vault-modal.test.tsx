@@ -275,6 +275,79 @@ describe("AnalyzeVaultModal", () => {
     });
   });
 
+  describe("credits", () => {
+    const balance = (remaining: number) => ({
+      plan: "free",
+      allowance: 20,
+      used: 20 - remaining,
+      remaining,
+      resetsAt: "2026-12-01T00:00:00.000Z",
+    });
+
+    it("shows the picked pathway's cost and what's left", async () => {
+      mockFetch({ "/api/credits": () => Response.json(balance(18)) });
+      const user = userEvent.setup();
+      renderModal();
+
+      expect(await screen.findByTestId("credit-line")).toHaveTextContent(
+        "18 of 20 gold left this month",
+      );
+
+      await user.click(
+        screen.getByRole("button", { name: /Sharpen a Bucket/ }),
+      );
+
+      expect(screen.getByTestId("credit-line")).toHaveTextContent(
+        "5 gold · 18 of 20 gold left this month",
+      );
+    });
+
+    it("prices each pathway card, in red when it can't be afforded", async () => {
+      mockFetch({ "/api/credits": () => Response.json(balance(3)) });
+      renderModal();
+
+      const costs = await screen.findAllByTestId("gold-cost");
+
+      expect(costs.map((cost) => cost.textContent)).toEqual([
+        "1 gold",
+        "5 gold",
+        "5 gold",
+      ]);
+      expect(costs[0]).not.toHaveClass("text-red-400");
+      expect(costs[1]).toHaveClass("text-red-400");
+    });
+
+    it("blocks a run it can't afford and says when credits refill", async () => {
+      mockFetch({ "/api/credits": () => Response.json(balance(3)) });
+      const user = userEvent.setup();
+      renderModal();
+
+      await user.click(screen.getByRole("button", { name: /^Gameplan/ }));
+
+      expect(await screen.findByTestId("credit-line")).toHaveTextContent(
+        "5 gold · 3 of 20 gold left this month · refills Dec 1",
+      );
+      expect(screen.getByRole("button", { name: "Start" })).toBeDisabled();
+    });
+
+    it("shows the server's message when out of credits", async () => {
+      mockFetch({
+        "/api/credits": () => Response.json(balance(20)),
+        "/api/vault/analyze": () =>
+          new Response("The Goblin is out of gold", { status: 402 }),
+      });
+      const user = userEvent.setup();
+      renderModal();
+
+      await screen.findByTestId("credit-line");
+      await startExecution(user);
+
+      expect(
+        await screen.findByText("The Goblin is out of gold"),
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("execution run", () => {
     it("streams progress and results, shows reasoning, and saves", async () => {
       const stream = controlledStream();

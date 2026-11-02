@@ -65,6 +65,7 @@ export async function recordRun(run: {
   usage: Usage;
   inputHash?: string;
   result?: unknown;
+  credits?: number;
 }) {
   console.info(
     `[ai] ${run.route} model=${run.model} in=${run.usage.input} out=${run.usage.output} reasoning=${run.usage.reasoning}`,
@@ -78,6 +79,7 @@ export async function recordRun(run: {
       inputTokens: run.usage.input,
       outputTokens: run.usage.output,
       reasoningTokens: run.usage.reasoning,
+      credits: run.credits ?? 0,
       result: run.result ?? null,
     });
   } catch (error) {

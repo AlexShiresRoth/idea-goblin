@@ -11,5 +11,6 @@ export default async function Sidebar({ children }: Props) {
     return null;
   }
 
-  return <aside className="hidden md:flex flex-1">{children}</aside>;
+  // Fixed width so the header's sidebar column lines up with the body's.
+  return <aside className="hidden md:flex md:w-44 shrink-0">{children}</aside>;
 }

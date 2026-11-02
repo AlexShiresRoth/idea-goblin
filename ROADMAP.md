@@ -2,10 +2,12 @@
 
 ## Next
 
-### Monetization: Pro plan, credits and top-ups
+### Monetization: Hoard Lord plan, gold and top-ups
 
 Analysis is the expensive part, so charge for it. Capturing ideas and
-buckets stays free.
+buckets stays free. Users see the free plan as **Scavenger**, the paid plan
+as **Hoard Lord**, and credits as **gold** (`PLAN_NAMES` in
+`lib/constants/credits.ts`); code and the database say free/pro/credits.
 
 1. **Confirm cost per run.** `ai_runs` already records input, output and
    reasoning tokens per run, by route and user. Check the estimates below
@@ -29,30 +31,34 @@ buckets stays free.
    | refinement | astra (no output cap) | ~$0.25–0.35 | ~$0.80+ |
    | idea-create / bucket-classify | mini | < $0.001 | < $0.002 |
 
-2. **Cap refinement output** (`max_output_tokens` ~8k) before launch.
-   Fixed credit prices only hold if the most expensive run has a ceiling.
+2. **Cap refinement output.** Done: `max_output_tokens` 4k. Prod runs
+   (Nov 2026, one user) averaged ~$0.04 per refinement and ~$0.10 per
+   gameplan, well under the estimates above.
 3. **Credits, not tokens.** Each action has a fixed credit price; we absorb
    per-run variance. Cached runs are free. Keep the hourly `RATE_LIMITS` as
    abuse protection only.
 4. **Tiers** (adjust once step 1 has real numbers):
 
-   | | Free | Pro ($10/mo) |
+   | | Scavenger (free) | Hoard Lord ($10/mo) |
    |---|---|---|
    | Ideas and buckets | Unlimited | Unlimited |
    | Monthly credits | 20 | 200 |
    | Execution / analysis run | 1 credit | 1 credit |
    | Refinement | Mini model, 5 credits | Premium model, 10 credits |
+   | Gameplan | 5 credits | 5 credits |
+   | Imports | Free | Free |
    | Top-ups | — | 100 credits for $5 |
    | Buckets per execution run | 5 | 8 |
    | Version history | Last 3 per bucket | Unlimited |
 
-   Worst-case Pro user (all credits on premium refinements) costs ~$6–7 a
+   Worst-case Hoard Lord (all credits on premium refinements) costs ~$6–7 a
    month; a typical one ~$1–2. A 100-credit top-up costs at most ~$3 to
    serve.
 
 5. **Credit rules:**
-   - Monthly credits reset each billing period; purchased credits never
-     expire. Spend monthly credits first.
+   - Monthly credits reset on the 1st of each calendar month (UTC) for
+     every plan; purchased credits never expire. Spend monthly credits
+     first.
    - Show the cost and remaining balance before a run ("Refine · 10
      credits · 140 left").
    - Warn at 20% remaining. At zero, show an upgrade or top-up prompt, not a
@@ -62,9 +68,9 @@ buckets stays free.
    - `plan` column on `profiles`.
    - `credit_purchases` table (profile, credits, Stripe payment id,
      created at) for top-ups.
-   - Monthly usage derived from `ai_runs` for the billing period, weighted
-     by route, the same way `isRateLimited` counts runs today. Balance =
-     plan allowance − monthly usage, then purchased credits − overflow.
+   - Each `ai_runs` row records the credits it was charged, so price
+     changes never rewrite history. Balance = plan allowance − this month's
+     charged credits, then purchased credits − overflow.
    - The analyze route returns 402 with an upgrade/top-up message when a
      user is out of credits, next to the existing 429 check.
    - The modal shows the run's cost and remaining credits before it starts.
@@ -175,4 +181,4 @@ Let people send a bucket to someone else. Depends on more sign-in options.
    - Whose focus slot does a shared bucket use?
    - Who is charged credits when an editor runs a gameplan?
 
-   Likely a Pro feature.
+   Likely a Hoard Lord feature.
