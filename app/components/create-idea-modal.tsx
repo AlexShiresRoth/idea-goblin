@@ -283,7 +283,7 @@ function CreateIdeaForm({
 
   return (
     <div
-      className="flex max-h-[90dvh] w-11/12 flex-col rounded-lg border border-white/20 bg-black p-4 md:w-1/3"
+      className="flex max-h-[90dvh] w-11/12 flex-col rounded-lg border border-white/20 bg-background p-4 md:w-1/3"
       data-testid="create-idea-modal"
     >
       <div className="flex justify-between items-center border-b border-white/20 pb-4">
@@ -465,7 +465,7 @@ export default function CreateIdeaModal({
           type="button"
           onClick={openModal}
           data-testid="create-idea-open"
-          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
+          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-background px-4 py-3 text-white/80"
         >
           <PlusIcon className="w-3 h-3" />
           New Idea
@@ -509,7 +509,7 @@ export function CreateIdeaDialog({
   defaultBucket?: BucketChoice;
 }) {
   return createPortal(
-    <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-100">
+    <div className="fixed inset-0 bg-background/80 flex justify-center items-center w-screen h-screen z-100">
       <CreateIdeaForm onClose={onClose} defaultBucket={defaultBucket} />
     </div>,
     document.body,

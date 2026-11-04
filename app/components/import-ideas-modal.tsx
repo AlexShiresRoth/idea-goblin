@@ -345,7 +345,7 @@ function ImportIdeasForm({
 
   return (
     <div
-      className="flex flex-col gap-4 rounded-lg border border-white/20 bg-black p-4 md:p-6 w-full md:w-3/4 max-w-5xl max-h-[90dvh] min-h-0"
+      className="flex flex-col gap-4 rounded-lg border border-white/20 bg-background p-4 md:p-6 w-full md:w-3/4 max-w-5xl max-h-[90dvh] min-h-0"
       data-testid="import-ideas-modal"
     >
       <div className="flex items-center justify-between border-b border-white/20 pb-4 shrink-0">
@@ -823,7 +823,7 @@ export default function ImportIdeasModal({
           type="button"
           onClick={openModal}
           data-testid="import-ideas-open"
-          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
+          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-background px-4 py-3 text-white/80"
         >
           <UploadIcon className="w-3 h-3" />
           Import ideas
@@ -858,7 +858,7 @@ export function ImportIdeasDialog({
   defaultBucket?: BucketOption;
 }) {
   return createPortal(
-    <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-dvh z-100 px-4">
+    <div className="fixed inset-0 bg-background/80 flex justify-center items-center w-screen h-dvh z-100 px-4">
       <ImportIdeasForm onClose={onClose} defaultBucket={defaultBucket} />
     </div>,
     document.body,

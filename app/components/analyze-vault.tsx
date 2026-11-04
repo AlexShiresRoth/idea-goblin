@@ -487,11 +487,11 @@ export function AnalyzeVaultModal({
     analyzing || result != null || pickingBucket || failedMidRun;
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
+    <div className="fixed inset-0 bg-background/50 flex justify-center items-center z-999">
       <div
         data-testid="analyze-vault-modal"
         className={clsx(
-          "flex flex-col gap-4 rounded-lg border border-white/20 bg-black transition-all duration-300 min-h-0",
+          "flex flex-col gap-4 rounded-lg border border-white/20 bg-background transition-all duration-300 min-h-0",
           // Fixed heights so long results scroll inside the modal.
           minMaxModal && "md:w-full w-full h-dvh p-8",
           !minMaxModal && "md:w-1/2 w-11/12 max-h-[85dvh] p-6 md:p-8",
@@ -810,13 +810,13 @@ function EmptyVaultDialog({
   onAddIdeas: (how: "create" | "import") => void;
 }) {
   return createPortal(
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
+    <div className="fixed inset-0 bg-background/50 flex justify-center items-center z-999">
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Analyze Vault"
         data-testid="analyze-vault-empty"
-        className="flex flex-col gap-4 rounded-lg border border-white/20 bg-black md:w-1/2 w-11/12 p-6 md:p-8"
+        className="flex flex-col gap-4 rounded-lg border border-white/20 bg-background md:w-1/2 w-11/12 p-6 md:p-8"
       >
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-bold">Analyze Vault</h2>
@@ -895,7 +895,7 @@ export default function AnalyzeVault({
           type="button"
           onClick={openModal}
           data-testid="analyze-vault-open"
-          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
+          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-background px-4 py-3 text-white/80"
         >
           <SparklesIcon className="w-3 h-3" />
           Analyze Vault

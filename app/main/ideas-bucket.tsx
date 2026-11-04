@@ -21,7 +21,7 @@ export default function IdeasBucket({
       // Category colors as CSS variables; everything inside inherits them.
       style={bucketStyleVars(bucket.category)}
       className={clsx(
-        "flex bg-black flex-col gap-2 p-4 border border-white/20 rounded-lg items-start break-inside-avoid mb-2 hover:bg-black/60 hover:border-(--bucket-primary)/50 transition-[colors,opacity]",
+        "flex bg-background flex-col gap-2 p-4 border border-white/20 rounded-lg items-start break-inside-avoid mb-2 hover:bg-background/60 hover:border-(--bucket-primary)/50 transition-[colors,opacity]",
         // Parked buckets step back, but come forward on hover to stay usable.
         bucket.activeSince == null && "opacity-50 hover:opacity-100",
       )}

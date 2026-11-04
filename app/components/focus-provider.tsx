@@ -55,13 +55,13 @@ function FocusPicker({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-1000 flex items-center justify-center bg-black/80 px-4">
+    <div className="fixed inset-0 z-1000 flex items-center justify-center bg-background/80 px-4">
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Choose what you're working on"
         data-testid="focus-picker"
-        className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-4 rounded-lg border border-white/20 bg-black p-6"
+        className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-4 rounded-lg border border-white/20 bg-background p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">

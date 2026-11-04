@@ -10,7 +10,7 @@ export default async function AuthCodeError({ searchParams }: PageProps<"/auth/a
   const { reason } = await searchParams;
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-background">
       <main className="flex w-full max-w-3xl flex-col items-start gap-4 px-16 py-32">
         <h1 className="text-2xl">We couldn&apos;t finish signing you in.</h1>
         <p className="text-zinc-600 dark:text-zinc-400">

@@ -46,7 +46,7 @@ export default function NavLinks({
               "flex items-center gap-2 text-sm transition-colors",
               variant === "sidebar" && "rounded-md px-2 py-1.5",
               variant === "sheet" &&
-                "rounded-md border border-white/15 bg-black px-4 py-3",
+                "rounded-md border border-white/15 bg-background px-4 py-3",
               active
                 ? "bg-white/10 text-white"
                 : "text-white/60 hover:bg-white/5 hover:text-white",

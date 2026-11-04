@@ -94,7 +94,7 @@ export function DeleteAnalysisButton({
       {confirmOpen &&
         createPortal(
           <div
-            className="fixed inset-0 z-2000 bg-black/70 flex items-center justify-center p-4"
+            className="fixed inset-0 z-2000 bg-background/70 flex items-center justify-center p-4"
             onMouseDown={(event) => {
               if (event.target === event.currentTarget) closeConfirm();
             }}
@@ -104,7 +104,7 @@ export function DeleteAnalysisButton({
               aria-modal="true"
               data-testid="delete-analysis-dialog"
               aria-labelledby={`delete-analysis-${analysisId}`}
-              className="w-full max-w-sm rounded-lg border border-white/20 bg-black p-5 flex flex-col gap-4"
+              className="w-full max-w-sm rounded-lg border border-white/20 bg-background p-5 flex flex-col gap-4"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex flex-col gap-1">

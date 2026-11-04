@@ -34,7 +34,7 @@ export default function MobileNav({
           onClick={() => setOpen(false)}
           data-testid="mobile-nav-backdrop"
           className={clsx(
-            "absolute inset-0 bg-black/50 transition-opacity",
+            "absolute inset-0 bg-background/50 transition-opacity",
             open ? "opacity-100" : "opacity-0",
           )}
         />
@@ -43,7 +43,7 @@ export default function MobileNav({
           className={clsx(
             "absolute bottom-24 inset-x-4 flex flex-col gap-2 transition-all",
             open
-              ? "opacity-100 translate-y-0 bg-black"
+              ? "opacity-100 translate-y-0 bg-background"
               : "opacity-0 translate-y-3 pointer-events-none",
           )}
         >
@@ -55,7 +55,7 @@ export default function MobileNav({
             hasBuckets={hasBuckets}
             onTrigger={() => setOpen(false)}
           />
-          <div className="flex flex-col rounded-md border border-white/15 bg-black px-2 py-1">
+          <div className="flex flex-col rounded-md border border-white/15 bg-background px-2 py-1">
             <BillingButton plan={plan} />
             <SignoutButton />
           </div>

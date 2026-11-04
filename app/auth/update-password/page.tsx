@@ -17,7 +17,7 @@ export default async function UpdatePassword() {
   }
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-background">
       <main className="flex w-full max-w-3xl flex-col items-start gap-4 px-16 py-32">
         <h1 className="text-2xl">Set a new password</h1>
         <UpdatePasswordForm />

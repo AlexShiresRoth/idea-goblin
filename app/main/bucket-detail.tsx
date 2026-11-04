@@ -122,7 +122,7 @@ export default function BucketDetail({
       aria-label={bucket.name}
       data-testid="bucket-detail"
       style={bucketStyleVars(bucket.category)}
-      className="flex min-h-0 min-w-0 flex-1 flex-col bg-black"
+      className="flex min-h-0 min-w-0 flex-1 flex-col bg-background"
     >
       <header
         className={clsx(
@@ -221,7 +221,7 @@ export default function BucketDetail({
         >
           <div
             data-testid="idea-header"
-            className="sticky top-0 z-10 flex items-center justify-between border-b border-white/20 bg-black h-10 py-2 px-4 md:px-8"
+            className="sticky top-0 z-10 flex items-center justify-between border-b border-white/20 bg-background h-10 py-2 px-4 md:px-8"
           >
             <p className="text-white/60">
               Ideas {openIdeas.length}
@@ -304,7 +304,7 @@ export default function BucketDetail({
             role="tablist"
             aria-label="Bucket side panel"
             data-testid="bucket-side-tabs"
-            className="sticky top-0 z-10 flex h-10 gap-4 border-b border-white/20 bg-black px-4 md:px-8"
+            className="sticky top-0 z-10 flex h-10 gap-4 border-b border-white/20 bg-background px-4 md:px-8"
           >
             {(["gameplan", "versions"] as const).map((tab) => (
               <button
