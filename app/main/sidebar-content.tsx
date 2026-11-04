@@ -1,8 +1,16 @@
+import { PLAN_NAMES, type Plan } from "@/lib/constants";
 import { User } from "lucide-react";
+import { BillingButton } from "../components/billing-button";
 import NavLinks from "./nav-links";
 import SignoutButton from "./signout-button";
 
-export default function SidebarContent({ name }: { name: string }) {
+export default function SidebarContent({
+  name,
+  plan,
+}: {
+  name: string;
+  plan: Plan;
+}) {
   const firstName = name.split(" ")?.[0];
 
   return (
@@ -18,7 +26,13 @@ export default function SidebarContent({ name }: { name: string }) {
           </button>
           <NavLinks />
         </div>
-        <SignoutButton />
+        <div className="flex flex-col gap-1">
+          <p className="px-2 text-xs text-white/40" data-testid="plan-name">
+            {PLAN_NAMES[plan]}
+          </p>
+          <BillingButton plan={plan} className="text-left" />
+          <SignoutButton />
+        </div>
       </div>
     </div>
   );

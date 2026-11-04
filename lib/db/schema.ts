@@ -31,6 +31,8 @@ export const profileTable = pgTable("profiles", {
   activeIdeasAmt: integer("active_ideas_amt").notNull().default(2),
   // "free" or "pro"; sets the monthly credit allowance.
   plan: text("plan").$type<Plan>().notNull().default("free"),
+  // Set on first checkout; the webhook finds the profile by it.
+  stripeCustomerId: text("stripe_customer_id").unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

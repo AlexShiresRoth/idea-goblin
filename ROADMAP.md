@@ -78,6 +78,9 @@ as **Hoard Lord**, and credits as **gold** (`PLAN_NAMES` in
      webhook that sets `plan` and records purchases, and the Stripe
      customer portal for cancellations.
 
+   Status (Nov 2026): credits and the 402 are shipped; the Hoard Lord
+   subscription (checkout, webhook, portal) is in review. Top-ups are next.
+
 7. **Later, if top-ups sell a lot:** add a $15–20 tier with more monthly
    credits. Heavy users often prefer a predictable bill to repeated
    top-ups.
@@ -95,6 +98,30 @@ Its value comes from people coming back to it, not reading it once.
    it?" on the Gameplan tab, so a plan never quietly drifts out of date.
 3. **Celebrate finishing.** A small moment when a phase or a whole bucket
    is done. It's an app about actually finishing things.
+
+### Ask the Goblin: tool calling
+
+Let the model fetch what it needs instead of us packing the whole vault
+into every prompt. Uses OpenAI function calling in the Responses API.
+
+1. **Tools module.** `lib/ai/tools.ts` holds each tool's name,
+   description, JSON schema and handler, written as thin wrappers over
+   `lib/api` (`list_buckets`, `get_bucket_ideas`, `get_latest_analysis`).
+   Start read-only.
+2. **Tool loop.** Call the model, run any `function_call` outputs, send
+   back `function_call_output`, repeat until it answers. Cap it at about 5
+   rounds.
+3. **Scoped to the user.** Handlers take `profileId` from the session,
+   never from the model's arguments, and check that every bucket or idea
+   id belongs to that user.
+4. **"Ask the Goblin" chat** on the board as the first feature. Give it
+   its own `AiRoute` with a rate limit, record each run with `recordRun`,
+   and decide its gold price (flat per message or by usage).
+5. **Later: tools that change data** (`add_idea`, `move_idea`), with the
+   user confirming in the UI before they apply.
+6. **Later: an MCP server** (`app/api/mcp`) that reuses the same tools so
+   users can connect Claude or other assistants to their vault. Needs
+   per-user auth (OAuth or API tokens).
 
 ### Friendlier UI
 

@@ -3,18 +3,20 @@ import { getSession } from "@/lib/auth";
 import CreateIdeaModal from "../components/create-idea-modal";
 import { FocusBar, FocusProvider } from "../components/focus-provider";
 import Bucket from "./bucket";
+import { UpgradedToast } from "./upgraded-toast";
 import "./page.css";
 
-export default async function Main() {
+export default async function Main({ searchParams }: PageProps<"/main">) {
   const session = await getSession();
 
   if (!session) {
     return null;
   }
 
-  const [buckets, focusLimit] = await Promise.all([
+  const [buckets, focusLimit, params] = await Promise.all([
     getIdeaBuckets(session.id),
     getFocusLimit(session.id),
+    searchParams,
   ]);
   const ideasByBucket = await getIdeasForBuckets(
     buckets.map((bucket) => bucket.id),
@@ -46,6 +48,7 @@ export default async function Main() {
           ))}
         </div>
         <CreateIdeaModal type="floating" />
+        {params.upgraded && <UpgradedToast />}
       </div>
     </FocusProvider>
   );

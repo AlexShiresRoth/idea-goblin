@@ -1,4 +1,4 @@
-import { hasIdeaBuckets } from "@/lib/api";
+import { getPlan, hasIdeaBuckets } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -36,7 +36,10 @@ export default async function MainLayout({
     redirect("/");
   }
 
-  const hasBuckets = await hasIdeaBuckets(session.id);
+  const [hasBuckets, plan] = await Promise.all([
+    hasIdeaBuckets(session.id),
+    getPlan(session.id),
+  ]);
 
   return (
     <ToastProvider>
@@ -45,13 +48,13 @@ export default async function MainLayout({
           <Header hasBuckets={hasBuckets} />
           <div className="flex w-full h-full min-h-0">
             <Sidebar>
-              <SidebarContent name={session.user_metadata?.name} />
+              <SidebarContent name={session.user_metadata?.name} plan={plan} />
             </Sidebar>
             <Container>
               <div className="flex flex-1 min-w-0 pb-2 md:pb-0">{children}</div>
             </Container>
           </div>
-          <MobileNav hasBuckets={hasBuckets} />
+          <MobileNav hasBuckets={hasBuckets} plan={plan} />
         </main>
       </ToastWrapper>
     </ToastProvider>

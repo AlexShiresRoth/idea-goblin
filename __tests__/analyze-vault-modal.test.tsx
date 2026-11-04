@@ -330,6 +330,35 @@ describe("AnalyzeVaultModal", () => {
       expect(screen.getByRole("button", { name: "Start" })).toBeDisabled();
     });
 
+    it("offers a Scavenger the upgrade when a run is out of reach", async () => {
+      mockFetch({ "/api/credits": () => Response.json(balance(3)) });
+      const user = userEvent.setup();
+      renderModal();
+
+      await screen.findByTestId("credit-line");
+      expect(screen.queryByTestId("upgrade-button")).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /^Gameplan/ }));
+
+      expect(
+        screen.getByRole("button", { name: "Become a Hoard Lord" }),
+      ).toBeInTheDocument();
+    });
+
+    it("doesn't offer the upgrade to a Hoard Lord", async () => {
+      mockFetch({
+        "/api/credits": () =>
+          Response.json({ ...balance(3), plan: "pro", allowance: 200 }),
+      });
+      const user = userEvent.setup();
+      renderModal();
+
+      await screen.findByTestId("credit-line");
+      await user.click(screen.getByRole("button", { name: /^Gameplan/ }));
+
+      expect(screen.queryByTestId("upgrade-button")).not.toBeInTheDocument();
+    });
+
     it("shows the server's message when out of credits", async () => {
       mockFetch({
         "/api/credits": () => Response.json(balance(20)),

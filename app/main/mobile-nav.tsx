@@ -4,12 +4,20 @@ import clsx from "clsx";
 import { Menu, XIcon } from "lucide-react";
 import { useState } from "react";
 import AnalyzeVault from "../components/analyze-vault";
+import type { Plan } from "@/lib/constants";
+import { BillingButton } from "../components/billing-button";
 import CreateIdeaModal from "../components/create-idea-modal";
 import ImportIdeasModal from "../components/import-ideas-modal";
 import NavLinks from "./nav-links";
 import SignoutButton from "./signout-button";
 
-export default function MobileNav({ hasBuckets }: { hasBuckets: boolean }) {
+export default function MobileNav({
+  hasBuckets,
+  plan,
+}: {
+  hasBuckets: boolean;
+  plan: Plan;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -47,7 +55,8 @@ export default function MobileNav({ hasBuckets }: { hasBuckets: boolean }) {
             hasBuckets={hasBuckets}
             onTrigger={() => setOpen(false)}
           />
-          <div className="rounded-md border border-white/15 bg-black px-2">
+          <div className="flex flex-col rounded-md border border-white/15 bg-black px-2 py-1">
+            <BillingButton plan={plan} />
             <SignoutButton />
           </div>
         </div>

@@ -43,6 +43,7 @@ import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
+import { BillingButton } from "./billing-button";
 import { CreateIdeaDialog } from "./create-idea-modal";
 import { CreditLine, GoldCost } from "./credit-line";
 import { GameplanView, type LinkStep } from "./gameplan-view";
@@ -186,6 +187,7 @@ export function AnalyzeVaultModal({
   const [cached, setCached] = useState(false);
   const [steps, setSteps] = useState<AnalysisStep[]>([]);
   const [credits, setCredits] = useState<CreditBalance | null>(null);
+  const [outOfGold, setOutOfGold] = useState(false);
 
   function loadCredits() {
     void fetchCredits().then((balance) => balance && setCredits(balance));
@@ -207,6 +209,9 @@ export function AnalyzeVaultModal({
       : undefined;
   const shortOfCredits =
     credits != null && runCost != null && credits.remaining < runCost;
+  // Scavengers who can't afford a run get a way to upgrade right there.
+  const offerUpgrade =
+    credits?.plan === "free" && (shortOfCredits || outOfGold);
   const reasoning = useMemo(
     () => getReasoningText(result, selectedPathway?.id),
     [result, selectedPathway?.id],
@@ -291,6 +296,7 @@ export function AnalyzeVaultModal({
     setSaved(false);
     setApplied(false);
     setError(null);
+    setOutOfGold(false);
     setCached(false);
     setSteps([]);
     setMinMaxModal(true);
@@ -310,6 +316,7 @@ export function AnalyzeVaultModal({
 
       // Rate limited or out of credits: the server's message says which.
       if (response.status === 429 || response.status === 402) {
+        setOutOfGold(response.status === 402);
         setError(await response.text());
         return;
       }
@@ -495,6 +502,7 @@ export function AnalyzeVaultModal({
             {error}
           </p>
         )}
+        {offerUpgrade && <BillingButton plan="free" className="w-fit -ml-2" />}
         {!runStarted && (
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2">
