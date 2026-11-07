@@ -4,6 +4,7 @@ import { PATHWAYSJSON } from "@/lib/constants";
 import type { AnalysisResult as AnalysisRecord } from "@/lib/db/schema";
 import type { ExecutionResult, PathwayId } from "@/lib/types";
 import { isBucketRefinement, isGameplan, isIdeaRefinement } from "@/lib/types";
+import clsx from "clsx";
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,6 +31,31 @@ const PathwayIcons: Record<PathwayId, React.ReactNode> = {
   gameplan: <Flag className="w-3 h-3" />,
 };
 
+const PathwayColors: Record<
+  PathwayId,
+  {
+    textColor: string;
+    borderColor: string;
+  }
+> = {
+  analysis: {
+    textColor: "text-accent",
+    borderColor: "hover:border-b-accent/50",
+  },
+  execution: {
+    textColor: "text-accent",
+    borderColor: "hover:border-b-accent/50",
+  },
+  refinement: {
+    textColor: "text-indigo-400",
+    borderColor: "hover:border-b-indigo-400/50",
+  },
+  gameplan: {
+    textColor: "text-cyan-400",
+    borderColor: "hover:border-b-cyan-400/50",
+  },
+};
+
 function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
   const pathway = PATHWAYS[analysis.analysisType];
   const updatedAt = formatDate(analysis.updatedAt);
@@ -47,14 +73,22 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
   return (
     <div
       data-testid="analysis-item"
-      className="flex w-full flex-col gap-2  p-4 border-b border-white/10 hover:bg-white/5 transition-colors hover:border-white/50"
+      className={clsx(
+        "flex w-full flex-col gap-2 p-4 border-b border-white/10 hover:bg-white/5 transition-colors",
+        PathwayColors[pathway.id].borderColor,
+      )}
     >
       <Link
         href={`/main/analysis/${analysis.id}`}
         data-testid="analysis-item-link"
         className="flex flex-col gap-2"
       >
-        <div className="flex items-center gap-2">
+        <div
+          className={clsx(
+            "flex items-center gap-2",
+            PathwayColors[pathway.id].textColor,
+          )}
+        >
           {icon}
           <p>{pathway.title}</p>
         </div>
