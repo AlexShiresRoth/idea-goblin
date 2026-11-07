@@ -37,9 +37,12 @@ export default function Header({ hasBuckets }: { hasBuckets: boolean }) {
             data-testid="home-link"
             className={clsx(
               syneTactile.className,
-              "px-2 text-xl hover:text-accent transition-colors",
+              "px-2 text-lg hover:text-accent transition-colors flex items-center gap-2",
             )}
           >
+            <span className="h-7 w-7 p-2 bg-accent text-zinc-900 flex items-center justify-center">
+              IG
+            </span>
             Idea Goblin
           </Link>
         </div>

@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import AuthButton from "./components/auth-button";
 import EmailAuthForm from "./components/email-auth-form";
+import Logo from "./components/logo";
 
 export const dynamic = "force-dynamic";
 
@@ -15,26 +16,6 @@ const syneTactile = Syne_Tactile({
   weight: ["400"],
   variable: "--font-syne-tactile",
 });
-
-function Logo({ dark }: { dark?: boolean }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        className={clsx(
-          syneTactile.className,
-          "w-8 h-8 font-bold rounded-none bg-accent text-background flex items-center justify-center border-4 border-accent/90",
-        )}
-      >
-        IG
-      </span>
-      <p
-        className={clsx("uppercase", dark ? "text-zinc-700" : "text-zinc-300")}
-      >
-        Idea Goblin
-      </p>
-    </div>
-  );
-}
 
 // TODO handle these error pages
 export default async function Home({ searchParams }: PageProps<"/">) {

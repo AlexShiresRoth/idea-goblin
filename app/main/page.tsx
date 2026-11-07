@@ -3,8 +3,8 @@ import { getSession } from "@/lib/auth";
 import CreateIdeaModal from "../components/create-idea-modal";
 import { FocusBar, FocusProvider } from "../components/focus-provider";
 import Bucket from "./bucket";
-import { UpgradedToast } from "./upgraded-toast";
 import "./page.css";
+import { UpgradedToast } from "./upgraded-toast";
 
 export default async function Main({ searchParams }: PageProps<"/main">) {
   const session = await getSession();
@@ -36,7 +36,7 @@ export default async function Main({ searchParams }: PageProps<"/main">) {
         <FocusBar />
         <div
           data-testid="buckets-container"
-          className="buckets-container colums-1 md:columns-xs content-start border border-white/20 rounded-none p-4 overflow-y-scroll"
+          className="buckets-container colums-1 md:columns-xs content-start p-4 overflow-y-scroll"
         >
           {/* css columns goes from right to left */}
           {orderedBuckets.map((bucket) => (
