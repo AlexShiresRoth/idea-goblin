@@ -36,7 +36,7 @@ export default async function Main({ searchParams }: PageProps<"/main">) {
         <FocusBar />
         <div
           data-testid="buckets-container"
-          className="buckets-container colums-1 md:columns-xs content-start border border-white/20 rounded-lg p-4 overflow-y-scroll"
+          className="buckets-container colums-1 md:columns-xs content-start border border-white/20 rounded-none p-4 overflow-y-scroll"
         >
           {/* css columns goes from right to left */}
           {orderedBuckets.map((bucket) => (

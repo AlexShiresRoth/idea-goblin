@@ -58,7 +58,7 @@ type StreamEvent = {
 };
 
 const fieldClassName =
-  "w-full rounded-md border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none";
+  "w-full rounded-none border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none";
 
 function toTarget(value: TargetValue): ImportTarget {
   if (value.startsWith("existing:")) {
@@ -345,7 +345,7 @@ function ImportIdeasForm({
 
   return (
     <div
-      className="flex flex-col gap-4 rounded-lg border border-white/20 bg-background p-4 md:p-6 w-full md:w-3/4 max-w-5xl max-h-[90dvh] min-h-0"
+      className="flex flex-col gap-4 rounded-none border border-white/20 bg-background p-4 md:p-6 w-full md:w-3/4 max-w-5xl max-h-[90dvh] min-h-0"
       data-testid="import-ideas-modal"
     >
       <div className="flex items-center justify-between border-b border-white/20 pb-4 shrink-0">
@@ -377,7 +377,7 @@ function ImportIdeasForm({
                   setInputError(undefined);
                 }}
                 className={clsx(
-                  "px-3 py-1.5 rounded-md border text-sm transition-colors",
+                  "px-3 py-1.5 rounded-none border text-sm transition-colors",
                   source === option
                     ? "border-white/50 bg-white/5"
                     : "border-white/15 text-white/60 hover:border-white/40",
@@ -421,7 +421,7 @@ function ImportIdeasForm({
             <div className="flex flex-col gap-2">
               <label
                 className={clsx(
-                  "flex flex-col items-center gap-2 rounded-md border border-dashed border-white/20 px-4 py-8 text-sm text-white/60",
+                  "flex flex-col items-center gap-2 rounded-none border border-dashed border-white/20 px-4 py-8 text-sm text-white/60",
                   transcribing
                     ? "opacity-60"
                     : "hover:border-white/40 hover:cursor-pointer",
@@ -463,7 +463,7 @@ function ImportIdeasForm({
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              <label className="flex flex-col items-center gap-2 rounded-md border border-dashed border-white/20 px-4 py-8 text-sm text-white/60 hover:border-white/40 hover:cursor-pointer">
+              <label className="flex flex-col items-center gap-2 rounded-none border border-dashed border-white/20 px-4 py-8 text-sm text-white/60 hover:border-white/40 hover:cursor-pointer">
                 <UploadIcon className="w-4 h-4" />
                 {fileName ?? "Choose a CSV file"}
                 <input
@@ -583,7 +583,7 @@ function ImportIdeasForm({
                   key={row.line}
                   data-testid="import-row"
                   className={clsx(
-                    "flex flex-col gap-2 rounded-md border px-3 py-2 md:flex-row md:items-center",
+                    "flex flex-col gap-2 rounded-none border px-3 py-2 md:flex-row md:items-center",
                     row.error ? "border-red-400/30" : "border-white/10",
                     !row.included && "opacity-60",
                   )}
@@ -674,7 +674,7 @@ function ImportIdeasForm({
               disabled={included.length === 0 || needsBucketName}
               onClick={startImport}
               data-testid="import-submit"
-              className="flex items-center gap-2 rounded-md border border-white/20 px-4 py-2 text-sm transition-colors enabled:hover:cursor-pointer enabled:hover:bg-green-500 enabled:hover:text-black disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-none border border-white/20 px-4 py-2 text-sm transition-colors enabled:hover:cursor-pointer enabled:hover:bg-accent/90 enabled:hover:text-background disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <UploadIcon className="w-3 h-3" />
               Import {included.length} idea{included.length === 1 ? "" : "s"}
@@ -685,7 +685,7 @@ function ImportIdeasForm({
 
       {stage === "importing" && (
         <div className="flex flex-col gap-4">
-          <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+          <div className="rounded-none border border-white/10 bg-white/5 px-4 py-3">
             <AnalysisSteps
               steps={steps}
               running={!error}
@@ -738,7 +738,7 @@ function ImportIdeasForm({
                   {bucket.name}: {bucket.count} idea
                   {bucket.count === 1 ? "" : "s"}
                   {bucket.created && (
-                    <span className="ml-2 rounded-full border border-green-500/40 px-2 text-xs text-green-400">
+                    <span className="ml-2 rounded-none border border-accent/40 px-2 text-xs text-accent">
                       new bucket
                     </span>
                   )}
@@ -823,7 +823,7 @@ export default function ImportIdeasModal({
           type="button"
           onClick={openModal}
           data-testid="import-ideas-open"
-          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-background px-4 py-3 text-white/80"
+          className="flex items-center gap-2 text-sm w-full rounded-none border border-white/15 bg-background px-4 py-3 text-white/80"
         >
           <UploadIcon className="w-3 h-3" />
           Import ideas
@@ -834,7 +834,7 @@ export default function ImportIdeasModal({
           type="button"
           onClick={openModal}
           data-testid="import-ideas-open"
-          className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-green-400/80 transition-colors"
+          className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-accent/80 transition-colors"
         >
           <UploadIcon className="w-3 h-3" />
           Import

@@ -83,7 +83,7 @@ export default function BucketShare({
         type="button"
         data-testid="bucket-share-open"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-sky-300/80 transition-colors"
+        className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-sky-300/80 transition-colors"
       >
         <Share2Icon className="w-3 h-3" />
         Share
@@ -96,7 +96,7 @@ export default function BucketShare({
               aria-modal="true"
               aria-label="Share this bucket"
               data-testid="bucket-share-dialog"
-              className="flex w-full max-w-lg flex-col gap-4 rounded-lg border border-white/20 bg-background p-6"
+              className="flex w-full max-w-lg flex-col gap-4 rounded-none border border-white/20 bg-background p-6"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-1">
@@ -126,7 +126,7 @@ export default function BucketShare({
                       data-testid="share-link-input"
                       value={shareUrl(token)}
                       onFocus={(event) => event.target.select()}
-                      className="min-w-0 flex-1 rounded border border-white/20 bg-white/5 px-2 py-1 text-sm text-white/80"
+                      className="min-w-0 flex-1 rounded-none border border-white/20 bg-white/5 px-2 py-1 text-sm text-white/80"
                     />
                     <button
                       type="button"
@@ -135,7 +135,7 @@ export default function BucketShare({
                       className="action-button"
                     >
                       {copied === "copied" ? (
-                        <CheckIcon className="w-3 h-3 text-green-400" />
+                        <CheckIcon className="w-3 h-3 text-accent" />
                       ) : (
                         <CopyIcon className="w-3 h-3" />
                       )}

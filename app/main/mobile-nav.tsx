@@ -55,7 +55,7 @@ export default function MobileNav({
             hasBuckets={hasBuckets}
             onTrigger={() => setOpen(false)}
           />
-          <div className="flex flex-col rounded-md border border-white/15 bg-background px-2 py-1">
+          <div className="flex flex-col rounded-none border border-white/15 bg-background px-2 py-1">
             <BillingButton plan={plan} />
             <SignoutButton />
           </div>
@@ -67,7 +67,7 @@ export default function MobileNav({
         aria-label={open ? "Close menu" : "Open menu"}
         onClick={() => setOpen((current) => !current)}
         data-testid="mobile-nav-toggle"
-        className="fixed bottom-5 right-5 z-50 flex items-center justify-center w-12 h-12 rounded-full bg-green-500 text-black shadow-md"
+        className="fixed bottom-5 right-5 z-50 flex items-center justify-center w-12 h-12 rounded-none bg-accent text-background shadow-md"
       >
         {open ? <XIcon className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
       </button>

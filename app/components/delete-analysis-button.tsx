@@ -104,7 +104,7 @@ export function DeleteAnalysisButton({
               aria-modal="true"
               data-testid="delete-analysis-dialog"
               aria-labelledby={`delete-analysis-${analysisId}`}
-              className="w-full max-w-sm rounded-lg border border-white/20 bg-background p-5 flex flex-col gap-4"
+              className="w-full max-w-sm rounded-none border border-white/20 bg-background p-5 flex flex-col gap-4"
               onClick={(event) => event.stopPropagation()}
             >
               <div className="flex flex-col gap-1">
@@ -135,7 +135,7 @@ export function DeleteAnalysisButton({
                   data-testid="delete-analysis-confirm"
                   onClick={deleteAnalysis}
                   disabled={isDeleting}
-                  className="flex items-center gap-1 rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:cursor-pointer disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 rounded-none border border-red-500/40 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 hover:cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isDeleting ? (
                     <Loader2Icon className="w-3 h-3 animate-spin" />

@@ -114,7 +114,7 @@ function FilterTabs({ activeType }: { activeType?: PathwayId }) {
             href={analysisHref(type)}
             data-testid={`analysis-filter-${type ?? "all"}`}
             aria-current={active ? "page" : undefined}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors ${
+            className={`flex items-center gap-1.5 rounded-none px-3 py-1 text-sm transition-colors ${
               active
                 ? "bg-white/15 text-white"
                 : "text-white/50 hover:text-white/80 hover:bg-white/5"
@@ -140,7 +140,7 @@ function PageLink({
   testId?: string;
   children: React.ReactNode;
 }) {
-  const className = "flex items-center justify-center rounded-md p-1";
+  const className = "flex items-center justify-center rounded-none p-1";
   if (!href) {
     return (
       <span

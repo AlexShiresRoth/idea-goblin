@@ -18,7 +18,7 @@ import { useContext, useState } from "react";
 import { ToastContext } from "../context/toast.provider";
 
 const fieldClassName =
-  "block w-full rounded-md border focus:outline-none border-white/10 bg-white/10 px-3 py-2 text-sm text-white focus:border-white/50";
+  "block w-full rounded-none border focus:outline-none border-white/10 bg-white/10 px-3 py-2 text-sm text-white focus:border-white/50";
 
 export default function Idea({ idea }: { idea: IdeaView }) {
   const router = useRouter();
@@ -187,7 +187,7 @@ export default function Idea({ idea }: { idea: IdeaView }) {
                 type="submit"
                 data-testid="save-idea"
                 disabled={isSaving}
-                className="flex items-center gap-1 text-white/50 hover:text-green-400/80 transition-colors text-xs hover:cursor-pointer disabled:opacity-50"
+                className="flex items-center gap-1 text-white/50 hover:text-accent/80 transition-colors text-xs hover:cursor-pointer disabled:opacity-50"
               >
                 {isSaving ? (
                   <Loader2Icon className="w-3 h-3 animate-spin" />
@@ -216,7 +216,7 @@ export default function Idea({ idea }: { idea: IdeaView }) {
               {done && (
                 <CircleCheckIcon
                   aria-label="Done"
-                  className="w-3 h-3 shrink-0 text-green-500/80"
+                  className="w-3 h-3 shrink-0 text-accent/80"
                 />
               )}
               {idea.title}
@@ -242,7 +242,7 @@ export default function Idea({ idea }: { idea: IdeaView }) {
               data-testid="toggle-done"
               onClick={() => !isMarking && toggleDone()}
               disabled={isMarking}
-              className="flex items-center gap-1 text-white/50 hover:text-green-400/80 transition-colors text-xs hover:cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1 text-white/50 hover:text-accent/80 transition-colors text-xs hover:cursor-pointer disabled:opacity-50"
             >
               {isMarking ? (
                 <Loader2Icon className="w-3 h-3 animate-spin" />

@@ -22,7 +22,7 @@ function Logo({ dark }: { dark?: boolean }) {
       <span
         className={clsx(
           syneTactile.className,
-          "w-8 h-8 font-bold rounded bg-accent text-background flex items-center justify-center border-4 border-accent/90",
+          "w-8 h-8 font-bold rounded-none bg-accent text-background flex items-center justify-center border-4 border-accent/90",
         )}
       >
         IG

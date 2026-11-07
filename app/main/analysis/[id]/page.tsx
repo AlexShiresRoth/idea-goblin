@@ -36,7 +36,7 @@ function AnalysisReasoning({
           <div
             key={`${reason.title}-${index}`}
             data-testid="analysis-reason"
-            className="flex flex-col gap-2 rounded-lg bg-white/5 px-4 py-3 border-l-2 border-white/30"
+            className="flex flex-col gap-2 rounded-none bg-white/5 px-4 py-3 border-l-2 border-white/30"
           >
             <div className="flex items-center gap-2">
               <span className="text-xs text-white/40">{index + 1}</span>
@@ -102,7 +102,7 @@ export default async function AnalysisPage({
             {analysisData.summary && (
               <aside
                 data-testid="analysis-summary"
-                className="rounded-lg border border-white/15 bg-white/5 border-l-2 border-l-white/40 px-4 py-3 flex flex-col gap-2"
+                className="rounded-none border border-white/15 bg-white/5 border-l-2 border-l-white/40 px-4 py-3 flex flex-col gap-2"
               >
                 <span className="text-xs uppercase tracking-wide text-white/40">
                   Summary

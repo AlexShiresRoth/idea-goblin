@@ -30,7 +30,7 @@ export default function BackButton() {
       aria-label={label}
       title={label}
       data-testid="back-button"
-      className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+      className="flex shrink-0 items-center gap-1 rounded-none px-2 py-1 text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors"
     >
       <ArrowLeftIcon className="w-4 h-4" />
       <span className="hidden md:inline">Back</span>

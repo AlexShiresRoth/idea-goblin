@@ -23,8 +23,8 @@ function Toast({ toast }: { toast: Toast }) {
       data-testid="toast"
       data-type={toast.type}
       className={clsx(
-        "p-1 px-3 text-sm bg-background border min-w-fit flex items-center gap-2 rounded animate-toast",
-        toast.type === "success" && "border-green-500/40 text-white/80",
+        "p-1 px-3 text-sm bg-background border min-w-fit flex items-center gap-2 rounded-none animate-toast",
+        toast.type === "success" && "border-accent/40 text-white/80",
         toast.type === "error" && "border-red-500/40 text-white/80",
         toast.type === "warning" && "border-yellow-500/40 text-white/80",
         toast.type === "info" && "border-blue-500/40 text-white/80",

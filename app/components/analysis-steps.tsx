@@ -59,7 +59,7 @@ export function AnalysisSteps({
             ) : broken ? (
               <XIcon className="w-3 h-3 shrink-0" />
             ) : (
-              <CheckIcon className="w-3 h-3 shrink-0 text-green-500/80" />
+              <CheckIcon className="w-3 h-3 shrink-0 text-accent/80" />
             )}
             <span>{item.message}</span>
             {active && seconds >= 3 && (

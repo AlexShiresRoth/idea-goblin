@@ -491,7 +491,7 @@ export function AnalyzeVaultModal({
       <div
         data-testid="analyze-vault-modal"
         className={clsx(
-          "flex flex-col gap-4 rounded-lg border border-white/20 bg-background transition-all duration-300 min-h-0",
+          "flex flex-col gap-4 rounded-none border border-white/20 bg-background transition-all duration-300 min-h-0",
           // Fixed heights so long results scroll inside the modal.
           minMaxModal && "md:w-full w-full h-dvh p-8",
           !minMaxModal && "md:w-1/2 w-11/12 max-h-[85dvh] p-6 md:p-8",
@@ -522,7 +522,7 @@ export function AnalyzeVaultModal({
                     key={pathway.id}
                     data-testid={`analyze-pathway-${pathway.id}`}
                     className={clsx(
-                      "flex flex-col gap-2 p-4 border border-white/20 rounded-lg hover:border-white/50 transition-colors cursor-pointer",
+                      "flex flex-col gap-2 p-4 border border-white/20 rounded-none hover:border-white/50 transition-colors cursor-pointer",
                       selectedPathway?.id === pathway.id && "border-white/50",
                     )}
                   >
@@ -562,9 +562,9 @@ export function AnalyzeVaultModal({
                   type="button"
                   disabled={!selectedPathway || shortOfCredits}
                   className={clsx(
-                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
+                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-none transition-colors",
                     selectedPathway && !shortOfCredits
-                      ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
+                      ? "opacity-100 hover:cursor-pointer hover:bg-accent/90 hover:text-background"
                       : "opacity-50 cursor-not-allowed",
                   )}
                   onClick={beginPathway}
@@ -621,9 +621,9 @@ export function AnalyzeVaultModal({
                   type="button"
                   disabled={!selectedBucket || shortOfCredits}
                   className={clsx(
-                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
+                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-none transition-colors",
                     selectedBucket && !shortOfCredits
-                      ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
+                      ? "opacity-100 hover:cursor-pointer hover:bg-accent/90 hover:text-background"
                       : "opacity-50 cursor-not-allowed",
                   )}
                   onClick={() => startAnalysis()}
@@ -717,7 +717,7 @@ export function AnalyzeVaultModal({
                 onRestore={restoreDraft}
               />
               {(analyzing || (error && steps.length > 0)) && (
-                <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+                <div className="rounded-none border border-white/10 bg-white/5 px-4 py-3">
                   <AnalysisSteps
                     steps={steps}
                     running={analyzing}
@@ -816,7 +816,7 @@ function EmptyVaultDialog({
         aria-modal="true"
         aria-label="Analyze Vault"
         data-testid="analyze-vault-empty"
-        className="flex flex-col gap-4 rounded-lg border border-white/20 bg-background md:w-1/2 w-11/12 p-6 md:p-8"
+        className="flex flex-col gap-4 rounded-none border border-white/20 bg-background md:w-1/2 w-11/12 p-6 md:p-8"
       >
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-bold">Analyze Vault</h2>
@@ -847,7 +847,7 @@ function EmptyVaultDialog({
             <button
               type="button"
               autoFocus
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-green-500 text-black hover:bg-green-600 hover:cursor-pointer transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-none bg-accent text-background hover:bg-accent/90 hover:cursor-pointer transition-colors"
               onClick={() => onAddIdeas("create")}
               data-testid="analyze-vault-empty-create"
             >
@@ -895,7 +895,7 @@ export default function AnalyzeVault({
           type="button"
           onClick={openModal}
           data-testid="analyze-vault-open"
-          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-background px-4 py-3 text-white/80"
+          className="flex items-center gap-2 text-sm w-full rounded-none border border-white/15 bg-background px-4 py-3 text-white/80"
         >
           <SparklesIcon className="w-3 h-3" />
           Analyze Vault

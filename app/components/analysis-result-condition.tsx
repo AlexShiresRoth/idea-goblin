@@ -19,7 +19,7 @@ import { GameplanView } from "./gameplan-view";
 
 function scoreTone(score: number) {
   if (score >= 75)
-    return "border-green-500/40 bg-green-500/10 text-green-500/80";
+    return "border-accent/40 bg-accent/10 text-accent/80";
   if (score > 50)
     return "border-yellow-500/40 bg-yellow-500/10 text-yellow-500/80";
   if (score > 25)
@@ -28,7 +28,7 @@ function scoreTone(score: number) {
 }
 
 function scoreTextTone(score: number) {
-  if (score >= 75) return "text-green-500/90";
+  if (score >= 75) return "text-accent/90";
   if (score > 50) return "text-yellow-500/90";
   if (score > 25) return "text-orange-500/90";
   return "text-red-500/90";
@@ -77,9 +77,9 @@ function ExecutionMetrics({
         <span className="text-lg leading-none text-white/80">
           {choice.feasibility}
         </span>
-        <div className="h-1 w-full max-w-20 rounded-full bg-white/10">
+        <div className="h-1 w-full max-w-20 rounded-none bg-white/10">
           <div
-            className="h-full rounded-full bg-white/50"
+            className="h-full rounded-none bg-white/50"
             style={{
               width: `${Math.min(100, Math.max(0, choice.feasibility))}%`,
             }}
@@ -114,7 +114,7 @@ function ScoreChip({ value, label }: { value: number; label?: string }) {
   return (
     <div
       className={clsx(
-        "flex items-center gap-1 border rounded p-1",
+        "flex items-center gap-1 border rounded-none p-1",
         scoreTone(value),
       )}
     >
@@ -158,7 +158,7 @@ export function AnalysisItem({
     <div
       key={choice.bucket_id}
       data-testid="analysis-choice"
-      className="p-4 border border-white/20 rounded-md flex flex-col items-start gap-2 max-w-sm animate-fade-in flex-1 min-w-xs"
+      className="p-4 border border-white/20 rounded-none flex flex-col items-start gap-2 max-w-sm animate-fade-in flex-1 min-w-xs"
     >
       <div className="flex items-center justify-between w-full gap-1">
         <ScoreChip value={choice.score} />
@@ -175,7 +175,7 @@ export function AnalysisItem({
 const recommendationOrder = { pursue: 0, park: 1, kill: 2 } as const;
 
 const recommendationTone = {
-  pursue: "border-green-500/40 bg-green-500/10 text-green-500/80",
+  pursue: "border-accent/40 bg-accent/10 text-accent/80",
   park: "border-yellow-500/40 bg-yellow-500/10 text-yellow-500/80",
   kill: "border-red-500/40 bg-red-500/10 text-red-500/80",
 } as const;
@@ -190,7 +190,7 @@ export function RecommendationBadge({
       data-testid="recommendation-badge"
       data-recommendation={recommendation}
       className={clsx(
-        "shrink-0 border rounded px-2 py-0.5 text-xs uppercase tracking-wide",
+        "shrink-0 border rounded-none px-2 py-0.5 text-xs uppercase tracking-wide",
         recommendationTone[recommendation],
       )}
     >
@@ -244,13 +244,13 @@ function ExecutionChoices({ result }: { result: ExecutionResult }) {
   return (
     <div
       data-testid="execution-choices"
-      className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-md gap-4"
+      className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-none gap-4"
     >
       {sortedChoices.map((choice) => (
         <ExecutionChoiceCard
           key={choice.bucket_id}
           choice={choice}
-          className="p-4 border border-white/20 rounded-md max-w-sm flex-1 min-w-xs"
+          className="p-4 border border-white/20 rounded-none max-w-sm flex-1 min-w-xs"
         />
       ))}
     </div>
@@ -289,7 +289,7 @@ export function RefinementCard({
   return (
     <div
       data-testid="refinement-card"
-      className="flex flex-col gap-4 p-4 border border-white/20 rounded-md"
+      className="flex flex-col gap-4 p-4 border border-white/20 rounded-none"
     >
       <div className="flex flex-col gap-1">
         <span className="text-xs uppercase tracking-wide text-white/40">
@@ -316,7 +316,7 @@ export function RefinementCard({
             <li
               key={`${improvement}-${index}`}
               data-testid="refinement-improvement"
-              className="text-sm text-white/60 rounded-lg bg-white/5 px-4 py-3 border-l-2 border-white/30"
+              className="text-sm text-white/60 rounded-none bg-white/5 px-4 py-3 border-l-2 border-white/30"
             >
               {improvement}
             </li>
@@ -335,14 +335,14 @@ function RefinementSuggestions({ result }: { result: RefinementResult }) {
   return (
     <div
       data-testid="refinement-suggestions"
-      className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-md gap-4"
+      className="flex items-stretch flex-wrap p-4 border border-white/20 rounded-none gap-4"
     >
       {result.suggestions.map((suggestion) => {
         return (
           <div
             key={suggestion.bucket_id}
             data-testid="refinement-suggestion"
-            className="p-4 border border-white/20 rounded-md flex flex-col items-start gap-2 max-w-sm flex-1 min-w-xs"
+            className="p-4 border border-white/20 rounded-none flex flex-col items-start gap-2 max-w-sm flex-1 min-w-xs"
           >
             <p className="text-sm text-white/60">{suggestion.original_idea}</p>
             <h2 className="text-lg font-bold">{suggestion.refined_idea}</h2>

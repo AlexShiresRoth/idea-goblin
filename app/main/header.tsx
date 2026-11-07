@@ -23,7 +23,7 @@ export default function Header({ hasBuckets }: { hasBuckets: boolean }) {
           data-testid="home-link"
           className={clsx(
             syneTactile.className,
-            "text-xl hover:text-primary transition-colors",
+            "text-xl hover:text-accent transition-colors",
           )}
         >
           Idea Goblin
@@ -37,7 +37,7 @@ export default function Header({ hasBuckets }: { hasBuckets: boolean }) {
             data-testid="home-link"
             className={clsx(
               syneTactile.className,
-              "px-2 text-xl hover:text-primary transition-colors",
+              "px-2 text-xl hover:text-accent transition-colors",
             )}
           >
             Idea Goblin

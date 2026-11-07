@@ -6,14 +6,16 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AuthCodeError({ searchParams }: PageProps<"/auth/auth-code-error">) {
+export default async function AuthCodeError({
+  searchParams,
+}: PageProps<"/auth/auth-code-error">) {
   const { reason } = await searchParams;
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-background">
+    <div className="flex flex-col flex-1 items-center justify-center bg-background font-sans">
       <main className="flex w-full max-w-3xl flex-col items-start gap-4 px-16 py-32">
         <h1 className="text-2xl">We couldn&apos;t finish signing you in.</h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
+        <p className="text-primary/60">
           The sign in link was already used or has expired. Please try again.
         </p>
         {typeof reason === "string" && reason ? (
@@ -27,7 +29,7 @@ export default async function AuthCodeError({ searchParams }: PageProps<"/auth/a
         <Link
           href="/"
           data-testid="auth-error-back"
-          className="rounded-md px-4 py-2 underline hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          className="rounded-none border border-accent/40 px-4 py-2 text-accent hover:bg-accent/10"
         >
           Back to sign in
         </Link>

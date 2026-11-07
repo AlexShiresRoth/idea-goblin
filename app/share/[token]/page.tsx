@@ -48,7 +48,7 @@ function SharedIdea({ idea }: { idea: BucketSnapshotIdea }) {
         {done && (
           <CircleCheckIcon
             aria-label="Done"
-            className="w-3 h-3 shrink-0 text-green-500/80"
+            className="w-3 h-3 shrink-0 text-accent/80"
           />
         )}
         <span className={clsx(done && "text-white/50 line-through")}>

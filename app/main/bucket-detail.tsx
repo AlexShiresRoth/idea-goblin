@@ -40,7 +40,7 @@ function FocusToggle({ bucketId }: { bucketId: number }) {
       data-testid="focus-toggle"
       disabled={focus.saving}
       onClick={() => (active ? focus.park(bucketId) : focus.workOn(bucketId))}
-      className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-green-400/80 transition-colors disabled:opacity-50"
+      className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-accent/80 transition-colors disabled:opacity-50"
     >
       {active ? (
         <>
@@ -159,7 +159,7 @@ export default function BucketDetail({
               aria-label={summaryOpen ? "Hide summary" : "Show summary"}
               title={summaryOpen ? "Hide summary" : "Show summary"}
               onClick={() => setSummaryOpen(!summaryOpen)}
-              className="shrink-0 rounded p-1 text-white/50 hover:cursor-pointer hover:bg-white/10 hover:text-white/80 transition-colors"
+              className="shrink-0 rounded-none p-1 text-white/50 hover:cursor-pointer hover:bg-white/10 hover:text-white/80 transition-colors"
             >
               {summaryOpen ? (
                 <ChevronUpIcon className="w-4 h-4" />
@@ -186,7 +186,7 @@ export default function BucketDetail({
             data-testid="refine-bucket"
             disabled={isDeleting || ideas.length === 0}
             onClick={() => setRefining(true)}
-            className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-orange-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-orange-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <SparklesIcon className="w-3 h-3" />
             Refine
@@ -195,7 +195,7 @@ export default function BucketDetail({
             data-testid="delete-bucket"
             disabled={isDeleting}
             onClick={() => !isDeleting && deleteBucket()}
-            className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-red-500/80 transition-colors"
+            className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-red-500/80 transition-colors"
           >
             {isDeleting ? (
               <>

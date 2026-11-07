@@ -50,7 +50,7 @@ export function BillingButton({
       disabled={loading}
       data-testid={upgrade ? "upgrade-button" : "manage-billing"}
       className={clsx(
-        "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:cursor-pointer disabled:opacity-60",
+        "flex items-center gap-1.5 rounded-none px-2 py-1.5 text-sm transition-colors hover:cursor-pointer disabled:opacity-60",
         upgrade
           ? "text-amber-300 hover:bg-amber-300/10"
           : "text-white/60 hover:bg-white/10 hover:text-white",

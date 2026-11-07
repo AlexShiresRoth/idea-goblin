@@ -27,7 +27,7 @@ export function doneCount(ideas: IdeaView[]) {
 export function FocusBadge({ active }: { active: boolean }) {
   return active ? (
     <span
-      className="flex items-center gap-1 rounded-full border border-green-500/40 bg-green-500/10 px-2 py-1 text-xs text-green-300"
+      className="flex items-center gap-1 rounded-none border border-accent/40 bg-accent/10 px-2 py-1 text-xs text-accent"
       data-testid="focus-badge-active"
     >
       <CrosshairIcon className="w-3 h-3" />
@@ -35,7 +35,7 @@ export function FocusBadge({ active }: { active: boolean }) {
     </span>
   ) : (
     <span
-      className="flex items-center gap-1 rounded-full border border-white/20 px-2 py-1 text-xs text-white/60"
+      className="flex items-center gap-1 rounded-none border border-white/20 px-2 py-1 text-xs text-white/60"
       data-testid="focus-badge-parked"
     >
       <CircleParkingIcon className="w-3 h-3" />
@@ -51,7 +51,7 @@ export function ThemePill({
 }) {
   return (
     <div
-      className="flex w-fit items-center gap-1 rounded-full border border-(--bucket-primary)/50 bg-(--bucket-accent)/10 px-2 py-1"
+      className="flex w-fit items-center gap-1 rounded-none border border-(--bucket-primary)/50 bg-(--bucket-accent)/10 px-2 py-1"
       data-testid="theme-pill"
     >
       <BucketIcon category={bucket.category} className="w-3 h-3" />

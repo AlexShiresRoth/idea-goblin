@@ -52,13 +52,13 @@ function renderResult(result: AnalysisPayload, type: PathwayId) {
 
 describe("RecommendationBadge", () => {
   it.each([
-    ["pursue", "text-green-500/80"],
+    ["pursue", "text-accent/80"],
     ["park", "text-yellow-500/80"],
     ["kill", "text-red-500/80"],
   ] as const)("shows %s in its tone", (recommendation, tone) => {
     render(<RecommendationBadge recommendation={recommendation} />);
 
-    expect(screen.getByText(recommendation)).toHaveClass(tone);
+    expect(screen.getByText(recommendation)).toHaveClass(tone, "rounded-none");
   });
 });
 
@@ -125,8 +125,8 @@ describe("ExecutionChoiceCard", () => {
   });
 
   it.each([
-    [100, "text-green-500/90"],
-    [75, "text-green-500/90"],
+    [100, "text-accent/90"],
+    [75, "text-accent/90"],
     [74, "text-yellow-500/90"],
     [51, "text-yellow-500/90"],
     [50, "text-orange-500/90"],
@@ -214,7 +214,7 @@ describe("AnalysisItem", () => {
   });
 
   it.each([
-    [75, "text-green-500/80"],
+    [75, "text-accent/80"],
     [74, "text-yellow-500/80"],
     [51, "text-yellow-500/80"],
     [50, "text-orange-500/80"],

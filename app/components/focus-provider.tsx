@@ -61,7 +61,7 @@ function FocusPicker({
         aria-modal="true"
         aria-label="Choose what you're working on"
         data-testid="focus-picker"
-        className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-4 rounded-lg border border-white/20 bg-background p-6"
+        className="flex max-h-[85dvh] w-full max-w-lg flex-col gap-4 rounded-none border border-white/20 bg-background p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
@@ -89,9 +89,9 @@ function FocusPicker({
               <li key={bucket.id}>
                 <label
                   className={clsx(
-                    "flex items-center gap-3 rounded-md border px-3 py-2 text-sm transition-colors hover:cursor-pointer",
+                    "flex items-center gap-3 rounded-none border px-3 py-2 text-sm transition-colors hover:cursor-pointer",
                     checked
-                      ? "border-green-500/50 bg-green-500/10"
+                      ? "border-accent/50 bg-accent/10"
                       : "border-white/15 hover:border-white/40",
                   )}
                 >
@@ -125,7 +125,7 @@ function FocusPicker({
             data-testid="focus-picker-save"
             disabled={over > 0 || saving}
             onClick={() => onSave(selected)}
-            className="flex items-center gap-2 rounded-md border border-white/20 px-4 py-2 text-sm transition-colors enabled:hover:cursor-pointer enabled:hover:bg-green-500 enabled:hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-none border border-white/20 px-4 py-2 text-sm transition-colors enabled:hover:cursor-pointer enabled:hover:bg-accent/90 enabled:hover:text-background disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving && <Loader2Icon className="w-3 h-3 animate-spin" />}
             Save
@@ -235,7 +235,7 @@ export function FocusBar() {
       data-testid="focus-bar"
       className="flex flex-wrap items-center gap-2 text-sm"
     >
-      <CrosshairIcon className="w-3 h-3 text-green-400" />
+      <CrosshairIcon className="w-3 h-3 text-accent" />
       {active.length > 0 ? (
         <>
           <span className="text-white/60">Working on</span>
@@ -243,7 +243,7 @@ export function FocusBar() {
             <span
               key={bucket.id}
               data-testid="focus-bar-bucket"
-              className="rounded-full border border-green-500/40 bg-green-500/10 px-2 py-0.5 text-xs text-green-300"
+              className="rounded-none border border-accent/40 bg-accent/10 px-2 py-0.5 text-xs text-accent"
             >
               {bucket.name}
             </span>

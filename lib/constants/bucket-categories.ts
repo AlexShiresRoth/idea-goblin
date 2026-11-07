@@ -276,9 +276,9 @@ export const BUCKET_CATEGORY_NAMES = Object.keys(
 // Buckets made before categories existed, or with an unknown one.
 export const DEFAULT_BUCKET_STYLE: BucketCategoryStyle = {
   icon: "folder",
-  primary: "var(--color-green-500)",
-  accent: "var(--color-green-500)",
-  tertiary: "var(--color-green-300)",
+  primary: "var(--color-accent)",
+  accent: "var(--color-accent)",
+  tertiary: "var(--color-accent)",
 };
 
 export function isBucketCategory(value: unknown): value is BucketCategory {
