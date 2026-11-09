@@ -21,7 +21,7 @@ import {
 import { db } from "@/lib/db";
 import { ideaBucketsTable } from "@/lib/db/schema";
 import { encodeEvent, NDJSON_HEADERS } from "@/lib/ndjson";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { OpenAI } from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
@@ -616,6 +616,7 @@ export async function POST(request: Request) {
           and(
             eq(ideaBucketsTable.id, bucketId),
             eq(ideaBucketsTable.profileId, profileId),
+            isNull(ideaBucketsTable.deletedAt),
           ),
         );
 
@@ -686,7 +687,12 @@ export async function POST(request: Request) {
           description: ideaBucketsTable.description,
         })
         .from(ideaBucketsTable)
-        .where(eq(ideaBucketsTable.profileId, profileId))
+        .where(
+          and(
+            eq(ideaBucketsTable.profileId, profileId),
+            isNull(ideaBucketsTable.deletedAt),
+          ),
+        )
         .orderBy(desc(ideaBucketsTable.updatedAt))
         .limit(MAX_BUCKETS_PER_RUN);
 

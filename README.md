@@ -20,6 +20,20 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Database migrations
+
+Apply pending Drizzle migrations before running an updated app against an existing database:
+
+```bash
+pnpm exec drizzle-kit migrate
+```
+
+The command requires `DATABASE_URL` to be available in its environment. Review the target database before running it.
+
+Migration `0016_bucket_trash.sql` adds recoverable bucket deletion. Delete moves a bucket to **Trash**, preserving its ideas, links, versions, and saved analyses. Restore it from the Trash navigation item; restored buckets are parked and their previous share links remain revoked. Data permanently removed by earlier versions cannot be recovered by this migration.
+
+Refinement's **Replace open ideas** keeps completed ideas in the bucket, snapshots the previous state, and only detaches open ideas from that bucket. It does not delete idea records or change their links to other buckets.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -173,7 +173,7 @@ function ApplyRefinement({ result, testId, className, onApplied }: Props) {
                 [
                   ["none", "Keep current ideas (details only)"],
                   ["add", "Add selected ideas"],
-                  ["replace", "Replace current ideas with selected ideas"],
+                  ["replace", "Replace open ideas with selected ideas"],
                 ] as const
               ).map(([mode, label]) => (
                 <label key={mode} className="flex items-start gap-2">
@@ -194,9 +194,10 @@ function ApplyRefinement({ result, testId, className, onApplied }: Props) {
                 role="note"
                 className="border border-accent p-3 text-sm text-accent"
               >
-                Replace removes ALL current ideas from this bucket, including
-                completed ideas. The current version is saved in version
-                history. Original ideas in other buckets remain unchanged.
+                Replace open ideas removes only open ideas from this bucket.
+                Completed ideas stay in this bucket. The current version is
+                saved in version history. Original ideas in other buckets remain
+                unchanged.
               </p>
             )}
             {suggestedIdeas === undefined && suggestions.length > 0 && (

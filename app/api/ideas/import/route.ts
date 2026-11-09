@@ -29,7 +29,7 @@ import {
   sortIdeasIntoBuckets,
   type DescribedIdea,
 } from "@/lib/prompts/import";
-import { and, cosineDistance, eq, isNotNull } from "drizzle-orm";
+import { and, cosineDistance, eq, isNotNull, isNull } from "drizzle-orm";
 import OpenAI from "openai";
 
 const client = new OpenAI();
@@ -457,7 +457,12 @@ export async function POST(request: Request) {
     const buckets = await db
       .select()
       .from(ideaBucketsTable)
-      .where(eq(ideaBucketsTable.profileId, profile.id));
+      .where(
+        and(
+          eq(ideaBucketsTable.profileId, profile.id),
+          isNull(ideaBucketsTable.deletedAt),
+        ),
+      );
 
     // Validate bucket choices before spending any tokens on them.
     const bucketIds = new Set(buckets.map((bucket) => bucket.id));

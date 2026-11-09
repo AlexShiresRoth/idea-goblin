@@ -33,6 +33,7 @@ export function makeBucket(overrides: Partial<IdeaBucket> = {}): IdeaBucket {
     theme: "growth",
     category: null,
     activeSince: null,
+    deletedAt: null,
     shareToken: null,
     profileId: userId,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),

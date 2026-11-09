@@ -1,5 +1,5 @@
-import type { AnalysisPayload, PathwayId } from "@/lib/types";
 import type { Plan } from "@/lib/constants/credits";
+import type { AnalysisPayload, PathwayId } from "@/lib/types";
 import {
   type AnyPgColumn,
   index,
@@ -51,6 +51,7 @@ export const ideaBucketsTable = pgTable("idea_buckets", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   // Set while the bucket is being worked on; null means parked.
   activeSince: timestamp("active_since"),
+  deletedAt: timestamp("deleted_at"),
   // Set while the bucket is shared by link; a new token revokes old links.
   shareToken: text("share_token").unique(),
 });

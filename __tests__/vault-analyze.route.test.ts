@@ -5,6 +5,8 @@ import { getCreditBalance } from "@/lib/api/credits";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import type { CreditBalance } from "@/lib/constants";
 import { db } from "@/lib/db";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBucket, makeSession, mockQuery, readEvents } from "./helpers";
 
@@ -95,6 +97,27 @@ describe("POST /api/vault/analyze", () => {
     );
     stream.mockReturnValue(fakeStream(executionResult));
   });
+
+  it.each(["analysis", "execution", "refinement", "gameplan"])(
+    "excludes deleted buckets from %s before calling the model",
+    async (pathway) => {
+      const query = mockQuery([]);
+      vi.mocked(db.select).mockReturnValueOnce(query as never);
+
+      const response = await analyze({ pathway, bucketId: 10 });
+
+      expect(response.status).toBe(
+        pathway === "refinement" || pathway === "gameplan" ? 404 : 400,
+      );
+      expect(stream).not.toHaveBeenCalled();
+      expect(getBucketIdeas).not.toHaveBeenCalled();
+      const { sql, params } = new PgDialect().sqlToQuery(
+        vi.mocked(query.where as (condition: SQL) => unknown).mock.calls[0][0],
+      );
+      expect(sql).toContain('"idea_buckets"."deleted_at" is null');
+      expect(params).toContain("user-1");
+    },
+  );
 
   it("rejects an unknown pathway", async () => {
     const response = await analyze({ pathway: "nope" });

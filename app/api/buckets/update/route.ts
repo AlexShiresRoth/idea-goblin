@@ -3,7 +3,7 @@ import { AuthGuard } from "@/lib/auth/auth-guard";
 import { isBucketCategory } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { ideaBucketsTable } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         and(
           eq(ideaBucketsTable.id, bucketId),
           eq(ideaBucketsTable.profileId, session.user.id),
+          isNull(ideaBucketsTable.deletedAt),
         ),
       )
       .limit(1);
@@ -53,7 +54,13 @@ export async function POST(request: Request) {
         ...(isBucketCategory(category) && { category }),
         updatedAt: new Date(),
       })
-      .where(eq(ideaBucketsTable.id, bucketId))
+      .where(
+        and(
+          eq(ideaBucketsTable.id, bucketId),
+          eq(ideaBucketsTable.profileId, session.user.id),
+          isNull(ideaBucketsTable.deletedAt),
+        ),
+      )
       .returning();
 
     return NextResponse.json(updated);

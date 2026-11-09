@@ -3,6 +3,8 @@ import { getBucketVersions } from "@/lib/api/buckets";
 import { getTopLevelIdeasForProfile } from "@/lib/api/ideas";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeIdea, makeSession, mockQuery } from "./helpers";
 
@@ -94,6 +96,12 @@ describe("GET /api/buckets/versions", () => {
     expect(await response.json()).toEqual([{ id: 1 }]);
     expect(getBucketVersions).toHaveBeenCalledWith(10);
     expect(query.where).toHaveBeenCalled();
+    const condition = vi.mocked(
+      query.where as (condition: SQL) => unknown,
+    ).mock.calls[0][0];
+    expect(new PgDialect().sqlToQuery(condition).sql).toContain(
+      '"idea_buckets"."deleted_at" is null',
+    );
   });
 
   it("returns 404 for another user's bucket without loading versions", async () => {

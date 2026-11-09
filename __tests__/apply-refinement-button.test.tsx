@@ -163,15 +163,18 @@ describe("ApplyRefinementButton", () => {
     });
   });
 
-  it("warns that replace removes all current ideas including completed ones and posts the selection", async () => {
+  it("explains that replace removes only open ideas and completed ideas stay, then posts the selection", async () => {
     render(button());
     const user = await openDialog();
-    await user.click(
-      screen.getByRole("radio", { name: /Replace current ideas/ }),
-    );
-    expect(screen.getByRole("note")).toHaveTextContent("ALL current ideas");
+    await user.click(screen.getByRole("radio", { name: /Replace open ideas/ }));
     expect(screen.getByRole("note")).toHaveTextContent(
-      "including completed ideas",
+      "removes only open ideas from this bucket",
+    );
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "Completed ideas stay in this bucket",
+    );
+    expect(screen.getByRole("note")).not.toHaveTextContent(
+      /ALL current|including completed/i,
     );
     expect(screen.getByRole("note")).toHaveTextContent("version history");
     expect(screen.getByRole("note")).toHaveTextContent(
@@ -210,7 +213,7 @@ describe("ApplyRefinementButton", () => {
       const user = await openDialog();
       if (mode === "replace")
         await user.click(
-          screen.getByRole("radio", { name: /Replace current ideas/ }),
+          screen.getByRole("radio", { name: /Replace open ideas/ }),
         );
       for (const idea of result.suggested_ideas!) {
         await user.click(screen.getByRole("checkbox", { name: idea.title }));

@@ -2,6 +2,8 @@
 import { ensureProfile } from "@/lib/api/profiles";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeSession, mockQuery } from "./helpers";
 
@@ -39,6 +41,12 @@ describe("POST /api/buckets/focus", () => {
     const tx = {
       update: vi.fn(() => {
         const query = mockQuery(undefined);
+        const where = query.where as (condition: SQL) => unknown;
+        query.where = vi.fn((condition) => {
+          const { sql } = new PgDialect().sqlToQuery(condition);
+          expect(sql).toContain('"idea_buckets"."deleted_at" is null');
+          return where(condition);
+        });
         query.set = vi.fn((set: unknown) => {
           updates.push({ set });
           return query;
@@ -49,6 +57,19 @@ describe("POST /api/buckets/focus", () => {
     vi.mocked(db.transaction).mockImplementation((async (
       run: (t: typeof tx) => unknown,
     ) => run(tx)) as never);
+  });
+
+  it("excludes deleted buckets from the ownership check", async () => {
+    const query = mockQuery([]);
+    vi.mocked(db.select).mockReturnValueOnce(query as never);
+
+    expect((await focus({ bucketIds: [10] })).status).toBe(404);
+    expect(db.transaction).not.toHaveBeenCalled();
+    const { sql, params } = new PgDialect().sqlToQuery(
+      vi.mocked(query.where as (condition: SQL) => unknown).mock.calls[0][0],
+    );
+    expect(sql).toContain('"idea_buckets"."deleted_at" is null');
+    expect(params).toEqual(["user-1", 10]);
   });
 
   it("activates the chosen buckets and parks the rest", async () => {

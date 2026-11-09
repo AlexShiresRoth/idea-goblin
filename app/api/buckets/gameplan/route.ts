@@ -1,7 +1,7 @@
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
-import { analysisResultsTable } from "@/lib/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { analysisResultsTable, ideaBucketsTable } from "@/lib/db/schema";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 // The bucket's most recently saved gameplan, or null.
@@ -18,6 +18,21 @@ export async function GET(request: Request) {
         { error: "Bucket ID is required" },
         { status: 400 },
       );
+    }
+
+    const [bucket] = await db
+      .select({ id: ideaBucketsTable.id })
+      .from(ideaBucketsTable)
+      .where(
+        and(
+          eq(ideaBucketsTable.id, bucketId),
+          eq(ideaBucketsTable.profileId, session.user.id),
+          isNull(ideaBucketsTable.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (!bucket) {
+      return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
     }
 
     const [gameplan] = await db

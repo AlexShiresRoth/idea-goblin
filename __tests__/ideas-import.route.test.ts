@@ -3,6 +3,8 @@ import { isRateLimited, recordRun } from "@/lib/ai";
 import { touchBuckets } from "@/lib/api/buckets";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import {
   ideaBucketLinksTable,
   ideaBucketsTable,
@@ -167,6 +169,24 @@ describe("POST /api/ideas/import", () => {
     const response = await importRows(body);
     expect(response.status).toBe(400);
     expect(describeIdeas).not.toHaveBeenCalled();
+  });
+
+  it("excludes deleted buckets before validating import destinations", async () => {
+    const query = mockQuery([]);
+    vi.mocked(db.select).mockReset().mockReturnValueOnce(query as never);
+
+    const response = await importRows({
+      rows: [row("A fine idea", { type: "existing", bucketId: 10 })],
+    });
+
+    expect(response.status).toBe(400);
+    expect(describeIdeas).not.toHaveBeenCalled();
+    expect(db.transaction).not.toHaveBeenCalled();
+    const { sql, params } = new PgDialect().sqlToQuery(
+      vi.mocked(query.where as (condition: SQL) => unknown).mock.calls[0][0],
+    );
+    expect(sql).toContain('"idea_buckets"."deleted_at" is null');
+    expect(params).toEqual(["user-1"]);
   });
 
   it("rejects a bucket the user doesn't own", async () => {
