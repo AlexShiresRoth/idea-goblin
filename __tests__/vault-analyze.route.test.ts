@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { findCachedResult, isRateLimited, recordRun } from "@/lib/ai";
-import { AuthGuard } from "@/lib/auth/auth-guard";
 import { getBucketIdeas } from "@/lib/api/buckets";
 import { getCreditBalance } from "@/lib/api/credits";
+import { AuthGuard } from "@/lib/auth/auth-guard";
 import type { CreditBalance } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,8 +27,8 @@ vi.mock("@/lib/ai", async (importOriginal) => ({
   recordRun: vi.fn(),
 }));
 
-import { AI_MODELS } from "@/lib/ai";
 import { POST } from "@/app/api/vault/analyze/route";
+import { AI_MODELS } from "@/lib/ai";
 
 const executionResult = {
   choices: [
@@ -123,6 +123,34 @@ describe("POST /api/vault/analyze", () => {
       }),
     );
   });
+
+  it.each([
+    ["analysis", "Justify each score in one short sentence, at most 25 words."],
+    ["execution", "30 words total."],
+    ["refinement", "Give at most three improvements"],
+    [
+      "gameplan",
+      "Each step has a title of at most six words and a detail of at most 25 words.",
+    ],
+  ])(
+    "asks %s for brief, plain-language output",
+    async (pathway, fieldGuidance) => {
+      vi.mocked(getBucketIdeas).mockResolvedValue([]);
+
+      await readEvents(await analyze({ pathway, bucketId: 10 }));
+
+      const [params] = stream.mock.calls[0];
+      const prompt = params.input[0].content;
+      expect(prompt).toContain(
+        "Use everyday words, active voice, and short sentences.",
+      );
+      expect(prompt).toContain("Keep important risks and tradeoffs.");
+      expect(prompt).toContain(
+        "If the input lacks evidence, say so briefly instead of guessing.",
+      );
+      expect(prompt).toContain(fieldGuidance);
+    },
+  );
 
   it("streams progress steps before the result", async () => {
     const events = await readEvents(await analyze({ pathway: "execution" }));

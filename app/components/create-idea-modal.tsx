@@ -30,7 +30,7 @@ function Label({
 }
 
 const fieldClassName =
-  "mt-1 block w-full rounded-md border focus:outline-none border-white/10 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50";
+  "mt-1 block w-full rounded-none border focus:outline-none border-white/10 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50";
 
 function BucketSelect({
   value,
@@ -89,7 +89,7 @@ function Button({
       type={type}
       data-testid={testId}
       disabled={isLoading || disabled}
-      className="bg-green-500 text-sm text-black font-semibold rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      className="bg-accent text-sm text-background font-semibold rounded-none p-2 shadow-md hover:bg-accent/90 transition-colors hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {children}
     </button>
@@ -283,7 +283,7 @@ function CreateIdeaForm({
 
   return (
     <div
-      className="flex max-h-[90dvh] w-11/12 flex-col rounded-lg border border-white/20 bg-black p-4 md:w-1/3"
+      className="flex max-h-[90dvh] w-11/12 flex-col rounded-none border border-white/20 bg-background p-4 md:w-1/3"
       data-testid="create-idea-modal"
     >
       <div className="flex justify-between items-center border-b border-white/20 pb-4">
@@ -357,7 +357,7 @@ function CreateIdeaForm({
                     }
                     maxLength={MAX_DESCRIPTION_LENGTH}
                     rows={first && drafts.length === 1 ? 5 : 3}
-                    className="block w-full rounded-md border focus:outline-none border-white/10 bg-white/10 px-3 py-1 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
+                    className="block w-full rounded-none border focus:outline-none border-white/10 bg-white/10 px-3 py-1 text-white placeholder:text-white/50 focus:border-white/50 focus:ring-white/50"
                   />
                   <CharCounter
                     valueLength={draft.description.length}
@@ -375,7 +375,7 @@ function CreateIdeaForm({
             type="button"
             onClick={addDraft}
             data-testid="create-idea-add-draft"
-            className="flex w-fit items-center gap-1 text-sm text-white/60 hover:text-green-400/80 hover:cursor-pointer"
+            className="flex w-fit items-center gap-1 text-sm text-white/60 hover:text-accent/80 hover:cursor-pointer"
           >
             <PlusIcon className="w-3 h-3" />
             Add another idea
@@ -465,7 +465,7 @@ export default function CreateIdeaModal({
           type="button"
           onClick={openModal}
           data-testid="create-idea-open"
-          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
+          className="flex items-center gap-2 text-sm w-full rounded-none border border-white/15 bg-background px-4 py-3 text-white/80"
         >
           <PlusIcon className="w-3 h-3" />
           New Idea
@@ -476,7 +476,7 @@ export default function CreateIdeaModal({
           type="button"
           onClick={openModal}
           data-testid="create-idea-open"
-          className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-green-400/80 transition-colors"
+          className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-accent/80 transition-colors"
         >
           <PlusIcon className="w-3 h-3" />
           Add
@@ -486,7 +486,7 @@ export default function CreateIdeaModal({
         <button
           onClick={openModal}
           data-testid="create-idea-open"
-          className="hidden md:block fixed bottom-12 md:bottom-15 right-5 md:right-15 bg-green-500 text-black rounded p-2 shadow-md hover:bg-green-600 transition-colors hover:cursor-pointer"
+          className="hidden md:block fixed bottom-12 md:bottom-15 right-5 md:right-15 bg-accent text-background rounded-none p-2 shadow-md hover:bg-accent/90 transition-colors hover:cursor-pointer"
         >
           <PlusIcon className="w-6 h-6" />
         </button>
@@ -509,7 +509,7 @@ export function CreateIdeaDialog({
   defaultBucket?: BucketChoice;
 }) {
   return createPortal(
-    <div className="fixed inset-0 bg-black/80 flex justify-center items-center w-screen h-screen z-100">
+    <div className="fixed inset-0 bg-background/80 flex justify-center items-center w-screen h-screen z-100">
       <CreateIdeaForm onClose={onClose} defaultBucket={defaultBucket} />
     </div>,
     document.body,

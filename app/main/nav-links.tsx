@@ -44,12 +44,12 @@ export default function NavLinks({
             aria-current={active ? "page" : undefined}
             className={clsx(
               "flex items-center gap-2 text-sm transition-colors",
-              variant === "sidebar" && "rounded-md px-2 py-1.5",
+              variant === "sidebar" && "rounded-none px-2 py-1.5",
               variant === "sheet" &&
-                "rounded-md border border-white/15 bg-black px-4 py-3",
+                "rounded-none border border-white/15 bg-background px-4 py-3",
               active
-                ? "bg-white/10 text-white"
-                : "text-white/60 hover:bg-white/5 hover:text-white",
+                ? "bg-accent/10 text-accent"
+                : "text-white/60 hover:bg-accent/5 hover:text-accent",
             )}
           >
             <Icon className="w-3 h-3" />

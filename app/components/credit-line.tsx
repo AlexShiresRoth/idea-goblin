@@ -17,7 +17,7 @@ export function GoldCost({ cost, short }: { cost: number; short?: boolean }) {
     <span
       data-testid="gold-cost"
       className={clsx(
-        "flex w-fit shrink-0 items-center gap-1 rounded-full border px-1.5 py-px text-[10px]",
+        "flex w-fit shrink-0 items-center gap-1 rounded-none border px-1.5 py-px text-[10px]",
         short
           ? "border-red-400/40 text-red-400"
           : "border-amber-300/30 text-amber-300",

@@ -48,7 +48,7 @@ function SharedIdea({ idea }: { idea: BucketSnapshotIdea }) {
         {done && (
           <CircleCheckIcon
             aria-label="Done"
-            className="w-3 h-3 shrink-0 text-green-500/80"
+            className="w-3 h-3 shrink-0 text-accent/80"
           />
         )}
         <span className={clsx(done && "text-white/50 line-through")}>
@@ -81,7 +81,7 @@ export default async function SharedBucketPage({ params }: Props) {
     <div
       style={bucketStyleVars(bucket.category)}
       data-testid="shared-bucket"
-      className="flex min-h-dvh flex-col bg-black"
+      className="flex min-h-dvh flex-col bg-background"
     >
       <nav className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 md:px-8">
         <Link

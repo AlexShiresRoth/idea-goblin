@@ -71,6 +71,8 @@ export type BucketRefinementResult = {
   refined_description: string;
   // Missing on runs saved before buckets had categories.
   refined_category?: string;
+  // Older results only have improvements; newer runs propose actual bucket ideas.
+  suggested_ideas?: { title: string; description: string }[];
   improvements: string[];
   reasoning: Reasoning;
 };

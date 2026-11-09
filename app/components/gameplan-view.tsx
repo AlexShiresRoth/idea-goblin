@@ -30,7 +30,7 @@ type StepFields = { title: string; detail: string; idea_id?: number | null };
 const MAX_IDEA_DESCRIPTION_LENGTH = 500;
 
 const EFFORT_STYLES: Record<GameplanStep["effort"], string> = {
-  low: "border-green-500/40 text-green-400",
+  low: "border-accent/40 text-accent",
   medium: "border-yellow-500/40 text-yellow-300",
   high: "border-red-500/40 text-red-400",
 };
@@ -63,12 +63,12 @@ function StepCheck({
       data-testid="gameplan-step-check"
       disabled={busy}
       onClick={onToggle}
-      className="mt-0.5 shrink-0 text-white/40 hover:text-green-400/80 transition-colors hover:cursor-pointer disabled:cursor-default"
+      className="mt-0.5 shrink-0 text-white/40 hover:text-accent/80 transition-colors hover:cursor-pointer disabled:cursor-default"
     >
       {busy ? (
         <Loader2Icon className="w-3.5 h-3.5 animate-spin" />
       ) : done ? (
-        <CircleCheckIcon className="w-3.5 h-3.5 text-green-500/80" />
+        <CircleCheckIcon className="w-3.5 h-3.5 text-accent/80" />
       ) : (
         <CircleIcon className="w-3.5 h-3.5" />
       )}
@@ -80,7 +80,7 @@ function DoneMark() {
   return (
     <CircleCheckIcon
       aria-label="Done"
-      className="w-3 h-3 mt-1 shrink-0 text-green-500/80"
+      className="w-3 h-3 mt-1 shrink-0 text-accent/80"
     />
   );
 }
@@ -116,7 +116,7 @@ function StepLink({
       onClick={onAdd}
       data-testid="gameplan-add-idea"
       disabled={busy}
-      className="flex shrink-0 items-center gap-1 text-xs text-white/50 hover:text-green-400/80 transition-colors hover:cursor-pointer disabled:cursor-default disabled:opacity-60"
+      className="flex shrink-0 items-center gap-1 text-xs text-white/50 hover:text-accent/80 transition-colors hover:cursor-pointer disabled:cursor-default disabled:opacity-60"
     >
       {busy ? (
         <Loader2Icon className="w-3 h-3 animate-spin" />
@@ -354,7 +354,7 @@ export function GameplanView({
       {result.finish_line && (
         <section
           data-testid="gameplan-finish-line"
-          className="flex flex-col gap-2 rounded-lg border border-white/15 border-l-2 border-l-green-500/60 bg-white/5 px-4 py-3"
+          className="flex flex-col gap-2 rounded-none border border-white/15 border-l-2 border-l-accent/60 bg-white/5 px-4 py-3"
         >
           <h3 className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/40">
             <FlagIcon className="w-3 h-3" />
@@ -379,19 +379,19 @@ export function GameplanView({
           )}
           <section
             data-testid="gameplan-start-today"
-            className="flex flex-col gap-1 rounded-lg border border-green-500/30 px-4 py-3"
+            className="flex flex-col gap-1 rounded-none border border-accent/30 px-4 py-3"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-2">
                 {renderMark(
                   todayRef,
                   today,
-                  <ZapIcon className="w-3 h-3 mt-1 shrink-0 text-green-400" />,
+                  <ZapIcon className="w-3 h-3 mt-1 shrink-0 text-accent" />,
                 )}
                 <div className="flex flex-col gap-0.5">
                   <h3
                     className={clsx(
-                      "text-sm text-green-400",
+                      "text-sm text-accent",
                       todayDone && "line-through opacity-70",
                     )}
                   >
@@ -440,7 +440,7 @@ export function GameplanView({
                     <li
                       key={stepIndex}
                       data-testid="gameplan-step"
-                      className="flex flex-col gap-1 rounded-md bg-white/5 px-3 py-2"
+                      className="flex flex-col gap-1 rounded-none bg-white/5 px-3 py-2"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-2">
@@ -456,7 +456,7 @@ export function GameplanView({
                         </div>
                         <span
                           className={clsx(
-                            "shrink-0 rounded-full border px-2 text-xs",
+                            "shrink-0 rounded-none border px-2 text-xs",
                             EFFORT_STYLES[step.effort] ??
                               "border-white/20 text-white/50",
                           )}

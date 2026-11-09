@@ -23,7 +23,6 @@ import {
   Loader2,
   MaximizeIcon,
   MinimizeIcon,
-  PencilIcon,
   PlusIcon,
   Route,
   SaveIcon,
@@ -36,11 +35,11 @@ import {
 } from "lucide-react";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 import { linkStep } from "@/lib/gameplan";
 import { readNdjson } from "@/lib/ndjson";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
+import { ApplyRefinementButton } from "./apply-refinement-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
 import { BillingButton } from "./billing-button";
@@ -151,7 +150,6 @@ export function AnalyzeVaultModal({
   scopePathway?: BucketPathwayId;
 }) {
   const scoped = scopeBucket != null;
-  const router = useRouter();
   const { setToasts } = useContext(ToastContext);
   const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(() =>
     scoped
@@ -164,8 +162,6 @@ export function AnalyzeVaultModal({
   const [saved, setSaved] = useState(false);
   // The saved copy of this result, so later gameplan links update it too.
   const [savedId, setSavedId] = useState<number | null>(null);
-  const [applying, setApplying] = useState(false);
-  const [applied, setApplied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [minMaxModal, setMinMaxModal] = useState(scoped);
@@ -294,7 +290,6 @@ export function AnalyzeVaultModal({
     setAnalyzing(true);
     setResult(null);
     setSaved(false);
-    setApplied(false);
     setError(null);
     setOutOfGold(false);
     setCached(false);
@@ -406,43 +401,6 @@ export function AnalyzeVaultModal({
     }
   };
 
-  async function applyRefinement() {
-    if (!refinement || applied || applying) return;
-    setApplying(true);
-    try {
-      const response = await fetch("/api/buckets/update", {
-        method: "POST",
-        body: JSON.stringify({
-          bucketId: refinement.bucket_id,
-          name: refinement.refined_name,
-          description: refinement.refined_description,
-          category: refinement.refined_category,
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to update bucket");
-      setApplied(true);
-      setToasts([
-        {
-          id: `applied-${refinement.bucket_id}`,
-          message: "Bucket polished up. The old one is kept in its versions.",
-          type: "success",
-        },
-      ]);
-      router.refresh();
-    } catch (err) {
-      console.error(err);
-      setToasts([
-        {
-          id: `apply-error-${refinement.bucket_id}`,
-          message: "Failed to update the bucket",
-          type: "error",
-        },
-      ]);
-    } finally {
-      setApplying(false);
-    }
-  }
-
   function refineAgain() {
     const feedback = reply.trim();
     if (!draft || !feedback || analyzing) return;
@@ -458,7 +416,6 @@ export function AnalyzeVaultModal({
     setRounds(rounds.slice(0, index));
     setSaved(false);
     setSavedId(null);
-    setApplied(false);
     setCached(false);
     setError(null);
     setSteps([]);
@@ -487,11 +444,11 @@ export function AnalyzeVaultModal({
     analyzing || result != null || pickingBucket || failedMidRun;
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
+    <div className="fixed inset-0 bg-background/50 flex justify-center items-center z-999">
       <div
         data-testid="analyze-vault-modal"
         className={clsx(
-          "flex flex-col gap-4 rounded-lg border border-white/20 bg-black transition-all duration-300 min-h-0",
+          "flex flex-col gap-4 rounded-none border border-white/20 bg-background transition-all duration-300 min-h-0",
           // Fixed heights so long results scroll inside the modal.
           minMaxModal && "md:w-full w-full h-dvh p-8",
           !minMaxModal && "md:w-1/2 w-11/12 max-h-[85dvh] p-6 md:p-8",
@@ -522,7 +479,7 @@ export function AnalyzeVaultModal({
                     key={pathway.id}
                     data-testid={`analyze-pathway-${pathway.id}`}
                     className={clsx(
-                      "flex flex-col gap-2 p-4 border border-white/20 rounded-lg hover:border-white/50 transition-colors cursor-pointer",
+                      "flex flex-col gap-2 p-4 border border-white/20 rounded-none hover:border-white/50 transition-colors cursor-pointer",
                       selectedPathway?.id === pathway.id && "border-white/50",
                     )}
                   >
@@ -562,9 +519,9 @@ export function AnalyzeVaultModal({
                   type="button"
                   disabled={!selectedPathway || shortOfCredits}
                   className={clsx(
-                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
+                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-none transition-colors",
                     selectedPathway && !shortOfCredits
-                      ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
+                      ? "opacity-100 hover:cursor-pointer hover:bg-accent/90 hover:text-background"
                       : "opacity-50 cursor-not-allowed",
                   )}
                   onClick={beginPathway}
@@ -621,9 +578,9 @@ export function AnalyzeVaultModal({
                   type="button"
                   disabled={!selectedBucket || shortOfCredits}
                   className={clsx(
-                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-md transition-colors",
+                    "border flex items-center gap-2 px-4 text-sm border-white/20 py-2 rounded-none transition-colors",
                     selectedBucket && !shortOfCredits
-                      ? "opacity-100 hover:cursor-pointer hover:bg-green-500 hover:text-black"
+                      ? "opacity-100 hover:cursor-pointer hover:bg-accent/90 hover:text-background"
                       : "opacity-50 cursor-not-allowed",
                   )}
                   onClick={() => startAnalysis()}
@@ -681,14 +638,10 @@ export function AnalyzeVaultModal({
                           : "Save Analysis"}
                   </ActionButton>
                   {refinement && (
-                    <ActionButton
+                    <ApplyRefinementButton
+                      result={refinement}
                       testId="analyze-vault-apply-refinement"
-                      action={applyRefinement}
-                      disabled={applying || applied}
-                    >
-                      <PencilIcon className="w-3 h-3" />
-                      {applied ? "Bucket updated" : "Update bucket"}
-                    </ActionButton>
+                    />
                   )}
                 </>
               )}
@@ -717,7 +670,7 @@ export function AnalyzeVaultModal({
                 onRestore={restoreDraft}
               />
               {(analyzing || (error && steps.length > 0)) && (
-                <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+                <div className="rounded-none border border-white/10 bg-white/5 px-4 py-3">
                   <AnalysisSteps
                     steps={steps}
                     running={analyzing}
@@ -810,13 +763,13 @@ function EmptyVaultDialog({
   onAddIdeas: (how: "create" | "import") => void;
 }) {
   return createPortal(
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-999">
+    <div className="fixed inset-0 bg-background/50 flex justify-center items-center z-999">
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Analyze Vault"
         data-testid="analyze-vault-empty"
-        className="flex flex-col gap-4 rounded-lg border border-white/20 bg-black md:w-1/2 w-11/12 p-6 md:p-8"
+        className="flex flex-col gap-4 rounded-none border border-white/20 bg-background md:w-1/2 w-11/12 p-6 md:p-8"
       >
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-bold">Analyze Vault</h2>
@@ -847,7 +800,7 @@ function EmptyVaultDialog({
             <button
               type="button"
               autoFocus
-              className="flex items-center gap-2 px-4 py-2 text-sm rounded-md bg-green-500 text-black hover:bg-green-600 hover:cursor-pointer transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-none bg-accent text-background hover:bg-accent/90 hover:cursor-pointer transition-colors"
               onClick={() => onAddIdeas("create")}
               data-testid="analyze-vault-empty-create"
             >
@@ -895,7 +848,7 @@ export default function AnalyzeVault({
           type="button"
           onClick={openModal}
           data-testid="analyze-vault-open"
-          className="flex items-center gap-2 text-sm w-full rounded-md border border-white/15 bg-black px-4 py-3 text-white/80"
+          className="flex items-center gap-2 text-sm w-full rounded-none border border-white/15 bg-background px-4 py-3 text-white/80"
         >
           <SparklesIcon className="w-3 h-3" />
           Analyze Vault

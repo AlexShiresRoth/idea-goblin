@@ -40,7 +40,7 @@ function FocusToggle({ bucketId }: { bucketId: number }) {
       data-testid="focus-toggle"
       disabled={focus.saving}
       onClick={() => (active ? focus.park(bucketId) : focus.workOn(bucketId))}
-      className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-green-400/80 transition-colors disabled:opacity-50"
+      className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-accent/80 transition-colors disabled:opacity-50"
     >
       {active ? (
         <>
@@ -122,7 +122,7 @@ export default function BucketDetail({
       aria-label={bucket.name}
       data-testid="bucket-detail"
       style={bucketStyleVars(bucket.category)}
-      className="flex min-h-0 min-w-0 flex-1 flex-col bg-black"
+      className="flex min-h-0 min-w-0 flex-1 flex-col bg-background"
     >
       <header
         className={clsx(
@@ -159,7 +159,7 @@ export default function BucketDetail({
               aria-label={summaryOpen ? "Hide summary" : "Show summary"}
               title={summaryOpen ? "Hide summary" : "Show summary"}
               onClick={() => setSummaryOpen(!summaryOpen)}
-              className="shrink-0 rounded p-1 text-white/50 hover:cursor-pointer hover:bg-white/10 hover:text-white/80 transition-colors"
+              className="shrink-0 rounded-none p-1 text-white/50 hover:cursor-pointer hover:bg-white/10 hover:text-white/80 transition-colors"
             >
               {summaryOpen ? (
                 <ChevronUpIcon className="w-4 h-4" />
@@ -186,7 +186,7 @@ export default function BucketDetail({
             data-testid="refine-bucket"
             disabled={isDeleting || ideas.length === 0}
             onClick={() => setRefining(true)}
-            className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-orange-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-orange-300/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <SparklesIcon className="w-3 h-3" />
             Refine
@@ -195,7 +195,7 @@ export default function BucketDetail({
             data-testid="delete-bucket"
             disabled={isDeleting}
             onClick={() => !isDeleting && deleteBucket()}
-            className="flex items-center gap-1 p-2 text-white/50 rounded text-sm hover:cursor-pointer hover:text-red-500/80 transition-colors"
+            className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-red-500/80 transition-colors"
           >
             {isDeleting ? (
               <>
@@ -221,7 +221,7 @@ export default function BucketDetail({
         >
           <div
             data-testid="idea-header"
-            className="sticky top-0 z-10 flex items-center justify-between border-b border-white/20 bg-black h-10 py-2 px-4 md:px-8"
+            className="sticky top-0 z-10 flex items-center justify-between border-b border-white/20 bg-background h-10 py-2 px-4 md:px-8"
           >
             <p className="text-white/60">
               Ideas {openIdeas.length}
@@ -304,7 +304,7 @@ export default function BucketDetail({
             role="tablist"
             aria-label="Bucket side panel"
             data-testid="bucket-side-tabs"
-            className="sticky top-0 z-10 flex h-10 gap-4 border-b border-white/20 bg-black px-4 md:px-8"
+            className="sticky top-0 z-10 flex h-10 gap-4 border-b border-white/20 bg-background px-4 md:px-8"
           >
             {(["gameplan", "versions"] as const).map((tab) => (
               <button

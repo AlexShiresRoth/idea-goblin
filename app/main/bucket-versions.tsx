@@ -99,7 +99,7 @@ export default function BucketVersions({ bucketId }: { bucketId: number }) {
           <div
             key={version.id}
             data-testid="bucket-version"
-            className="flex items-start justify-between gap-3 rounded-md bg-white/5 px-3 py-2"
+            className="flex items-start justify-between gap-3 rounded-none bg-white/5 px-3 py-2"
           >
             <div className="flex flex-col gap-1 min-w-0 flex-1">
               <button

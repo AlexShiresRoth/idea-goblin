@@ -1,9 +1,11 @@
 import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
+import { SaveAnalysisToBucketButton } from "@/app/components/save-analysis-to-bucket-button";
 import { getAnalysisResults } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
 import type { AnalysisResult as AnalysisRecord } from "@/lib/db/schema";
 import type { ExecutionResult, PathwayId } from "@/lib/types";
 import { isBucketRefinement, isGameplan, isIdeaRefinement } from "@/lib/types";
+import clsx from "clsx";
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,6 +32,31 @@ const PathwayIcons: Record<PathwayId, React.ReactNode> = {
   gameplan: <Flag className="w-3 h-3" />,
 };
 
+const PathwayColors: Record<
+  PathwayId,
+  {
+    textColor: string;
+    borderColor: string;
+  }
+> = {
+  analysis: {
+    textColor: "text-accent",
+    borderColor: "hover:border-b-accent/50",
+  },
+  execution: {
+    textColor: "text-accent",
+    borderColor: "hover:border-b-accent/50",
+  },
+  refinement: {
+    textColor: "text-indigo-400",
+    borderColor: "hover:border-b-indigo-400/50",
+  },
+  gameplan: {
+    textColor: "text-cyan-400",
+    borderColor: "hover:border-b-cyan-400/50",
+  },
+};
+
 function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
   const pathway = PATHWAYS[analysis.analysisType];
   const updatedAt = formatDate(analysis.updatedAt);
@@ -47,14 +74,22 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
   return (
     <div
       data-testid="analysis-item"
-      className="flex w-full flex-col gap-2  p-4 border-b border-white/10 hover:bg-white/5 transition-colors hover:border-white/50"
+      className={clsx(
+        "flex w-full flex-col gap-2 p-4 border-b border-white/10 hover:bg-white/5 transition-colors",
+        PathwayColors[pathway.id].borderColor,
+      )}
     >
       <Link
         href={`/main/analysis/${analysis.id}`}
         data-testid="analysis-item-link"
         className="flex flex-col gap-2"
       >
-        <div className="flex items-center gap-2">
+        <div
+          className={clsx(
+            "flex items-center gap-2",
+            PathwayColors[pathway.id].textColor,
+          )}
+        >
           {icon}
           <p>{pathway.title}</p>
         </div>
@@ -68,7 +103,14 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
         )}
         <p className="text-sm text-white/50">Updated {updatedAt}</p>
       </Link>
-      <DeleteAnalysisButton analysisId={analysis.id} />
+      <div className="flex flex-wrap items-center gap-4">
+        <SaveAnalysisToBucketButton
+          analysisId={analysis.id}
+          analysisType={analysis.analysisType}
+          result={data}
+        />
+        <DeleteAnalysisButton analysisId={analysis.id} />
+      </div>
     </div>
   );
 }
@@ -114,7 +156,7 @@ function FilterTabs({ activeType }: { activeType?: PathwayId }) {
             href={analysisHref(type)}
             data-testid={`analysis-filter-${type ?? "all"}`}
             aria-current={active ? "page" : undefined}
-            className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors ${
+            className={`flex items-center gap-1.5 rounded-none px-3 py-1 text-sm transition-colors ${
               active
                 ? "bg-white/15 text-white"
                 : "text-white/50 hover:text-white/80 hover:bg-white/5"
@@ -140,7 +182,7 @@ function PageLink({
   testId?: string;
   children: React.ReactNode;
 }) {
-  const className = "flex items-center justify-center rounded-md p-1";
+  const className = "flex items-center justify-center rounded-none p-1";
   if (!href) {
     return (
       <span

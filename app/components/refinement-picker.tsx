@@ -102,7 +102,7 @@ export function RefinementPicker({
               onClick={() => onSelect(bucket)}
               data-testid="refinement-bucket-option"
               className={clsx(
-                "text-left p-3 rounded-md border border-white/15 hover:border-white/40 transition-colors",
+                "text-left p-3 rounded-none border border-white/15 hover:border-white/40 transition-colors",
                 selectedBucketId === bucket.id && "border-white/50 bg-white/5",
               )}
             >
@@ -138,9 +138,9 @@ export function RefinementPicker({
                   onClick={() => toggleFocus(option.id)}
                   data-testid="refinement-focus-option"
                   className={clsx(
-                    "text-left px-3 py-2 rounded-md border transition-colors",
+                    "text-left px-3 py-2 rounded-none border transition-colors",
                     selected
-                      ? "border-green-500/50 bg-green-500/10 text-green-400"
+                      ? "border-accent/50 bg-accent/10 text-accent"
                       : "border-white/15 text-white/70 hover:border-white/40",
                   )}
                 >
@@ -165,7 +165,7 @@ export function RefinementPicker({
               ? "e.g. weekends only, solo, ship something within a month"
               : "Anything else? e.g. aim it at indie game devs"
           }
-          className="w-full rounded-md border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none"
+          className="w-full rounded-none border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none"
         />
         <CharCounter
           valueLength={note.length}

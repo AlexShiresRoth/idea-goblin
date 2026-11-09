@@ -51,7 +51,7 @@ export function RefinementRounds({
         return (
           <li
             key={index}
-            className="flex flex-col gap-2 rounded-lg border border-white/10 p-3"
+            className="flex flex-col gap-2 rounded-none border border-white/10 p-3"
             data-testid="refinement-round"
           >
             <div className="flex items-start justify-between gap-3">
@@ -151,7 +151,7 @@ export function RefinementReply({
         rows={2}
         disabled={disabled}
         placeholder={placeholder}
-        className="w-full rounded-md border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none"
+        className="w-full rounded-none border border-white/15 bg-transparent px-3 py-2 text-sm placeholder:text-white/30 focus:border-white/40 focus:outline-none"
       />
       <div className="flex items-center justify-between gap-2">
         <button

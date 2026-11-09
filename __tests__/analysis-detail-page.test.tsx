@@ -5,12 +5,13 @@ import type {
   ExecutionResult,
   GameplanResult,
 } from "@/lib/types";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userId } from "./helpers";
 
 vi.mock("@/lib/api/analysis", () => ({ getAnalysisResult: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/app/components/delete-analysis-button", () => ({
   DeleteAnalysisButton: ({
     analysisId,
@@ -206,8 +207,12 @@ describe("Analysis detail page", () => {
     expect(
       screen.getByRole("button", { name: "Results · 1" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Homework Hero")).toBeInTheDocument();
-    expect(screen.getByText("Named the audience")).toBeInTheDocument();
+    const card = within(screen.getByTestId("refinement-card"));
+    expect(card.getByText("Homework Hero")).toBeInTheDocument();
+    expect(card.getByText("Named the audience")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Save to bucket" }),
+    ).toBeInTheDocument();
 
     // Reasoning is collapsed behind its main idea.
     const reasoning = screen.getByRole("button", { name: /Reasoning · 2/ });

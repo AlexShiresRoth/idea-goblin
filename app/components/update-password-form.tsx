@@ -8,7 +8,7 @@ import { createClient } from "@/lib/auth/supabase-client";
 const supabase = createClient();
 
 const inputClass =
-  "rounded-md border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700";
+  "rounded-none border border-white/20 bg-transparent px-3 py-2 text-primary hover:border-accent/50 focus:border-accent";
 
 export default function UpdatePasswordForm() {
   const router = useRouter();
@@ -77,7 +77,7 @@ export default function UpdatePasswordForm() {
         type="submit"
         data-testid="update-password-submit"
         disabled={isPending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-white hover:cursor-pointer hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300"
+        className="rounded-none bg-accent px-4 py-2 text-background hover:cursor-pointer hover:bg-accent/90 disabled:opacity-60"
       >
         {isPending ? "Saving..." : "Save password"}
       </button>

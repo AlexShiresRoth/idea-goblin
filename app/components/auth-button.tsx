@@ -79,7 +79,7 @@ export default function AuthButton({
           await signIn(provider.value, next);
         })
       }
-      className="border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:cursor-pointer px-4 py-2 rounded-md flex items-center justify-center gap-2"
+      className="border text-sm dark:hover:text-zinc-300 border-zinc-300 dark:border-zinc-700 dark:text-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:cursor-pointer px-4 py-2 flex items-center justify-center gap-2"
       disabled={isPending}
     >
       <Icon />

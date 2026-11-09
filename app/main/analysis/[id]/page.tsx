@@ -5,6 +5,7 @@ import {
 } from "@/app/components/analysis-result-condition";
 import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
 import { ExpandableSection } from "@/app/components/expandable-section";
+import { SaveAnalysisToBucketButton } from "@/app/components/save-analysis-to-bucket-button";
 import { SavedGameplanView } from "@/app/components/saved-gameplan-view";
 import { getAnalysisResult } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
@@ -36,7 +37,7 @@ function AnalysisReasoning({
           <div
             key={`${reason.title}-${index}`}
             data-testid="analysis-reason"
-            className="flex flex-col gap-2 rounded-lg bg-white/5 px-4 py-3 border-l-2 border-white/30"
+            className="flex flex-col gap-2 rounded-none bg-white/5 px-4 py-3 border-l-2 border-white/30"
           >
             <div className="flex items-center gap-2">
               <span className="text-xs text-white/40">{index + 1}</span>
@@ -84,17 +85,24 @@ export default async function AnalysisPage({
       data-testid="analysis-detail"
       className="p-4 flex flex-col gap-4 flex-1 w-full min-w-0"
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           {PathwayIcons[analysisType]}
           <h1 className="text-2xl font-bold">
             {PATHWAYSJSON[analysisType].title}
           </h1>
         </div>
-        <DeleteAnalysisButton
-          analysisId={analysis.id}
-          redirectTo="/main/analysis"
-        />
+        <div className="flex flex-wrap items-center gap-4">
+          <SaveAnalysisToBucketButton
+            analysisId={analysis.id}
+            analysisType={analysisType}
+            result={analysisData}
+          />
+          <DeleteAnalysisButton
+            analysisId={analysis.id}
+            redirectTo="/main/analysis"
+          />
+        </div>
       </div>
       <div className="flex flex-col gap-4 min-h-0 overflow-y-scroll">
         {analysisType === "execution" && "summary" in analysisData && (
@@ -102,7 +110,7 @@ export default async function AnalysisPage({
             {analysisData.summary && (
               <aside
                 data-testid="analysis-summary"
-                className="rounded-lg border border-white/15 bg-white/5 border-l-2 border-l-white/40 px-4 py-3 flex flex-col gap-2"
+                className="rounded-none border border-white/15 bg-white/5 border-l-2 border-l-white/40 px-4 py-3 flex flex-col gap-2"
               >
                 <span className="text-xs uppercase tracking-wide text-white/40">
                   Summary

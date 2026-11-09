@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState, useTransition } from "react";
 
 import { createClient } from "@/lib/auth/supabase-client";
+import { ArrowUpRight } from "lucide-react";
 
 const supabase = createClient();
 
@@ -21,7 +22,7 @@ function callbackUrl(next: string) {
 }
 
 const inputClass =
-  "rounded-md border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700";
+  "border border-zinc-300 focus:shadow-accent hover:shadow-lg hover:ring-1 focus:ring-accent hover:ring-accent shadow-none hover:shadow-accent transition-colors outline-none bg-transparent px-4 py-4 dark:border-zinc-700 placeholder:text-zinc-700/40 text-zinc-700";
 const linkClass = "underline hover:cursor-pointer";
 
 // `next` is where to land once signed in, including after confirming email.
@@ -88,33 +89,37 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
     <form
       data-testid="email-auth-form"
       onSubmit={handleSubmit}
-      className="flex w-full max-w-sm flex-col gap-3"
+      className="flex w-full max-w-md flex-col gap-3"
     >
       {mode === "signup" && (
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
           Name
           <input
             name="name"
             data-testid="email-auth-name"
             autoComplete="name"
             required
+            placeholder="Johnny Goblin"
             className={inputClass}
+            autoFocus
           />
         </label>
       )}
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-1 text-sm text-zinc-700">
         Email
         <input
           name="email"
           data-testid="email-auth-email"
           type="email"
           autoComplete="email"
+          placeholder="johngoblins@example.com"
           required
           className={inputClass}
+          autoFocus
         />
       </label>
       {mode !== "reset" && (
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
           Password
           <input
             name="password"
@@ -153,9 +158,16 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
         type="submit"
         data-testid="email-auth-submit"
         disabled={isPending}
-        className="rounded-md bg-zinc-900 px-4 py-2 text-white hover:cursor-pointer hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-300"
+        className="bg-zinc-950 flex items-center justify-between p-4 text-white hover:cursor-pointer hover:bg-zinc-700 disabled:opacity-60 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-600"
       >
-        {isPending ? SUBMIT_LABELS[mode].pending : SUBMIT_LABELS[mode].idle}
+        {isPending ? (
+          SUBMIT_LABELS[mode].pending
+        ) : (
+          <>
+            {SUBMIT_LABELS[mode].idle}
+            <ArrowUpRight size={16} />
+          </>
+        )}
       </button>
 
       <div className="flex flex-wrap justify-between gap-2 text-sm text-zinc-600 dark:text-zinc-400">

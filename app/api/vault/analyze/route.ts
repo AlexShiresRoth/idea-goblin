@@ -1,4 +1,3 @@
-import { AuthGuard } from "@/lib/auth/auth-guard";
 import {
   AI_MODELS,
   findCachedResult,
@@ -8,9 +7,9 @@ import {
   recordRun,
   responseUsage,
 } from "@/lib/ai";
-import { db } from "@/lib/db";
 import { getBucketIdeas } from "@/lib/api/buckets";
 import { getCreditBalance } from "@/lib/api/credits";
+import { AuthGuard } from "@/lib/auth/auth-guard";
 import {
   BUCKET_CATEGORY_NAMES,
   creditCost,
@@ -19,6 +18,7 @@ import {
   MAX_REFINEMENT_ROUNDS,
   REFINEMENT_FOCUSES,
 } from "@/lib/constants";
+import { db } from "@/lib/db";
 import { ideaBucketsTable } from "@/lib/db/schema";
 import { encodeEvent, NDJSON_HEADERS } from "@/lib/ndjson";
 import { and, desc, eq } from "drizzle-orm";
@@ -88,6 +88,9 @@ const RefinementSchema = z.object({
   refined_name: z.string(),
   refined_description: z.string(),
   refined_category: z.enum(BUCKET_CATEGORY_NAMES),
+  suggested_ideas: z.array(
+    z.object({ title: z.string(), description: z.string() }),
+  ),
   improvements: z.array(z.string()),
   reasoning: ReasoningSchema,
 });
@@ -127,6 +130,15 @@ const DRAFT_SCHEMAS: Record<BucketPathway, z.ZodType> = {
     refined_description: z.string().max(2000),
     refined_category: z.string().max(50).optional(),
     improvements: z.array(z.string().max(500)).max(10),
+    suggested_ideas: z
+      .array(
+        z.object({
+          title: z.string().max(200),
+          description: z.string().max(4000),
+        }),
+      )
+      .max(30)
+      .optional(),
   }),
   gameplan: z.object({
     finish_line: long,
@@ -180,17 +192,32 @@ type PathwayConfig = {
   max_output_tokens?: number;
 };
 
+const OUTPUT_STYLE = `
+  Write for someone quickly scanning the result, not reading a report.
+  Use everyday words, active voice, and short sentences. Aim for 15 words per sentence.
+  State the main point first. Explain the concrete benefit or problem, not your thought process.
+  Avoid jargon, buzzwords, introductions, filler, and repeating the idea or score as an explanation.
+  Give each field one job; do not repeat the same advice across fields.
+  Keep important risks and tradeoffs. If the input lacks evidence, say so briefly instead of guessing.
+  Use plain text within fields, not markdown headings or bullet lists.
+`.trim();
+
 const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
   analysis: {
     user_content: "Analyze all my ideas in my current vault.",
     system_content: `
+        ${OUTPUT_STYLE}
         Analyze the user's idea buckets.
         Identify patterns and determine which ideas
         are most worth pursuing.
         Score each idea from 0 to 100.
         Use the given bucket_id for each idea.
-        Justify each score in one or two sentences.
-        Give at most three overall reasons, one sentence each.
+        Keep each main_idea to at most 15 words.
+        Justify each score in one short sentence, at most 25 words.
+        Name the strongest reason for the score; include a key drawback if it matters.
+        Keep reasoning.main_idea to one takeaway sentence, at most 20 words.
+        Give at most three overall reasons. Each title is at most five words,
+        and each reasoning is one sentence of at most 20 words.
       `.trim(),
     response_schema: AnalysisSchema,
     itemsKey: "choices",
@@ -202,6 +229,7 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
     user_content:
       "Evaluate which ideas are worth attention and which I can realistically execute.",
     system_content: `
+        ${OUTPUT_STYLE}
         Score each idea independently on two 0-100 scales:
         - score: how worth attention it is (upside, fit, interest)
         - feasibility: how realistically it can be executed now
@@ -213,9 +241,11 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         - park: high value but low feasibility or high effort
         - kill: low value, even if it is easy
         Use the given bucket_id for each idea.
-        Give each idea a short title and a one-sentence main idea.
-        Justify the scores and recommendation in one or two sentences.
-        Keep the summary to two or three sentences.
+        Give each idea a title of at most five words and a main_idea of at most 15 words.
+        Justify the scores and recommendation in at most two short sentences, 30 words total.
+        Explain the main benefit and the biggest practical hurdle, if any.
+        Keep the summary to one or two short sentences, at most 35 words total.
+        Say what to focus on first and why; do not recap every idea.
       `.trim(),
     response_schema: ExecutionSchema,
     itemsKey: "choices",
@@ -226,6 +256,7 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
   refinement: {
     user_content: "Refine this idea bucket.",
     system_content: `
+        ${OUTPUT_STYLE}
         Refine one idea bucket. The bucket's name and description
         are the main idea; the ideas listed in it are context.
         Preserve the original intent.
@@ -240,7 +271,19 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         If earlier drafts and the user's replies to them follow,
         revise the latest draft to address the latest reply.
         Keep what the user did not push back on.
-        The original name and description are still the bucket's.
+        The original name and description are still the bucket's; copy them unchanged.
+        Keep the refined name to at most eight words and the refined description
+        to one or two short sentences, at most 40 words total.
+        Give at most three improvements, each one concrete change in at most 15 words.
+        Also provide suggested_ideas: one to five concrete ideas that belong in the refined bucket.
+        Each has a title of at most eight words and a description of at most 25 words.
+        These are standalone ideas the user can select to add or replace the bucket's open ideas,
+        not explanations of your edits. Carry forward useful open ideas and fill real gaps.
+        Do not propose finished ideas as new work or add ideas just to reach a count.
+        Keep reasoning.main_idea to one takeaway sentence, at most 20 words.
+        Give at most two reasons, with titles of at most five words
+        and one sentence of at most 20 words per reasoning.
+        Explain why the changes help instead of restating them.
         Use the given bucket_id.
       `.trim(),
     response_schema: RefinementSchema,
@@ -251,20 +294,28 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
   gameplan: {
     user_content: "Make a gameplan to finish this idea bucket.",
     system_content: `
+        ${OUTPUT_STYLE}
         Make a practical gameplan to finish one idea bucket.
         The bucket's name and description are the goal; its ideas are the raw material.
         Ideas marked (done) are finished: count them as progress and do not plan them again.
-        - finish_line: one or two sentences on what "finished" means for this bucket,
+        - finish_line: one sentence, at most 25 words, on what "finished" means,
           small enough to actually reach.
-        - where_you_are: one or two sentences on the current state, given what is done.
+        - where_you_are: one sentence, at most 25 words, on the current state, given what is done.
         - first_step: one concrete thing the user can do today, in under an hour.
-        - phases: three to five phases in order, each with a short goal
-          and two to five concrete steps. Steps are actions, not topics.
+          Use a title of at most six words and a detail of at most 25 words.
+        - phases: three phases in order, or fewer for a small task.
+          Each has a title of at most six words, a goal of at most 15 words,
+          and two or three concrete steps. Steps are actions, not topics.
+          Each step has a title of at most six words and a detail of at most 25 words.
+          The detail adds a useful instruction or done condition, not a repeat of the title.
         - A step that carries out an existing open idea uses that idea's idea_id;
           otherwise idea_id is null. Never invent an idea_id.
         - Rate each step's effort as low, medium, or high.
-        - cut: open ideas or scope worth dropping to reach the finish line sooner.
-        - risks: the few things most likely to stall it, one sentence each.
+        - cut: at most three open ideas or scope worth dropping to finish sooner,
+          at most 15 words each. Leave empty if nothing needs cutting.
+        - risks: at most three things most likely to stall it,
+          at most 20 words each. Name the problem and a simple way to avoid it.
+          Leave empty if no clear risk is supported by the input.
         Keep it lean: this is a plan for one person, not a project board.
         If the user gives a note, fit the plan to it (time, skills, constraints).
         If earlier drafts and the user's replies to them follow,
