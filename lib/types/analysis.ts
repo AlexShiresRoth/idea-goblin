@@ -73,7 +73,8 @@ export type BucketRefinementResult = {
   refined_category?: string;
   // Older results only have improvements; newer runs propose actual bucket ideas.
   suggested_ideas?: { title: string; description: string }[];
-  improvements: string[];
+  // Legacy suggestion list, no longer generated for bucket refinements.
+  improvements?: string[];
   reasoning: Reasoning;
 };
 

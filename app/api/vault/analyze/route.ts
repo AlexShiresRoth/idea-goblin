@@ -91,7 +91,6 @@ const RefinementSchema = z.object({
   suggested_ideas: z.array(
     z.object({ title: z.string(), description: z.string() }),
   ),
-  improvements: z.array(z.string()),
   reasoning: ReasoningSchema,
 });
 
@@ -129,7 +128,7 @@ const DRAFT_SCHEMAS: Record<BucketPathway, z.ZodType> = {
     refined_name: z.string().max(200),
     refined_description: z.string().max(2000),
     refined_category: z.string().max(50).optional(),
-    improvements: z.array(z.string().max(500)).max(10),
+    improvements: z.array(z.string().max(500)).max(10).optional(),
     suggested_ideas: z
       .array(
         z.object({
@@ -179,7 +178,7 @@ function roundsSchema(pathway: BucketPathway) {
     .optional();
 }
 
-type ItemsKey = "choices" | "suggestions" | "improvements" | "phases";
+type ItemsKey = "choices" | "suggestions" | "suggested_ideas" | "phases";
 
 type PathwayConfig = {
   user_content: string;
@@ -265,7 +264,7 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         what it is missing, and where it is heading.
         Suggest a sharper name, a clearer description,
         the category that best fits the refined bucket,
-        and a short list of concrete improvements.
+        and a short list of concrete suggested ideas.
         If the user gives directions or a note, steer the refinement
         toward them while keeping the original intent.
         If earlier drafts and the user's replies to them follow,
@@ -274,8 +273,8 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         The original name and description are still the bucket's; copy them unchanged.
         Keep the refined name to at most eight words and the refined description
         to one or two short sentences, at most 40 words total.
-        Give at most three improvements, each one concrete change in at most 15 words.
-        Also provide suggested_ideas: one to five concrete ideas that belong in the refined bucket.
+        Provide suggested_ideas: one to five concrete ideas that belong in the refined bucket.
+        Use this as the only suggestion list; do not provide a separate improvements list.
         Each has a title of at most eight words and a description of at most 25 words.
         These are standalone ideas the user can select to add or replace the bucket's open ideas,
         not explanations of your edits. Carry forward useful open ideas and fill real gaps.
@@ -287,8 +286,8 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         Use the given bucket_id.
       `.trim(),
     response_schema: RefinementSchema,
-    itemsKey: "improvements",
-    itemSchema: z.string(),
+    itemsKey: "suggested_ideas",
+    itemSchema: z.object({ title: z.string(), description: z.string() }),
     max_output_tokens: REFINEMENT_MAX_OUTPUT_TOKENS,
   },
   gameplan: {

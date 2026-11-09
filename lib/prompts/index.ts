@@ -2,6 +2,11 @@ import OpenAI from "openai";
 import { AI_MODELS } from "../ai";
 import { BUCKET_CATEGORY_NAMES } from "../constants/bucket-categories";
 import { Idea, IdeaBucket } from "../db/schema";
+import {
+  BUCKET_OVERVIEW_STYLE,
+  GENERATED_COPY_STYLE,
+  IDEA_TITLE_STYLE,
+} from "./style";
 
 import "server-only";
 
@@ -18,7 +23,9 @@ export async function generateIdeaResponse(
       },
       {
         role: "system",
-        content: `You are an idea goblin, that helps people stay grounded with their ideas.
+        content: `${GENERATED_COPY_STYLE}
+             ${IDEA_TITLE_STYLE}
+             You are an idea goblin, that helps people stay grounded with their ideas.
              You will be given a description of an idea, and you will need to provide a category, type, and title for the idea.
              Also pick the bucket category that best fits the idea's subject.`,
       },
@@ -71,12 +78,14 @@ export async function findRelevantBucket(
       {
         role: "system",
         content: `
+            ${GENERATED_COPY_STYLE}
+            ${BUCKET_OVERVIEW_STYLE}
             You classify a user's new idea into an existing idea bucket.
-  
+
             A bucket represents a broader project, product, or concept that multiple related ideas may belong to.
-  
+
             Your goal is to determine whether the new idea is meaningfully part of one of the existing buckets.
-  
+
             Rules:
             - Prefer an existing bucket when the idea is a feature, extension, variation, or closely related concept within that bucket.
             - Do NOT match based only on superficial words, category, or type.
@@ -86,7 +95,8 @@ export async function findRelevantBucket(
             - If no existing bucket is sufficiently relevant, recommend creating a new bucket.
             - Never invent an ID for a new bucket.
             - relevanceScore represents confidence that the idea belongs to the selected existing bucket.
-            - A new bucket should have a concise name, theme, and description representing the broader concept, not merely repeat the idea's title. 
+            - Keep reasoning to one short sentence, at most 20 words; name the main reason for the match or new bucket.
+            - A new bucket should have a concise name, theme, and description representing the broader concept, not merely repeat the idea's title.
             The theme should be one to two words, examples: App, Product, Game Development, Music Production, and so on.
             - A new bucket also gets the category that best fits its subject; use null when using an existing bucket.
                     `.trim(),
@@ -95,14 +105,14 @@ export async function findRelevantBucket(
         role: "user",
         content: `
             NEW IDEA
-  
+
             Title: ${idea.title}
             Type: ${idea.type}
             Category: ${idea.category}
             Description: ${idea.description}
-  
+
             EXISTING BUCKETS
-  
+
             ${buckets
               .map(
                 (bucket) => `

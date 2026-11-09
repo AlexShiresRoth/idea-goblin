@@ -5,43 +5,43 @@ import {
   PATHWAYSJSON,
   type RefinementFocusId,
 } from "@/lib/constants";
+import { linkStep } from "@/lib/gameplan";
+import { readNdjson } from "@/lib/ndjson";
 import type {
   AnalysisPayload,
   BucketOption,
+  BucketRefinementResult,
+  GameplanResult,
   Pathway,
   PathwayId,
   Reasoning,
-  BucketRefinementResult,
-  GameplanResult,
   Round,
 } from "@/lib/types";
 import { isBucketRefinement, isGameplan } from "@/lib/types";
 import clsx from "clsx";
 import {
   Brain,
+  Flag,
   Ghost,
   Loader2,
   MaximizeIcon,
   MinimizeIcon,
   PlusIcon,
+  RotateCcwIcon,
   Route,
   SaveIcon,
   SparklesIcon,
-  RotateCcwIcon,
-  Wrench,
-  Flag,
   UploadIcon,
+  Wrench,
   XIcon,
 } from "lucide-react";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { linkStep } from "@/lib/gameplan";
-import { readNdjson } from "@/lib/ndjson";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
-import { ApplyRefinementButton } from "./apply-refinement-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
+import { ApplyRefinementButton } from "./apply-refinement-button";
 import { BillingButton } from "./billing-button";
 import { CreateIdeaDialog } from "./create-idea-modal";
 import { CreditLine, GoldCost } from "./credit-line";
@@ -641,6 +641,7 @@ export function AnalyzeVaultModal({
                     <ApplyRefinementButton
                       result={refinement}
                       testId="analyze-vault-apply-refinement"
+                      className="action-button"
                     />
                   )}
                 </>
