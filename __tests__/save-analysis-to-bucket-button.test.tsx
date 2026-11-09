@@ -126,7 +126,7 @@ describe("SaveAnalysisToBucketButton", () => {
     expect(
       screen.getByRole("radio", { name: "Add selected ideas" }),
     ).toBeChecked();
-    for (const text of refinement.improvements) {
+    for (const text of refinement.improvements!) {
       expect(screen.getByRole("checkbox", { name: text })).toBeChecked();
     }
     expect(fetch).not.toHaveBeenCalled();
@@ -143,7 +143,7 @@ describe("SaveAnalysisToBucketButton", () => {
           category: "software",
           updateDetails: true,
           ideasMode: "add",
-          ideas: refinement.improvements.map((text) => ({
+          ideas: refinement.improvements!.map((text) => ({
             title: text.slice(0, 200),
             description: text,
           })),

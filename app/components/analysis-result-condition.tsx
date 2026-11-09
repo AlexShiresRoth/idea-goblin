@@ -266,7 +266,7 @@ function refinementFields(
         refinedTitle: result.refined_name,
         refinedText: result.refined_description,
         refinedCategory: result.refined_category,
-        improvements: result.improvements,
+        improvements: result.suggested_ideas ? [] : (result.improvements ?? []),
       }
     : {
         originalTitle: result.original_title,
@@ -343,11 +343,39 @@ export function RefinementCard({
   );
 }
 
-function RefinementSuggestions({ result }: { result: RefinementResult }) {
+type RefinementPreview = {
+  suggested_ideas: NonNullable<BucketRefinementResult["suggested_ideas"]>;
+};
+
+function RefinementSuggestions({
+  result,
+}: {
+  result: RefinementResult | RefinementPreview;
+}) {
+  if (!("reasoning" in result)) {
+    return (
+      <section
+        data-testid="refinement-suggestions"
+        className="flex flex-col gap-2"
+      >
+        <h3 className="text-xs uppercase tracking-wide text-accent">
+          Suggested ideas
+        </h3>
+        <ul className="flex flex-col gap-2">
+          {result.suggested_ideas.map((idea, index) => (
+            <li key={index} className="border border-white/20 p-3">
+              <h4 className="text-sm font-semibold">{idea.title}</h4>
+              <p className="text-sm text-white/60">{idea.description}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
   if (isIdeaRefinement(result) || isBucketRefinement(result)) {
     return <RefinementCard result={result} />;
   }
-
+  console.log("result", result);
   return (
     <div
       data-testid="refinement-suggestions"
@@ -376,14 +404,18 @@ export function AnalysisResultConditional({
   result,
   type,
 }: {
-  result: AnalysisPayload;
+  result: AnalysisPayload | RefinementPreview;
   type: PathwayId;
 }) {
   switch (type) {
     case "execution":
       return <ExecutionChoices result={result as ExecutionResult} />;
     case "refinement":
-      return <RefinementSuggestions result={result as RefinementResult} />;
+      return (
+        <RefinementSuggestions
+          result={result as RefinementResult | RefinementPreview}
+        />
+      );
     case "gameplan":
       return <GameplanView result={result as Partial<GameplanResult>} />;
   }

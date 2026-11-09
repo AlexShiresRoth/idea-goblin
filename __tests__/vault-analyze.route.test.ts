@@ -127,7 +127,7 @@ describe("POST /api/vault/analyze", () => {
   it.each([
     ["analysis", "Justify each score in one short sentence, at most 25 words."],
     ["execution", "30 words total."],
-    ["refinement", "Give at most three improvements"],
+    ["refinement", "Use this as the only suggestion list"],
     [
       "gameplan",
       "Each step has a title of at most six words and a detail of at most 25 words.",

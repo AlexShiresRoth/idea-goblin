@@ -46,6 +46,15 @@ describe("import prompts", () => {
         "index 0 | title: Dog bowl | A smart dog bowl\nindex 7 | A cat GPS collar",
       );
       expect(system).toContain("return that title unchanged");
+      expect(system).toContain(
+        "use everyday words, active voice, and short sentences",
+      );
+      expect(system).toContain(
+        "When generating an idea title, use at most eight words",
+      );
+      expect(system).toContain(
+        "These writing limits apply only to generated text",
+      );
     });
   });
 
@@ -57,7 +66,14 @@ describe("import prompts", () => {
         [{ index: 0, title: "Dog bowl", description: "A smart dog bowl" }],
       );
 
-      const { params, user } = sent();
+      const { params, system, user } = sent();
+      expect(system).toContain(
+        "use everyday words, active voice, and short sentences",
+      );
+      expect(system).toContain(
+        "When generating a bucket name, use at most eight words",
+      );
+      expect(system).toContain("at most 35 words total");
       expect(params.reasoning).toEqual({ effort: "medium" });
       expect(user).toContain("index 0 | Dog bowl: A smart dog bowl");
       expect(user).toContain(`id 10 | Pets: ${"x".repeat(200)}`);
@@ -94,6 +110,13 @@ describe("import prompts", () => {
       );
       // Loose groups are described honestly, not given an invented theme.
       expect(system).toContain("only loosely related");
+      expect(system).toContain("at most 35 words total");
+      expect(system).toContain(
+        "use everyday words, active voice, and short sentences",
+      );
+      expect(system).toContain(
+        "These writing limits apply only to generated text",
+      );
     });
   });
 
@@ -108,6 +131,8 @@ describe("import prompts", () => {
       const [params] = parse.mock.calls[0];
       expect(params.model).toBe(AI_MODELS.rank);
       expect(params.text.format).toEqual({ name: "transcribed_ideas" });
+      expect(params.input[0].content).toContain("Keep the user's own words");
+      expect(params.input[0].content).not.toContain("at most 35 words total");
       expect(params.input[1].content).toEqual([
         {
           type: "input_image",

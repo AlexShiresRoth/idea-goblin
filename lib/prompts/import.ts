@@ -9,6 +9,11 @@ import {
   MAX_IMPORT_ROWS,
   MAX_IMPORT_TITLE_LENGTH,
 } from "../import/schema";
+import {
+  BUCKET_OVERVIEW_STYLE,
+  GENERATED_COPY_STYLE,
+  IDEA_TITLE_STYLE,
+} from "./style";
 
 import "server-only";
 
@@ -41,6 +46,8 @@ export async function describeIdeas(
       {
         role: "system",
         content: `
+          ${GENERATED_COPY_STYLE}
+          ${IDEA_TITLE_STYLE}
           You are an idea goblin, that helps people stay grounded with their ideas.
           For each idea, give a short title, a category, a type,
           and the bucket category that best fits the idea's subject.
@@ -95,6 +102,8 @@ export async function sortIdeasIntoBuckets(
       {
         role: "system",
         content: `
+          ${GENERATED_COPY_STYLE}
+          ${BUCKET_OVERVIEW_STYLE}
           You sort a batch of new ideas into a user's idea buckets.
           A bucket represents a broader project, product, or concept that multiple related ideas may belong to.
 
@@ -164,6 +173,8 @@ export async function describeBuckets(
       {
         role: "system",
         content: `
+          ${GENERATED_COPY_STYLE}
+          ${BUCKET_OVERVIEW_STYLE}
           The user grouped these ideas into buckets by hand.
           For each bucket, write a one or two sentence description of what its ideas have in common,
           in light of the bucket's name. If they are only loosely related, say so plainly

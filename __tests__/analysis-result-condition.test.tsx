@@ -287,6 +287,39 @@ describe("AnalysisResultConditional", () => {
       reasoning,
     };
 
+    it("renders a streamed suggested_ideas preview before bucket details arrive", () => {
+      render(
+        <AnalysisResultConditional
+          type="refinement"
+          result={{
+            suggested_ideas: [
+              { title: "Weekly mileage", description: "Track each run." },
+            ],
+          }}
+        />,
+      );
+
+      expect(
+        screen.getByRole("heading", { name: "Suggested ideas" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Weekly mileage")).toBeInTheDocument();
+      expect(screen.getByText("Track each run.")).toBeInTheDocument();
+      expect(screen.queryByTestId("refinement-card")).not.toBeInTheDocument();
+    });
+
+    it("renders an empty streamed suggested_ideas preview", () => {
+      render(
+        <AnalysisResultConditional
+          type="refinement"
+          result={{ suggested_ideas: [] }}
+        />,
+      );
+      expect(
+        screen.getByRole("heading", { name: "Suggested ideas" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
+    });
+
     it("shows a bucket refinement with its category icon", () => {
       renderResult(bucketRefinement, "refinement");
 
@@ -319,6 +352,50 @@ describe("AnalysisResultConditional", () => {
         screen.getByRole("heading", { name: "Habit tracker for runners" }),
       ).toBeInTheDocument();
       expect(screen.queryByTestId("bucket-icon")).not.toBeInTheDocument();
+    });
+
+    it("shows only suggested ideas when a saved result contains both lists", () => {
+      renderResult(
+        {
+          ...bucketRefinement,
+          suggested_ideas: [
+            {
+              title: "Weekly mileage",
+              description: "Record each run's distance.",
+            },
+          ],
+        },
+        "refinement",
+      );
+
+      expect(
+        screen.getByRole("heading", { name: "Suggested ideas" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Weekly mileage")).toBeInTheDocument();
+      expect(
+        screen.queryByText("Narrowed the audience"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("refinement-improvement"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("supports a new refinement without legacy improvements", () => {
+      const result = { ...bucketRefinement };
+      delete result.improvements;
+      renderResult(
+        {
+          ...result,
+          suggested_ideas: [
+            { title: "Weekly mileage", description: "Track each run." },
+          ],
+        },
+        "refinement",
+      );
+      expect(screen.getByText("Weekly mileage")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("refinement-improvement"),
+      ).not.toBeInTheDocument();
     });
 
     it("omits the improvements list when there are none", () => {
