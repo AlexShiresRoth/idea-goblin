@@ -23,7 +23,6 @@ import {
   Loader2,
   MaximizeIcon,
   MinimizeIcon,
-  PencilIcon,
   PlusIcon,
   Route,
   SaveIcon,
@@ -36,11 +35,11 @@ import {
 } from "lucide-react";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
 import { linkStep } from "@/lib/gameplan";
 import { readNdjson } from "@/lib/ndjson";
 import { ToastContext } from "../context/toast.provider";
 import ActionButton from "./action-button";
+import { ApplyRefinementButton } from "./apply-refinement-button";
 import { AnalysisResultConditional } from "./analysis-result-condition";
 import { type AnalysisStep, AnalysisSteps } from "./analysis-steps";
 import { BillingButton } from "./billing-button";
@@ -151,7 +150,6 @@ export function AnalyzeVaultModal({
   scopePathway?: BucketPathwayId;
 }) {
   const scoped = scopeBucket != null;
-  const router = useRouter();
   const { setToasts } = useContext(ToastContext);
   const [selectedPathway, setSelectedPathway] = useState<Pathway | null>(() =>
     scoped
@@ -164,8 +162,6 @@ export function AnalyzeVaultModal({
   const [saved, setSaved] = useState(false);
   // The saved copy of this result, so later gameplan links update it too.
   const [savedId, setSavedId] = useState<number | null>(null);
-  const [applying, setApplying] = useState(false);
-  const [applied, setApplied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReasoning, setShowReasoning] = useState(false);
   const [minMaxModal, setMinMaxModal] = useState(scoped);
@@ -294,7 +290,6 @@ export function AnalyzeVaultModal({
     setAnalyzing(true);
     setResult(null);
     setSaved(false);
-    setApplied(false);
     setError(null);
     setOutOfGold(false);
     setCached(false);
@@ -406,43 +401,6 @@ export function AnalyzeVaultModal({
     }
   };
 
-  async function applyRefinement() {
-    if (!refinement || applied || applying) return;
-    setApplying(true);
-    try {
-      const response = await fetch("/api/buckets/update", {
-        method: "POST",
-        body: JSON.stringify({
-          bucketId: refinement.bucket_id,
-          name: refinement.refined_name,
-          description: refinement.refined_description,
-          category: refinement.refined_category,
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to update bucket");
-      setApplied(true);
-      setToasts([
-        {
-          id: `applied-${refinement.bucket_id}`,
-          message: "Bucket polished up. The old one is kept in its versions.",
-          type: "success",
-        },
-      ]);
-      router.refresh();
-    } catch (err) {
-      console.error(err);
-      setToasts([
-        {
-          id: `apply-error-${refinement.bucket_id}`,
-          message: "Failed to update the bucket",
-          type: "error",
-        },
-      ]);
-    } finally {
-      setApplying(false);
-    }
-  }
-
   function refineAgain() {
     const feedback = reply.trim();
     if (!draft || !feedback || analyzing) return;
@@ -458,7 +416,6 @@ export function AnalyzeVaultModal({
     setRounds(rounds.slice(0, index));
     setSaved(false);
     setSavedId(null);
-    setApplied(false);
     setCached(false);
     setError(null);
     setSteps([]);
@@ -681,14 +638,10 @@ export function AnalyzeVaultModal({
                           : "Save Analysis"}
                   </ActionButton>
                   {refinement && (
-                    <ActionButton
+                    <ApplyRefinementButton
+                      result={refinement}
                       testId="analyze-vault-apply-refinement"
-                      action={applyRefinement}
-                      disabled={applying || applied}
-                    >
-                      <PencilIcon className="w-3 h-3" />
-                      {applied ? "Bucket updated" : "Update bucket"}
-                    </ActionButton>
+                    />
                   )}
                 </>
               )}

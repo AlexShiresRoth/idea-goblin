@@ -32,7 +32,7 @@ export default async function Main({ searchParams }: PageProps<"/main">) {
       }))}
       limit={focusLimit}
     >
-      <div className="flex flex-col p-4 h-full overflow-auto gap-4 flex-1">
+      <div className="flex flex-col h-full overflow-auto gap-4 flex-1">
         <FocusBar />
         <div
           data-testid="buckets-container"

@@ -3,8 +3,8 @@
 import type {
   AnalysisPayload,
   AnalysisResult,
-  ExecutionResult,
   BucketRefinementResult,
+  ExecutionResult,
   GameplanResult,
   IdeaRefinementResult,
   PathwayId,
@@ -18,8 +18,7 @@ import { BucketIcon } from "./bucket-icon";
 import { GameplanView } from "./gameplan-view";
 
 function scoreTone(score: number) {
-  if (score >= 75)
-    return "border-accent/40 bg-accent/10 text-accent/80";
+  if (score >= 75) return "border-accent/40 bg-accent/10 text-accent/80";
   if (score > 50)
     return "border-yellow-500/40 bg-yellow-500/10 text-yellow-500/80";
   if (score > 25)
@@ -310,6 +309,23 @@ export function RefinementCard({
         </h2>
         <p className="text-white/70">{fields.refinedText}</p>
       </div>
+      {isBucketRefinement(result) &&
+        result.suggested_ideas &&
+        result.suggested_ideas.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h3 className="text-xs uppercase tracking-wide text-accent">
+              Suggested ideas
+            </h3>
+            <ul className="flex flex-col gap-2">
+              {result.suggested_ideas.map((idea, index) => (
+                <li key={index} className="border border-white/20 p-3">
+                  <h4 className="text-sm font-semibold">{idea.title}</h4>
+                  <p className="text-sm text-white/60">{idea.description}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       {fields.improvements.length > 0 && (
         <ul className="flex flex-col gap-2">
           {fields.improvements.map((improvement, index) => (
@@ -342,7 +358,7 @@ function RefinementSuggestions({ result }: { result: RefinementResult }) {
           <div
             key={suggestion.bucket_id}
             data-testid="refinement-suggestion"
-            className="p-4 border border-white/20 rounded-none flex flex-col items-start gap-2 max-w-sm flex-1 min-w-xs"
+            className="p-4 border border-white/10 rounded-none flex flex-col items-start gap-2 max-w-sm flex-1 min-w-xs"
           >
             <p className="text-sm text-white/60">{suggestion.original_idea}</p>
             <h2 className="text-lg font-bold">{suggestion.refined_idea}</h2>

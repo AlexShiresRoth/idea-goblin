@@ -5,6 +5,7 @@ import {
 } from "@/app/components/analysis-result-condition";
 import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
 import { ExpandableSection } from "@/app/components/expandable-section";
+import { SaveAnalysisToBucketButton } from "@/app/components/save-analysis-to-bucket-button";
 import { SavedGameplanView } from "@/app/components/saved-gameplan-view";
 import { getAnalysisResult } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
@@ -84,17 +85,24 @@ export default async function AnalysisPage({
       data-testid="analysis-detail"
       className="p-4 flex flex-col gap-4 flex-1 w-full min-w-0"
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           {PathwayIcons[analysisType]}
           <h1 className="text-2xl font-bold">
             {PATHWAYSJSON[analysisType].title}
           </h1>
         </div>
-        <DeleteAnalysisButton
-          analysisId={analysis.id}
-          redirectTo="/main/analysis"
-        />
+        <div className="flex flex-wrap items-center gap-4">
+          <SaveAnalysisToBucketButton
+            analysisId={analysis.id}
+            analysisType={analysisType}
+            result={analysisData}
+          />
+          <DeleteAnalysisButton
+            analysisId={analysis.id}
+            redirectTo="/main/analysis"
+          />
+        </div>
       </div>
       <div className="flex flex-col gap-4 min-h-0 overflow-y-scroll">
         {analysisType === "execution" && "summary" in analysisData && (

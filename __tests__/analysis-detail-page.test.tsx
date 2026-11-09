@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { userId } from "./helpers";
 
 vi.mock("@/lib/api/analysis", () => ({ getAnalysisResult: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/app/components/delete-analysis-button", () => ({
   DeleteAnalysisButton: ({
     analysisId,

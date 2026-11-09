@@ -88,6 +88,9 @@ const RefinementSchema = z.object({
   refined_name: z.string(),
   refined_description: z.string(),
   refined_category: z.enum(BUCKET_CATEGORY_NAMES),
+  suggested_ideas: z.array(
+    z.object({ title: z.string(), description: z.string() }),
+  ),
   improvements: z.array(z.string()),
   reasoning: ReasoningSchema,
 });
@@ -127,6 +130,15 @@ const DRAFT_SCHEMAS: Record<BucketPathway, z.ZodType> = {
     refined_description: z.string().max(2000),
     refined_category: z.string().max(50).optional(),
     improvements: z.array(z.string().max(500)).max(10),
+    suggested_ideas: z
+      .array(
+        z.object({
+          title: z.string().max(200),
+          description: z.string().max(4000),
+        }),
+      )
+      .max(30)
+      .optional(),
   }),
   gameplan: z.object({
     finish_line: long,
@@ -263,6 +275,11 @@ const PATHWAY_PROMPTS: Record<Pathway, PathwayConfig> = {
         Keep the refined name to at most eight words and the refined description
         to one or two short sentences, at most 40 words total.
         Give at most three improvements, each one concrete change in at most 15 words.
+        Also provide suggested_ideas: one to five concrete ideas that belong in the refined bucket.
+        Each has a title of at most eight words and a description of at most 25 words.
+        These are standalone ideas the user can select to add or replace the bucket's open ideas,
+        not explanations of your edits. Carry forward useful open ideas and fill real gaps.
+        Do not propose finished ideas as new work or add ideas just to reach a count.
         Keep reasoning.main_idea to one takeaway sentence, at most 20 words.
         Give at most two reasons, with titles of at most five words
         and one sentence of at most 20 words per reasoning.

@@ -8,9 +8,9 @@ import type {
   BucketRefinementResult,
   ExecutionResult,
 } from "@/lib/types";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const refresh = vi.fn();
 const setToasts = vi.fn();
@@ -118,9 +118,48 @@ async function startExecution(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("AnalyzeVaultModal", () => {
+  const originalShowModal = Object.getOwnPropertyDescriptor(
+    HTMLDialogElement.prototype,
+    "showModal",
+  );
+  const originalClose = Object.getOwnPropertyDescriptor(
+    HTMLDialogElement.prototype,
+    "close",
+  );
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, "error").mockImplementation(() => {});
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+      configurable: true,
+      value: function (this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+      },
+    });
+    Object.defineProperty(HTMLDialogElement.prototype, "close", {
+      configurable: true,
+      value: function (this: HTMLDialogElement) {
+        this.removeAttribute("open");
+      },
+    });
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    if (originalShowModal)
+      Object.defineProperty(
+        HTMLDialogElement.prototype,
+        "showModal",
+        originalShowModal,
+      );
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
+    if (originalClose)
+      Object.defineProperty(
+        HTMLDialogElement.prototype,
+        "close",
+        originalClose,
+      );
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
   });
 
   describe("a run that fails before any result", () => {
@@ -598,7 +637,9 @@ describe("AnalyzeVaultModal", () => {
       await user.click(
         screen.getByRole("button", { name: "Refine Garden apps" }),
       );
-      await screen.findByText("Plant Pal v1");
+      await within(await screen.findByTestId("refinement-card")).findByText(
+        "Plant Pal v1",
+      );
     }
 
     it("loads the buckets and goes back to the pathways", async () => {
@@ -687,37 +728,67 @@ describe("AnalyzeVaultModal", () => {
       ).toBeInTheDocument();
     });
 
-    it("updates the bucket with the refined draft", async () => {
+    it("confirms saving the refined draft and its selected improvements to the bucket", async () => {
       const fetchMock = mockFetch(
         refinementRoutes({
-          "/api/buckets/update": () => Response.json({ ok: true }),
+          "/api/buckets/apply-refinement": () => Response.json({ ok: true }),
         }),
       );
       const user = userEvent.setup();
       renderModal();
 
       await refineGarden(user);
-      expect(screen.getByText("Draft 1 description")).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId("refinement-card")).getByText(
+          "Draft 1 description",
+        ),
+      ).toBeInTheDocument();
 
       await user.click(screen.getByRole("button", { name: "Show Reasoning" }));
       expect(screen.getByText("Reason 1")).toBeInTheDocument();
 
-      await user.click(screen.getByRole("button", { name: "Update bucket" }));
+      const trigger = screen.getByTestId("analyze-vault-apply-refinement");
+      expect(trigger).toHaveAccessibleName("Save to bucket");
+      await user.click(trigger);
+      const dialog = within(
+        screen.getByRole("dialog", { name: "Save to Garden apps?" }),
+      );
+      expect(
+        dialog.getByRole("checkbox", { name: /Update bucket/ }),
+      ).toBeChecked();
+      expect(
+        dialog.getByRole("radio", { name: "Add selected ideas" }),
+      ).toBeChecked();
+      expect(
+        dialog.getByRole("checkbox", { name: "Improvement 1" }),
+      ).toBeChecked();
+      expect(bodiesFor(fetchMock, "/api/buckets/apply-refinement")).toEqual([]);
+      await user.click(dialog.getByRole("button", { name: "Confirm save" }));
 
-      expect(bodiesFor(fetchMock, "/api/buckets/update")).toEqual([
+      expect(bodiesFor(fetchMock, "/api/buckets/apply-refinement")).toEqual([
         {
           bucketId: 2,
           name: "Plant Pal v1",
           description: "Draft 1 description",
           category: "health",
+          updateDetails: true,
+          ideasMode: "add",
+          ideas: [{ title: "Improvement 1", description: "Improvement 1" }],
         },
       ]);
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/buckets/apply-refinement",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
       expect(
-        await screen.findByRole("button", { name: "Bucket updated" }),
+        await screen.findByRole("button", { name: "Saved to bucket" }),
       ).toBeDisabled();
       expect(setToasts).toHaveBeenCalledWith([
         expect.objectContaining({
-          message: "Bucket polished up. The old one is kept in its versions.",
+          message: "Refinement saved to bucket",
           type: "success",
         }),
       ]);
@@ -745,30 +816,46 @@ describe("AnalyzeVaultModal", () => {
       ]);
     });
 
-    it("toasts an error when the update fails", async () => {
-      mockFetch(
+    it("shows an inline error when applying fails and can retry", async () => {
+      const apply = vi
+        .fn()
+        .mockImplementationOnce(() => new Response("no", { status: 500 }))
+        .mockImplementationOnce(() => Response.json({ ok: true }));
+      const fetchMock = mockFetch(
         refinementRoutes({
-          "/api/buckets/update": () => new Response("no", { status: 500 }),
+          "/api/buckets/apply-refinement": apply,
         }),
       );
       const user = userEvent.setup();
       renderModal();
 
       await refineGarden(user);
-      await user.click(screen.getByRole("button", { name: "Update bucket" }));
+      await user.click(screen.getByTestId("analyze-vault-apply-refinement"));
+      const dialog = within(
+        screen.getByRole("dialog", { name: "Save to Garden apps?" }),
+      );
+      await user.click(dialog.getByRole("button", { name: "Confirm save" }));
 
-      await waitFor(() =>
-        expect(setToasts).toHaveBeenCalledWith([
-          expect.objectContaining({
-            message: "Failed to update the bucket",
-            type: "error",
-          }),
-        ]),
+      expect(await dialog.findByRole("alert")).toHaveTextContent(
+        "Failed to save to bucket. Please try again.",
       );
       expect(
-        screen.getByRole("button", { name: "Update bucket" }),
+        dialog.getByRole("button", { name: "Confirm save" }),
       ).toBeEnabled();
+      expect(
+        dialog.getByRole("checkbox", { name: "Improvement 1" }),
+      ).toBeChecked();
+      expect(setToasts).not.toHaveBeenCalled();
       expect(refresh).not.toHaveBeenCalled();
+
+      await user.click(dialog.getByRole("button", { name: "Confirm save" }));
+      const bodies = bodiesFor(fetchMock, "/api/buckets/apply-refinement");
+      expect(bodies).toHaveLength(2);
+      expect(bodies[1]).toEqual(bodies[0]);
+      expect(
+        await screen.findByRole("button", { name: "Saved to bucket" }),
+      ).toBeDisabled();
+      expect(refresh).toHaveBeenCalledTimes(1);
     });
 
     it("sends earlier drafts and replies on the next round", async () => {
@@ -786,7 +873,11 @@ describe("AnalyzeVaultModal", () => {
       );
       await user.click(refineAgain);
 
-      expect(await screen.findByText("Plant Pal v2")).toBeInTheDocument();
+      expect(
+        await within(screen.getByTestId("refinement-card")).findByText(
+          "Plant Pal v2",
+        ),
+      ).toBeInTheDocument();
       expect(bodiesFor(fetchMock, "/api/vault/analyze")[1]).toEqual({
         pathway: "refinement",
         bucketId: 2,
@@ -806,11 +897,17 @@ describe("AnalyzeVaultModal", () => {
       await refineGarden(user);
       await user.type(screen.getByLabelText("Reply to this draft"), "again");
       await user.click(screen.getByRole("button", { name: "Refine again" }));
-      await screen.findByText("Plant Pal v2");
+      await within(screen.getByTestId("refinement-card")).findByText(
+        "Plant Pal v2",
+      );
 
       await user.click(screen.getByRole("button", { name: "Go back to this" }));
 
-      expect(screen.getByText("Draft 1 description")).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId("refinement-card")).getByText(
+          "Draft 1 description",
+        ),
+      ).toBeInTheDocument();
       expect(screen.queryByText("Plant Pal v2")).not.toBeInTheDocument();
       expect(screen.queryByText("Draft 1")).not.toBeInTheDocument();
       expect(
@@ -830,7 +927,9 @@ describe("AnalyzeVaultModal", () => {
           `change ${round}`,
         );
         await user.click(screen.getByRole("button", { name: "Refine again" }));
-        await screen.findByText(`Plant Pal v${round + 1}`);
+        await within(screen.getByTestId("refinement-card")).findByText(
+          `Plant Pal v${round + 1}`,
+        );
       }
 
       expect(

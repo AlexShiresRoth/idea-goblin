@@ -1,4 +1,5 @@
 import { DeleteAnalysisButton } from "@/app/components/delete-analysis-button";
+import { SaveAnalysisToBucketButton } from "@/app/components/save-analysis-to-bucket-button";
 import { getAnalysisResults } from "@/lib/api/analysis";
 import { PATHWAYSJSON } from "@/lib/constants";
 import type { AnalysisResult as AnalysisRecord } from "@/lib/db/schema";
@@ -102,7 +103,14 @@ function AnalysisItem({ analysis }: { analysis: AnalysisRecord }) {
         )}
         <p className="text-sm text-white/50">Updated {updatedAt}</p>
       </Link>
-      <DeleteAnalysisButton analysisId={analysis.id} />
+      <div className="flex flex-wrap items-center gap-4">
+        <SaveAnalysisToBucketButton
+          analysisId={analysis.id}
+          analysisType={analysis.analysisType}
+          result={data}
+        />
+        <DeleteAnalysisButton analysisId={analysis.id} />
+      </div>
     </div>
   );
 }

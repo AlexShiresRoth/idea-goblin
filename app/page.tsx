@@ -17,13 +17,12 @@ const syneTactile = Syne_Tactile({
   variable: "--font-syne-tactile",
 });
 
-// TODO handle these error pages
 export default async function Home({ searchParams }: PageProps<"/">) {
   await connection();
-
   const { code, error, error_description, next: rawNext } = await searchParams;
   // Set by links that need a sign-in first, like saving a shared bucket.
   const next = safeNext(rawNext);
+
   if (typeof error === "string" || typeof error_description === "string") {
     const reason =
       typeof error_description === "string" ? error_description : error;
@@ -72,40 +71,50 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </div>
 
         <div className="flex w-full flex-1 md:flex-row flex-col md:gap-0 gap-8">
-          <div className="flex-1 md:flex flex-col justify-center items-center relative px-4 hidden">
+          <div className="flex-1 flex flex-col justify-center items-center relative px-4">
             <div className="flex flex-col md:h-full justify-between py-12 w-11/12 md:w-2/3">
-              <Logo />
+              <div className="md:mb-0 mb-12">
+                <Logo />
+              </div>
               <div className="flex flex-col gap-12">
-                <span className="text-accent uppercase text-xl">
-                  AI Powered Idea Management
+                <span className="text-accent uppercase md:text-xl">
+                  Stop collecting ideas.
                 </span>
                 <h1
                   className={clsx(
                     syneTactile.className,
-                    "text-2xl md:text-6xl font-bold text-primary",
+                    "text-5xl md:text-6xl font-bold text-primary",
                   )}
                 >
-                  Release the ideas from your{" "}
-                  <span className="text-accent">mind cage</span>.
+                  Start deciding which ideas are{` `}
+                  <span className="text-accent">worth building</span>.
                 </h1>
-                <p className="dark:text-white/70">
+                <p className="dark:text-white/70 md:text-base text-sm">
                   Let the Idea Goblin help you focus or revise your ideas.
-                  Whether it's something you want to build, or something you
-                  just need out of your head.
+                  Whether it&apos;s something you want to build, or something
+                  you just need out of your head.
                 </p>
               </div>
-              <div>
-                <p className="text-white/50 uppercase">
-                  Built for folks with many ideas
+              <div className="md:mt-0 mt-8">
+                <p className="text-white/50 uppercase text-xs md:text-base">
+                  Built for folks with infinite ideas
                 </p>
+              </div>
+              <div className="md:hidden mt-12">
+                <a
+                  href="#sign-in"
+                  className="px-4 py-2 bg-accent text-zinc-900"
+                >
+                  Get Started
+                </a>
               </div>
             </div>
           </div>
-          <div className="flex flex-1 flex-col items-center bg-foreground relative">
+          <div
+            id="sign-in"
+            className="flex flex-1 flex-col items-center bg-foreground relative"
+          >
             <div className="flex flex-col h-full items-center justify-center gap-8 w-11/12 px-4 py-8 md:py-0 md:w-2/3">
-              <div className="md:hidden w-full mb-8">
-                <Logo dark />
-              </div>
               <div className="flex flex-col gap-2 w-full max-w-md">
                 <span className="text-lg text-zinc-600">Welcome Back</span>
                 <h2 className="text-4xl md:text-5xl text-zinc-800">
