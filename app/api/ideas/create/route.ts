@@ -13,7 +13,7 @@ import {
 } from "@/lib/db/schema";
 import { findRelevantBucket, generateIdeaResponse } from "@/lib/prompts";
 import type { BucketChoice } from "@/lib/types";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
@@ -93,7 +93,12 @@ export async function POST(request: Request) {
     const buckets = await db
       .select()
       .from(ideaBucketsTable)
-      .where(eq(ideaBucketsTable.profileId, profile.id));
+      .where(
+        and(
+          eq(ideaBucketsTable.profileId, profile.id),
+          isNull(ideaBucketsTable.deletedAt),
+        ),
+      );
 
     // A new bucket starts as worked on while the user's focus has room.
     const startsActive =

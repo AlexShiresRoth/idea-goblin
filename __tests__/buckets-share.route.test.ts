@@ -107,6 +107,7 @@ describe("POST /api/buckets/share", () => {
 
     const { sql, params } = whereQuery();
     expect(sql).toContain('"profile_id" = ');
+    expect(sql).toContain('"idea_buckets"."deleted_at" is null');
     expect(params).toEqual(expect.arrayContaining([10, "user-1"]));
   });
 

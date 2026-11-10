@@ -1,7 +1,6 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import "server-only";
 import { db } from "../db";
-import { isGameplan } from "../types";
 import {
   analysisResultsTable,
   bucketVersionsTable,
@@ -12,21 +11,45 @@ import {
   type BucketVersion,
   type IdeaBucket,
 } from "../db/schema";
+import { isGameplan } from "../types";
 
 export async function getIdeaBuckets(profileId: string) {
   const buckets = await db
     .select()
     .from(ideaBucketsTable)
-    .where(eq(ideaBucketsTable.profileId, profileId))
+    .where(
+      and(
+        eq(ideaBucketsTable.profileId, profileId),
+        isNull(ideaBucketsTable.deletedAt),
+      ),
+    )
     .orderBy(desc(ideaBucketsTable.updatedAt));
   return buckets;
+}
+
+export async function getDeletedIdeaBuckets(profileId: string) {
+  return db
+    .select()
+    .from(ideaBucketsTable)
+    .where(
+      and(
+        eq(ideaBucketsTable.profileId, profileId),
+        isNotNull(ideaBucketsTable.deletedAt),
+      ),
+    )
+    .orderBy(desc(ideaBucketsTable.deletedAt));
 }
 
 export async function hasIdeaBuckets(profileId: string) {
   const [bucket] = await db
     .select({ id: ideaBucketsTable.id })
     .from(ideaBucketsTable)
-    .where(eq(ideaBucketsTable.profileId, profileId))
+    .where(
+      and(
+        eq(ideaBucketsTable.profileId, profileId),
+        isNull(ideaBucketsTable.deletedAt),
+      ),
+    )
     .limit(1);
   return bucket != null;
 }
@@ -37,7 +60,12 @@ export async function touchBuckets(bucketIds: number[]) {
   await db
     .update(ideaBucketsTable)
     .set({ updatedAt: new Date() })
-    .where(inArray(ideaBucketsTable.id, bucketIds));
+    .where(
+      and(
+        inArray(ideaBucketsTable.id, bucketIds),
+        isNull(ideaBucketsTable.deletedAt),
+      ),
+    );
 }
 
 export async function getBucketIdeas(
@@ -101,7 +129,12 @@ export async function getSharedBucket(token: string) {
       profileId: ideaBucketsTable.profileId,
     })
     .from(ideaBucketsTable)
-    .where(eq(ideaBucketsTable.shareToken, token))
+    .where(
+      and(
+        eq(ideaBucketsTable.shareToken, token),
+        isNull(ideaBucketsTable.deletedAt),
+      ),
+    )
     .limit(1);
   if (!bucket) return null;
 

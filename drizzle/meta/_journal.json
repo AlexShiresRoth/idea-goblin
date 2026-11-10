@@ -113,6 +113,13 @@
       "when": 1793583853247,
       "tag": "0015_stripe_customer",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794182400000,
+      "tag": "0016_bucket_trash",
+      "breakpoints": true
     }
   ]
 }

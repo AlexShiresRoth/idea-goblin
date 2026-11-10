@@ -2,6 +2,8 @@
 import { ensureProfile } from "@/lib/api/profiles";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBucket, makeSession, mockQuery } from "./helpers";
 
@@ -81,6 +83,19 @@ describe("POST /api/buckets/copy", () => {
     vi.mocked(db.transaction).mockImplementation((async (
       run: (t: typeof tx) => unknown,
     ) => run(tx)) as never);
+  });
+
+  it("excludes deleted buckets even when their share token matches", async () => {
+    const query = mockQuery([]);
+    vi.mocked(db.select).mockReset().mockReturnValueOnce(query as never);
+
+    expect((await copy({ token: "tok" })).status).toBe(404);
+    expect(db.transaction).not.toHaveBeenCalled();
+    const { sql, params } = new PgDialect().sqlToQuery(
+      vi.mocked(query.where as (condition: SQL) => unknown).mock.calls[0][0],
+    );
+    expect(sql).toContain('"idea_buckets"."deleted_at" is null');
+    expect(params).toEqual(["tok"]);
   });
 
   it("rejects signed-out requests", async () => {

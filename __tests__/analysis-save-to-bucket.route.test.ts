@@ -2,7 +2,7 @@
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
 import { analysisResultsTable, ideaBucketsTable } from "@/lib/db/schema";
-import { and, eq, ne, type SQL } from "drizzle-orm";
+import { and, eq, isNull, ne, type SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeSession, mockQuery } from "./helpers";
@@ -205,6 +205,7 @@ describe("POST /api/analysis/save-to-bucket", () => {
       and(
         eq(ideaBucketsTable.id, 10),
         eq(ideaBucketsTable.profileId, "user-1"),
+        isNull(ideaBucketsTable.deletedAt),
       ),
     );
     expect(db.transaction).not.toHaveBeenCalled();
@@ -261,6 +262,7 @@ describe("POST /api/analysis/save-to-bucket", () => {
         and(
           eq(ideaBucketsTable.id, 10),
           eq(ideaBucketsTable.profileId, "user-1"),
+          isNull(ideaBucketsTable.deletedAt),
         ),
       );
       expect(db.transaction).toHaveBeenCalledTimes(1);
@@ -271,6 +273,7 @@ describe("POST /api/analysis/save-to-bucket", () => {
         and(
           eq(ideaBucketsTable.id, 10),
           eq(ideaBucketsTable.profileId, "user-1"),
+          isNull(ideaBucketsTable.deletedAt),
         ),
       );
       expect(lockQuery.for).toHaveBeenCalledWith("update");

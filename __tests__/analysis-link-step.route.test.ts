@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeSession, mockQuery } from "./helpers";
 
@@ -39,11 +41,13 @@ function link(body: unknown) {
   );
 }
 
-// The route loads the analysis, then the idea.
-function found(analysis: unknown[], idea: unknown[]) {
+// The route loads the analysis and idea, then validates the gameplan bucket.
+function found(analysis: unknown[], idea: unknown[], bucket = [{ id: 10 }]) {
   vi.mocked(db.select)
+    .mockReset()
     .mockReturnValueOnce(mockQuery(analysis) as never)
-    .mockReturnValueOnce(mockQuery(idea) as never);
+    .mockReturnValueOnce(mockQuery(idea) as never)
+    .mockReturnValueOnce(mockQuery(bucket) as never);
 }
 
 describe("POST /api/analysis/link-step", () => {
@@ -105,6 +109,23 @@ describe("POST /api/analysis/link-step", () => {
     );
     expect((await link({ analysisId: 3, ideaId: 9, step })).status).toBe(404);
     expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects a missing, nonowned, or deleted JSON bucket before updating the plan", async () => {
+    found([{ id: 3, bucketId: null, analysisData: plan }], [{ id: 9 }], []);
+
+    const response = await link({ analysisId: 3, ideaId: 9, step });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Bucket not found" });
+    expect(db.update).not.toHaveBeenCalled();
+    const query = vi.mocked(db.select).mock.results[2].value;
+    const condition = vi.mocked(
+      query.where as (condition: SQL) => unknown,
+    ).mock.calls[0][0];
+    const { sql, params } = new PgDialect().sqlToQuery(condition);
+    expect(sql).toContain('"idea_buckets"."deleted_at" is null');
+    expect(params).toEqual([10, "user-1"]);
   });
 
   it("returns 404 for another user's idea", async () => {

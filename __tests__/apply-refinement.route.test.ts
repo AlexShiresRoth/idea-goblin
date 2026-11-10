@@ -7,7 +7,7 @@ import {
   ideaBucketsTable,
   ideasTable,
 } from "@/lib/db/schema";
-import { and, eq, type SQL } from "drizzle-orm";
+import { and, eq, inArray, isNull, type SQL } from "drizzle-orm";
 import { PgDialect } from "drizzle-orm/pg-core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBucket, makeSession, mockQuery } from "./helpers";
@@ -93,6 +93,7 @@ describe("POST /api/buckets/apply-refinement", () => {
     lock = mockQuery([bucket]);
     lock.for = vi.fn(() => lock);
     current = mockQuery(oldIdeas);
+    current.for = vi.fn(() => current);
     snapshot = mockQuery(undefined);
     insertIdeas = mockQuery([{ id: 101 }, { id: 102 }]);
     insertLinks = mockQuery(undefined);
@@ -179,25 +180,29 @@ describe("POST /api/buckets/apply-refinement", () => {
     expect(db.transaction).not.toHaveBeenCalled();
   });
 
-  it("404s for a missing or nonowned bucket with an owner-scoped locking lookup", async () => {
-    vi.mocked(lock.for as () => unknown).mockResolvedValueOnce([]);
-    expect((await apply()).status).toBe(404);
-    expectWhere(
-      lock,
-      and(
-        eq(ideaBucketsTable.id, 10),
-        eq(ideaBucketsTable.profileId, "user-1"),
-      ),
-    );
-    expect(lock.for).toHaveBeenCalledWith("update");
-    expect(tx.select).toHaveBeenCalledTimes(1);
-    expect(tx.insert).not.toHaveBeenCalled();
-    expect(tx.delete).not.toHaveBeenCalled();
-    expect(tx.update).not.toHaveBeenCalled();
-    await expect(
-      vi.mocked(db.transaction).mock.results[0].value,
-    ).rejects.toThrow("Bucket not found");
-  });
+  it.each(["missing", "nonowned", "deleted"])(
+    "404s for a %s bucket with a live owner-scoped locking lookup",
+    async () => {
+      vi.mocked(lock.for as () => unknown).mockResolvedValueOnce([]);
+      expect((await apply()).status).toBe(404);
+      expectWhere(
+        lock,
+        and(
+          eq(ideaBucketsTable.id, 10),
+          eq(ideaBucketsTable.profileId, "user-1"),
+          isNull(ideaBucketsTable.deletedAt),
+        ),
+      );
+      expect(lock.for).toHaveBeenCalledWith("update");
+      expect(tx.select).toHaveBeenCalledTimes(1);
+      expect(tx.insert).not.toHaveBeenCalled();
+      expect(tx.delete).not.toHaveBeenCalled();
+      expect(tx.update).not.toHaveBeenCalled();
+      await expect(
+        vi.mocked(db.transaction).mock.results[0].value,
+      ).rejects.toThrow("Bucket not found");
+    },
+  );
 
   it("waits for the owned bucket lock before reading or mutating its contents", async () => {
     let release!: (rows: (typeof bucket)[]) => void;
@@ -224,6 +229,7 @@ describe("POST /api/buckets/apply-refinement", () => {
       and(
         eq(ideaBucketsTable.id, 10),
         eq(ideaBucketsTable.profileId, "user-1"),
+        isNull(ideaBucketsTable.deletedAt),
       ),
     );
     expect(tx.select).toHaveBeenNthCalledWith(2, {
@@ -241,6 +247,7 @@ describe("POST /api/buckets/apply-refinement", () => {
     );
     expectWhere(current, eq(ideaBucketLinksTable.bucketId, 10));
     expect(current.orderBy).toHaveBeenCalledWith(ideasTable.createdAt);
+    expect(current.for).toHaveBeenCalledWith("update");
     expect(snapshot.values).toHaveBeenCalledWith({
       bucketId: 10,
       name: bucket.name,
@@ -282,10 +289,16 @@ describe("POST /api/buckets/apply-refinement", () => {
     expect(db.delete).not.toHaveBeenCalled();
   });
 
-  it("replace deletes only this bucket's links after the snapshot, never idea rows", async () => {
+  it("replace detaches only this bucket's open links after the snapshot, preserving shared idea rows", async () => {
     expect((await apply({ ...input, ideasMode: "replace" })).status).toBe(200);
     expect(tx.delete).toHaveBeenCalledExactlyOnceWith(ideaBucketLinksTable);
-    expectWhere(removeLinks, eq(ideaBucketLinksTable.bucketId, 10));
+    expectWhere(
+      removeLinks,
+      and(
+        eq(ideaBucketLinksTable.bucketId, 10),
+        inArray(ideaBucketLinksTable.ideaId, [1]),
+      ),
+    );
     const order = (query: ReturnType<typeof mockQuery>, method: string) =>
       vi.mocked(query[method] as () => unknown).mock.invocationCallOrder[0];
     expect(order(snapshot, "values")).toBeLessThan(
@@ -295,6 +308,79 @@ describe("POST /api/buckets/apply-refinement", () => {
       order(insertIdeas, "values"),
     );
     expect(order(insertLinks, "values")).toBeLessThan(order(update, "set"));
+  });
+
+  it("replace preserves done links while snapshotting all statuses, including legacy archived/completed ideas", async () => {
+    // isDone recognizes only "done"; legacy status names are still open.
+    const mixedIdeas = [
+      "incubating",
+      "done",
+      "archived",
+      "completed",
+      "growing",
+      "done",
+    ].map((status, index) => ({ ...oldIdeas[0], id: index + 1, status }));
+    vi.mocked(current.for as () => unknown).mockResolvedValueOnce(mixedIdeas);
+
+    expect((await apply({ ...input, ideasMode: "replace" })).status).toBe(200);
+    expect(snapshot.values).toHaveBeenCalledWith(
+      expect.objectContaining({ ideas: mixedIdeas }),
+    );
+    expect(tx.delete).toHaveBeenCalledExactlyOnceWith(ideaBucketLinksTable);
+    expectWhere(
+      removeLinks,
+      and(
+        eq(ideaBucketLinksTable.bucketId, 10),
+        inArray(ideaBucketLinksTable.ideaId, [1, 3, 4, 5]),
+      ),
+    );
+    expect(insertLinks.values).toHaveBeenCalledWith([
+      { ideaId: 101, bucketId: 10 },
+      { ideaId: 102, bucketId: 10 },
+    ]);
+  });
+
+  it.each(["all done", "empty"])(
+    "replace skips deletion entirely when the bucket is %s but still snapshots and adds suggestions",
+    async (state) => {
+      const ideas =
+        state === "all done"
+          ? [1, 2].map((id) => ({ ...oldIdeas[0], id, status: "done" }))
+          : [];
+      vi.mocked(current.for as () => unknown).mockResolvedValueOnce(ideas);
+
+      expect((await apply({ ...input, ideasMode: "replace" })).status).toBe(
+        200,
+      );
+      expect(snapshot.values).toHaveBeenCalledWith(
+        expect.objectContaining({ ideas }),
+      );
+      expect(tx.delete).not.toHaveBeenCalled();
+      expect(removeLinks.where).not.toHaveBeenCalled();
+      expect(tx.insert).toHaveBeenCalledWith(ideasTable);
+      expect(insertLinks.values).toHaveBeenCalledWith([
+        { ideaId: 101, bucketId: 10 },
+        { ideaId: 102, bucketId: 10 },
+      ]);
+    },
+  );
+
+  it("waits for idea/status locks before snapshotting or replacing links", async () => {
+    let release!: (rows: typeof oldIdeas) => void;
+    const pending = new Promise<typeof oldIdeas>((resolve) => {
+      release = resolve;
+    });
+    vi.mocked(current.for as () => unknown).mockReturnValueOnce(pending);
+    const response = apply({ ...input, ideasMode: "replace" });
+    await vi.waitFor(() => expect(current.for).toHaveBeenCalledWith("update"));
+    expect(tx.insert).not.toHaveBeenCalled();
+    expect(tx.delete).not.toHaveBeenCalled();
+    release([{ ...oldIdeas[0], status: "done" }]);
+    expect((await response).status).toBe(200);
+    expect(snapshot.values).toHaveBeenCalledWith(
+      expect.objectContaining({ ideas: [{ ...oldIdeas[0], status: "done" }] }),
+    );
+    expect(tx.delete).not.toHaveBeenCalled();
   });
 
   it("none applies only details while snapshotting the current ideas", async () => {

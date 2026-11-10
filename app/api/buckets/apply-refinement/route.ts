@@ -1,13 +1,13 @@
 import { AuthGuard } from "@/lib/auth/auth-guard";
-import { isBucketCategory } from "@/lib/constants";
+import { isBucketCategory, isDone } from "@/lib/constants";
 import { db } from "@/lib/db";
 import {
-    bucketVersionsTable,
-    ideaBucketLinksTable,
-    ideaBucketsTable,
-    ideasTable,
+  bucketVersionsTable,
+  ideaBucketLinksTable,
+  ideaBucketsTable,
+  ideasTable,
 } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -48,10 +48,20 @@ export async function POST(request: Request) {
       await request.json().catch(() => null),
     );
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid refinement" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid refinement" },
+        { status: 400 },
+      );
     }
-    const { bucketId, name, description, category, updateDetails, ideasMode, ideas } =
-      parsed.data;
+    const {
+      bucketId,
+      name,
+      description,
+      category,
+      updateDetails,
+      ideasMode,
+      ideas,
+    } = parsed.data;
     const profileId = session.user.id;
 
     await db.transaction(async (tx) => {
@@ -62,6 +72,7 @@ export async function POST(request: Request) {
           and(
             eq(ideaBucketsTable.id, bucketId),
             eq(ideaBucketsTable.profileId, profileId),
+            isNull(ideaBucketsTable.deletedAt),
           ),
         )
         .for("update");
@@ -81,7 +92,9 @@ export async function POST(request: Request) {
         .from(ideaBucketLinksTable)
         .innerJoin(ideasTable, eq(ideasTable.id, ideaBucketLinksTable.ideaId))
         .where(eq(ideaBucketLinksTable.bucketId, bucketId))
-        .orderBy(ideasTable.createdAt);
+        .orderBy(ideasTable.createdAt)
+        // Lock linked ideas (including their statuses) and links until apply commits.
+        .for("update");
       await tx.insert(bucketVersionsTable).values({
         bucketId,
         name: bucket.name,
@@ -92,10 +105,20 @@ export async function POST(request: Request) {
       });
 
       if (ideasMode === "replace") {
-        // Old ideas may be shared by other buckets or referenced by versions.
-        await tx
-          .delete(ideaBucketLinksTable)
-          .where(eq(ideaBucketLinksTable.bucketId, bucketId));
+        const openIdeaIds = currentIdeas
+          .filter((idea) => !isDone(idea))
+          .map((idea) => idea.id);
+        // Preserve completed links and idea rows shared by buckets or versions.
+        if (openIdeaIds.length > 0) {
+          await tx
+            .delete(ideaBucketLinksTable)
+            .where(
+              and(
+                eq(ideaBucketLinksTable.bucketId, bucketId),
+                inArray(ideaBucketLinksTable.ideaId, openIdeaIds),
+              ),
+            );
+        }
       }
       if (ideas.length > 0) {
         const inserted = await tx
@@ -113,9 +136,9 @@ export async function POST(request: Request) {
             })),
           )
           .returning({ id: ideasTable.id });
-        await tx.insert(ideaBucketLinksTable).values(
-          inserted.map((idea) => ({ ideaId: idea.id, bucketId })),
-        );
+        await tx
+          .insert(ideaBucketLinksTable)
+          .values(inserted.map((idea) => ({ ideaId: idea.id, bucketId })));
       }
 
       await tx

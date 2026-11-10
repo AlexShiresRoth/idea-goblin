@@ -1,11 +1,7 @@
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
-import {
-  ideaBucketLinksTable,
-  ideaBucketsTable,
-  ideasTable,
-} from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { ideaBucketsTable } from "@/lib/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 export async function DELETE(request: Request) {
@@ -16,45 +12,44 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { bucketId } = await request.json();
-
-    if (!bucketId) {
+    const body = await request.json().catch(() => null);
+    const bucketId = body?.bucketId;
+    if (bucketId == null) {
       return NextResponse.json(
         { error: "Bucket ID is required" },
         { status: 400 },
       );
     }
 
-    const bucketIdNumber = parseInt(bucketId);
+    const id =
+      typeof bucketId === "string" && /^\d+$/.test(bucketId)
+        ? Number(bucketId)
+        : bucketId;
+    if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0) {
+      return NextResponse.json({ error: "Invalid bucket ID" }, { status: 400 });
+    }
 
+    const now = new Date();
     const [bucket] = await db
-      .select()
-      .from(ideaBucketsTable)
-      .where(eq(ideaBucketsTable.id, bucketIdNumber))
-      .limit(1);
+      .update(ideaBucketsTable)
+      .set({
+        deletedAt: now,
+        activeSince: null,
+        shareToken: null,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(ideaBucketsTable.id, id),
+          eq(ideaBucketsTable.profileId, session.user.id),
+          isNull(ideaBucketsTable.deletedAt),
+        ),
+      )
+      .returning({ id: ideaBucketsTable.id });
 
     if (!bucket) {
       return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
     }
-
-    if (bucket.profileId !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const links = await db
-      .select()
-      .from(ideaBucketLinksTable)
-      .where(eq(ideaBucketLinksTable.bucketId, bucketIdNumber));
-
-    for await (const link of links) {
-      await db.delete(ideasTable).where(eq(ideasTable.id, link.ideaId));
-      await db
-        .delete(ideaBucketLinksTable)
-        .where(eq(ideaBucketLinksTable.id, link.id));
-    }
-
-    await db
-      .delete(ideaBucketsTable)
-      .where(eq(ideaBucketsTable.id, bucketIdNumber));
 
     return NextResponse.json(
       { message: "Bucket deleted successfully" },

@@ -1,4 +1,4 @@
-import { getBucketIdeas, snapshotBucket } from "@/lib/api/buckets";
+import { getBucketIdeas } from "@/lib/api/buckets";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
 import {
@@ -7,7 +7,7 @@ import {
   ideaBucketsTable,
   ideasTable,
 } from "@/lib/db/schema";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
@@ -55,6 +55,7 @@ export async function POST(request: Request) {
         and(
           eq(bucketVersionsTable.id, versionId),
           eq(ideaBucketsTable.profileId, session.user.id),
+          isNull(ideaBucketsTable.deletedAt),
         ),
       )
       .limit(1);
@@ -64,9 +65,6 @@ export async function POST(request: Request) {
     }
 
     const { version, bucket } = row;
-
-    // Keep the current state as a version too, so a restore can be undone.
-    await snapshotBucket(bucket);
 
     const current = await getBucketIdeas(bucket.id);
     const currentById = new Map(current.map((idea) => [idea.id, idea]));
@@ -97,7 +95,44 @@ export async function POST(request: Request) {
       ),
     );
 
-    await db.transaction(async (tx) => {
+    const restored = await db.transaction(async (tx) => {
+      const [lockedBucket] = await tx
+        .select()
+        .from(ideaBucketsTable)
+        .where(
+          and(
+            eq(ideaBucketsTable.id, bucket.id),
+            eq(ideaBucketsTable.profileId, session.user.id),
+            isNull(ideaBucketsTable.deletedAt),
+          ),
+        )
+        .for("update");
+      if (!lockedBucket) return false;
+
+      // Snapshot only after locking, so trash cannot race the undo version
+      // or any of the idea mutations. Embeddings are prepared before locking.
+      const snapshotIdeas = await tx
+        .select({
+          id: ideasTable.id,
+          title: ideasTable.title,
+          description: ideasTable.description,
+          category: ideasTable.category,
+          status: ideasTable.status,
+          type: ideasTable.type,
+        })
+        .from(ideaBucketLinksTable)
+        .innerJoin(ideasTable, eq(ideasTable.id, ideaBucketLinksTable.ideaId))
+        .where(eq(ideaBucketLinksTable.bucketId, bucket.id))
+        .orderBy(ideasTable.createdAt);
+      await tx.insert(bucketVersionsTable).values({
+        bucketId: lockedBucket.id,
+        name: lockedBucket.name,
+        description: lockedBucket.description,
+        theme: lockedBucket.theme,
+        category: lockedBucket.category,
+        ideas: snapshotIdeas,
+      });
+
       await tx
         .update(ideaBucketsTable)
         .set({
@@ -107,7 +142,13 @@ export async function POST(request: Request) {
           category: version.category,
           updatedAt: new Date(),
         })
-        .where(eq(ideaBucketsTable.id, bucket.id));
+        .where(
+          and(
+            eq(ideaBucketsTable.id, bucket.id),
+            eq(ideaBucketsTable.profileId, session.user.id),
+            isNull(ideaBucketsTable.deletedAt),
+          ),
+        );
 
       if (toDelete.length > 0) {
         await tx.delete(ideasTable).where(
@@ -150,7 +191,11 @@ export async function POST(request: Request) {
           .insert(ideaBucketLinksTable)
           .values({ ideaId: created.id, bucketId: bucket.id });
       }
+      return true;
     });
+    if (!restored) {
+      return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
+    }
 
     return NextResponse.json({ message: "Version restored" });
   } catch (error) {

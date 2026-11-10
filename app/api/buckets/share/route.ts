@@ -1,7 +1,7 @@
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
 import { ideaBucketsTable } from "@/lib/db/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
@@ -45,6 +45,7 @@ export async function POST(request: Request) {
         and(
           eq(ideaBucketsTable.id, bucketId),
           eq(ideaBucketsTable.profileId, session.user.id),
+          isNull(ideaBucketsTable.deletedAt),
         ),
       )
       .returning({ shareToken: ideaBucketsTable.shareToken });

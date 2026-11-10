@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeSession, mockQuery } from "./helpers";
 
@@ -44,7 +46,8 @@ describe("POST /api/vault/save", () => {
   });
 
   it("links a gameplan to the user's bucket", async () => {
-    vi.mocked(db.select).mockReturnValue(mockQuery([{ id: 5 }]) as never);
+    const query = mockQuery([{ id: 5 }]);
+    vi.mocked(db.select).mockReturnValue(query as never);
 
     const response = await saveBody({
       data: { finish_line: "f" },
@@ -53,6 +56,12 @@ describe("POST /api/vault/save", () => {
     });
 
     expect(response.status).toBe(200);
+    const condition = vi.mocked(
+      query.where as (condition: SQL) => unknown,
+    ).mock.calls[0][0];
+    expect(new PgDialect().sqlToQuery(condition).sql).toContain(
+      '"idea_buckets"."deleted_at" is null',
+    );
     expect(insertQuery.values).toHaveBeenCalledWith(
       expect.objectContaining({ analysisType: "gameplan", bucketId: 5 }),
     );
@@ -88,7 +97,9 @@ describe("GET /api/buckets/gameplan", () => {
       data: { finish_line: "f" },
     };
     const query = mockQuery([saved]);
-    vi.mocked(db.select).mockReturnValue(query as never);
+    vi.mocked(db.select)
+      .mockReturnValueOnce(mockQuery([{ id: 5 }]) as never)
+      .mockReturnValueOnce(query as never);
 
     const response = await get("?bucketId=5");
 
@@ -97,9 +108,28 @@ describe("GET /api/buckets/gameplan", () => {
   });
 
   it("returns null when the bucket has none", async () => {
-    vi.mocked(db.select).mockReturnValue(mockQuery([]) as never);
+    vi.mocked(db.select)
+      .mockReturnValueOnce(mockQuery([{ id: 5 }]) as never)
+      .mockReturnValueOnce(mockQuery([]) as never);
 
     expect(await (await get("?bucketId=5")).json()).toBeNull();
+  });
+
+  it("returns 404 without loading plans for a missing, nonowned, or deleted bucket", async () => {
+    const query = mockQuery([]);
+    vi.mocked(db.select).mockReturnValueOnce(query as never);
+
+    const response = await get("?bucketId=5");
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Bucket not found" });
+    expect(db.select).toHaveBeenCalledTimes(1);
+    const condition = vi.mocked(
+      query.where as (condition: SQL) => unknown,
+    ).mock.calls[0][0];
+    const { sql, params } = new PgDialect().sqlToQuery(condition);
+    expect(sql).toContain('"idea_buckets"."deleted_at" is null');
+    expect(params).toEqual([5, "user-1"]);
   });
 
   it.each(["", "?bucketId=abc", "?bucketId=-1"])(

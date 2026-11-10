@@ -1,9 +1,13 @@
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
-import { analysisResultsTable, ideasTable } from "@/lib/db/schema";
+import {
+  analysisResultsTable,
+  ideaBucketsTable,
+  ideasTable,
+} from "@/lib/db/schema";
 import { hasStep, linkStep } from "@/lib/gameplan";
 import { isGameplan } from "@/lib/types";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -64,6 +68,20 @@ export async function POST(request: Request) {
     }
     if (!hasStep(analysis.analysisData, step)) {
       return NextResponse.json({ error: "Step not found" }, { status: 400 });
+    }
+
+    const [bucket] = await db
+      .select({ id: ideaBucketsTable.id })
+      .from(ideaBucketsTable)
+      .where(
+        and(
+          eq(ideaBucketsTable.id, analysis.analysisData.bucket_id),
+          eq(ideaBucketsTable.profileId, profileId),
+          isNull(ideaBucketsTable.deletedAt),
+        ),
+      );
+    if (!bucket) {
+      return NextResponse.json({ error: "Bucket not found" }, { status: 404 });
     }
 
     const data = linkStep(analysis.analysisData, step, ideaId);

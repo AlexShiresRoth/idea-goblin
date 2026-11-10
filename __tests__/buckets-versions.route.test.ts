@@ -1,14 +1,26 @@
 import { getBucketIdeas, snapshotBucket } from "@/lib/api/buckets";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
+import {
+  bucketVersionsTable,
+  ideaBucketLinksTable,
+  ideaBucketsTable,
+  ideasTable,
+} from "@/lib/db/schema";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBucket, makeSession, mockQuery } from "./helpers";
+
+const { embeddingsCreate } = vi.hoisted(() => ({
+  embeddingsCreate: vi.fn(),
+}));
 
 vi.mock("openai", () => ({
   default: vi.fn(function () {
     return {
       embeddings: {
-        create: vi.fn().mockResolvedValue({ data: [{ embedding: [0.1] }] }),
+        create: embeddingsCreate,
       },
     };
   }),
@@ -34,8 +46,14 @@ function post(handler: (request: Request) => Promise<Response>, body: unknown) {
   );
 }
 
-function makeTx() {
+function makeTx(snapshotIdeas = [snapshotIdea(1, "new"), snapshotIdea(3)]) {
+  const lockQuery = mockQuery([{ ...bucket, name: "Latest name" }]);
+  lockQuery.for = vi.fn(() => lockQuery);
   const tx = {
+    select: vi
+      .fn()
+      .mockReturnValueOnce(lockQuery)
+      .mockReturnValueOnce(mockQuery(snapshotIdeas)),
     update: vi.fn(() => mockQuery(undefined)),
     delete: vi.fn(() => mockQuery(undefined)),
     insert: vi.fn(() => mockQuery([{ id: 50 }])),
@@ -43,7 +61,7 @@ function makeTx() {
   vi.mocked(db.transaction).mockImplementation(
     async (fn: (tx: never) => Promise<unknown>) => fn(tx as never),
   );
-  return tx;
+  return { tx, lockQuery };
 }
 
 function snapshotIdea(id: number, description = "d") {
@@ -90,9 +108,19 @@ describe("POST /api/buckets/update", () => {
     });
 
     expect(response.status).toBe(200);
+    const selected = vi.mocked(db.select).mock.results[0].value;
+    const { sql } = new PgDialect().sqlToQuery(
+      vi.mocked(selected.where as (condition: SQL) => unknown).mock.calls[0][0],
+    );
+    expect(sql).toContain('"idea_buckets"."deleted_at" is null');
     expect(snapshotBucket).toHaveBeenCalledWith(bucket);
     expect(updated.set).toHaveBeenCalledWith(
       expect.objectContaining({ name: "N", description: "D" }),
+    );
+    const condition = vi.mocked(updated.where as (condition: SQL) => unknown)
+      .mock.calls[0][0];
+    expect(new PgDialect().sqlToQuery(condition).sql).toContain(
+      '"idea_buckets"."deleted_at" is null',
     );
   });
 
@@ -136,6 +164,9 @@ describe("POST /api/buckets/update", () => {
 describe("POST /api/buckets/versions/restore", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    embeddingsCreate
+      .mockReset()
+      .mockResolvedValue({ data: [{ embedding: [0.1] }] });
     vi.mocked(AuthGuard).mockResolvedValue(makeSession() as never);
   });
 
@@ -151,6 +182,71 @@ describe("POST /api/buckets/versions/restore", () => {
 
     expect(response.status).toBe(404);
     expect(snapshotBucket).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 without snapshot or idea writes when trashed during embedding", async () => {
+    const version = {
+      id: 3,
+      ideas: [snapshotIdea(1, "old"), snapshotIdea(2)],
+    };
+    vi.mocked(db.select).mockReturnValue(
+      mockQuery([{ version, bucket }]) as never,
+    );
+    vi.mocked(getBucketIdeas).mockResolvedValue([
+      snapshotIdea(1, "new"),
+      snapshotIdea(3),
+    ]);
+    const { tx, lockQuery } = makeTx();
+    embeddingsCreate.mockImplementation(async () => {
+      expect(db.transaction).not.toHaveBeenCalled();
+      expect(snapshotBucket).not.toHaveBeenCalled();
+      // Trash commits after the initial lookup, before restore takes its lock.
+      vi.mocked(lockQuery.for as () => unknown).mockResolvedValue([]);
+      return { data: [{ embedding: [0.1] }] };
+    });
+
+    const response = await post(restore, { versionId: 3 });
+
+    expect(embeddingsCreate).toHaveBeenCalledTimes(2);
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Bucket not found" });
+    expect(tx.select).toHaveBeenCalledTimes(1);
+    expect(tx.select.mock.results[0].value.from).toHaveBeenCalledWith(
+      ideaBucketsTable,
+    );
+    expect(lockQuery.for).toHaveBeenCalledWith("update");
+    expect(snapshotBucket).not.toHaveBeenCalled();
+    expect(tx.insert).not.toHaveBeenCalled();
+    expect(tx.update).not.toHaveBeenCalled();
+    expect(tx.delete).not.toHaveBeenCalled();
+  });
+
+  it("waits for the live bucket lock before snapshotting or mutating ideas", async () => {
+    vi.mocked(db.select).mockReturnValue(
+      mockQuery([{ version: { id: 3, ideas: [] }, bucket }]) as never,
+    );
+    vi.mocked(getBucketIdeas).mockResolvedValue([snapshotIdea(3)]);
+    const { tx, lockQuery } = makeTx();
+    let releaseLock!: (rows: unknown[]) => void;
+    const locked = new Promise<unknown[]>((resolve) => {
+      releaseLock = resolve;
+    });
+    vi.mocked(lockQuery.for as () => unknown).mockReturnValue(locked);
+
+    const pending = post(restore, { versionId: 3 });
+    await vi.waitFor(() =>
+      expect(lockQuery.for).toHaveBeenCalledWith("update"),
+    );
+    expect(snapshotBucket).not.toHaveBeenCalled();
+    expect(tx.insert).not.toHaveBeenCalled();
+    expect(tx.update).not.toHaveBeenCalled();
+    expect(tx.delete).not.toHaveBeenCalled();
+    releaseLock([]);
+
+    expect((await pending).status).toBe(404);
+    expect(tx.insert).not.toHaveBeenCalled();
+    expect(tx.update).not.toHaveBeenCalled();
+    expect(tx.delete).not.toHaveBeenCalled();
   });
 
   it("snapshots the current state, then restores the bucket and its ideas", async () => {
@@ -172,21 +268,58 @@ describe("POST /api/buckets/versions/restore", () => {
       snapshotIdea(1, "new"),
       snapshotIdea(3),
     ]);
-    const tx = makeTx();
+    const { tx, lockQuery } = makeTx();
 
     const response = await post(restore, { versionId: 3 });
 
     expect(response.status).toBe(200);
-    expect(snapshotBucket).toHaveBeenCalledWith(bucket);
+    const selected = vi.mocked(db.select).mock.results[0].value;
+    const { sql } = new PgDialect().sqlToQuery(
+      vi.mocked(selected.where as (condition: SQL) => unknown).mock.calls[0][0],
+    );
+    expect(sql).toContain('"idea_buckets"."deleted_at" is null');
+    expect(snapshotBucket).not.toHaveBeenCalled();
+    expect(lockQuery.for).toHaveBeenCalledWith("update");
+    const lockCondition = vi.mocked(
+      lockQuery.where as (condition: SQL) => unknown,
+    ).mock.calls[0][0];
+    const lockSql = new PgDialect().sqlToQuery(lockCondition);
+    expect(lockSql.sql).toContain('"idea_buckets"."deleted_at" is null');
+    expect(lockSql.params).toEqual([bucket.id, "user-1"]);
+    expect(tx.insert).toHaveBeenNthCalledWith(1, bucketVersionsTable);
+    const snapshot = tx.insert.mock.results[0].value;
+    expect(snapshot.values).toHaveBeenCalledWith({
+      bucketId: bucket.id,
+      name: "Latest name",
+      description: bucket.description,
+      theme: bucket.theme,
+      category: bucket.category,
+      ideas: [snapshotIdea(1, "new"), snapshotIdea(3)],
+    });
+    expect(
+      vi.mocked(snapshot.values as () => unknown).mock.invocationCallOrder[0],
+    ).toBeLessThan(tx.update.mock.invocationCallOrder[0]);
     // bucket + idea 1
     expect(tx.update).toHaveBeenCalledTimes(2);
     const bucketUpdate = tx.update.mock.results[0].value;
     expect(bucketUpdate.set).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "Old name", theme: "old", category: "travel" }),
+      expect.objectContaining({
+        name: "Old name",
+        theme: "old",
+        category: "travel",
+      }),
+    );
+    const condition = vi.mocked(
+      bucketUpdate.where as (condition: SQL) => unknown,
+    ).mock.calls[0][0];
+    expect(new PgDialect().sqlToQuery(condition).sql).toContain(
+      '"idea_buckets"."deleted_at" is null',
     );
     // idea 3
     expect(tx.delete).toHaveBeenCalledTimes(1);
-    // idea 2 recreated, plus its bucket link
-    expect(tx.insert).toHaveBeenCalledTimes(2);
+    // Undo snapshot, idea 2 recreated, plus its bucket link.
+    expect(tx.insert).toHaveBeenCalledTimes(3);
+    expect(tx.insert).toHaveBeenNthCalledWith(2, ideasTable);
+    expect(tx.insert).toHaveBeenNthCalledWith(3, ideaBucketLinksTable);
   });
 });

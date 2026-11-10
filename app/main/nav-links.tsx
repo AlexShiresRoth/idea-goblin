@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { ChartNetwork, LayoutDashboard } from "lucide-react";
+import { ChartNetwork, LayoutDashboard, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,6 +17,12 @@ const LINKS = [
     label: "Analysis",
     icon: ChartNetwork,
     isActive: (pathname: string) => pathname.startsWith("/main/analysis"),
+  },
+  {
+    href: "/main/trash",
+    label: "Trash",
+    icon: Trash2,
+    isActive: (pathname: string) => pathname.startsWith("/main/trash"),
   },
 ] as const;
 

@@ -46,6 +46,7 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(ideaBucketsTable.profileId, profile.id),
+                isNull(ideaBucketsTable.deletedAt),
                 inArray(ideaBucketsTable.id, bucketIds),
               ),
             );
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(ideaBucketsTable.profileId, profile.id),
+            isNull(ideaBucketsTable.deletedAt),
             bucketIds.length > 0
               ? notInArray(ideaBucketsTable.id, bucketIds)
               : undefined,
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(ideaBucketsTable.profileId, profile.id),
+              isNull(ideaBucketsTable.deletedAt),
               inArray(ideaBucketsTable.id, bucketIds),
               isNull(ideaBucketsTable.activeSince),
             ),

@@ -2,7 +2,7 @@ import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
 import { analysisResultsTable, ideaBucketsTable } from "@/lib/db/schema";
 import { isGameplan } from "@/lib/types";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -66,6 +66,7 @@ export async function POST(request: Request) {
         and(
           eq(ideaBucketsTable.id, bucketId),
           eq(ideaBucketsTable.profileId, profileId),
+          isNull(ideaBucketsTable.deletedAt),
         ),
       );
     if (!bucket) {
@@ -81,6 +82,7 @@ export async function POST(request: Request) {
           and(
             eq(ideaBucketsTable.id, bucketId),
             eq(ideaBucketsTable.profileId, profileId),
+            isNull(ideaBucketsTable.deletedAt),
           ),
         )
         .for("update");

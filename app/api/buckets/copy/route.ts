@@ -6,7 +6,7 @@ import {
   ideaBucketsTable,
   ideasTable,
 } from "@/lib/db/schema";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -30,7 +30,12 @@ export async function POST(request: Request) {
     const [bucket] = await db
       .select()
       .from(ideaBucketsTable)
-      .where(eq(ideaBucketsTable.shareToken, parsed.data.token))
+      .where(
+        and(
+          eq(ideaBucketsTable.shareToken, parsed.data.token),
+          isNull(ideaBucketsTable.deletedAt),
+        ),
+      )
       .limit(1);
     if (!bucket) {
       return NextResponse.json({ error: "Bucket not found" }, { status: 404 });

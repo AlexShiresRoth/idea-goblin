@@ -1,7 +1,7 @@
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
 import { analysisResultsTable, ideaBucketsTable } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 // TODO - should we compress the payload?
 export async function POST(request: Request) {
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
           and(
             eq(ideaBucketsTable.id, bucketId),
             eq(ideaBucketsTable.profileId, session.user.id),
+            isNull(ideaBucketsTable.deletedAt),
           ),
         );
       if (!bucket) {

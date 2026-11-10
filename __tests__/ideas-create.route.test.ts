@@ -2,6 +2,8 @@
 import { touchBuckets } from "@/lib/api/buckets";
 import { AuthGuard } from "@/lib/auth/auth-guard";
 import { db } from "@/lib/db";
+import type { SQL } from "drizzle-orm";
+import { PgDialect } from "drizzle-orm/pg-core";
 import { findRelevantBucket, generateIdeaResponse } from "@/lib/prompts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -85,6 +87,22 @@ describe("POST /api/ideas/create", () => {
     inserted = mockQuery([makeIdea({ id: 77 })]);
     vi.mocked(db.insert).mockReturnValue(inserted as never);
     vi.mocked(db.delete).mockReturnValue(deleted as never);
+  });
+
+  it("excludes deleted buckets before validating a chosen destination", async () => {
+    vi.mocked(db.select).mockReset()
+      .mockReturnValueOnce(mockQuery([{ id: userId }]) as never);
+    const query = mockQuery([]);
+    vi.mocked(db.select).mockReturnValueOnce(query as never);
+
+    expect((await create({ bucket: 10 })).status).toBe(400);
+    expect(generateIdeaResponse).not.toHaveBeenCalled();
+    expect(db.insert).not.toHaveBeenCalled();
+    const { sql, params } = new PgDialect().sqlToQuery(
+      vi.mocked(query.where as (condition: SQL) => unknown).mock.calls[0][0],
+    );
+    expect(sql).toContain('"idea_buckets"."deleted_at" is null');
+    expect(params).toEqual([userId]);
   });
 
   it("returns 401 when signed out, before any work", async () => {

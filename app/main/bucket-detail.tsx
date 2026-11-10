@@ -14,7 +14,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useContext, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { AnalyzeVaultModal } from "../components/analyze-vault";
 import { bucketStyleVars } from "../components/bucket-icon";
 import CreateIdeaModal from "../components/create-idea-modal";
@@ -69,6 +69,8 @@ export default function BucketDetail({
   const router = useRouter();
   const { setToasts } = useContext(ToastContext);
   const [isDeleting, setIsDeleting] = useState(false);
+  const deleteDialog = useRef<HTMLDialogElement>(null);
+  const deleting = useRef(false);
   const [refining, setRefining] = useState(false);
   // Collapses the header to one line, leaving more room for ideas.
   const [summaryOpen, setSummaryOpen] = useState(true);
@@ -91,6 +93,8 @@ export default function BucketDetail({
   const canGoRight = start + take < openIdeas.length;
 
   async function deleteBucket() {
+    if (deleting.current) return;
+    deleting.current = true;
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/buckets/delete`, {
@@ -101,10 +105,11 @@ export default function BucketDetail({
       setToasts([
         {
           id: bucket.id,
-          message: `Deleted "${bucket.name}". Off to the rubbish heap.`,
+          message: `Moved "${bucket.name}" to Trash. You can restore it there.`,
           type: "success",
         },
       ]);
+      deleteDialog.current?.close();
       router.replace("/main");
       router.refresh();
     } catch (error) {
@@ -113,6 +118,7 @@ export default function BucketDetail({
         { id: bucket.id, message: "Error deleting bucket", type: "error" },
       ]);
     } finally {
+      deleting.current = false;
       setIsDeleting(false);
     }
   }
@@ -194,7 +200,7 @@ export default function BucketDetail({
           <button
             data-testid="delete-bucket"
             disabled={isDeleting}
-            onClick={() => !isDeleting && deleteBucket()}
+            onClick={() => !isDeleting && deleteDialog.current?.showModal()}
             className="flex items-center gap-1 p-2 text-white/50 rounded-none text-sm hover:cursor-pointer hover:text-red-500/80 transition-colors"
           >
             {isDeleting ? (
@@ -211,6 +217,51 @@ export default function BucketDetail({
           </button>
         </div>
       </header>
+      <dialog
+        ref={deleteDialog}
+        aria-labelledby={`trash-bucket-title-${bucket.id}`}
+        aria-describedby={`trash-bucket-description-${bucket.id}`}
+        className="m-auto w-11/12 max-w-md border border-white/20 bg-background p-5 text-primary backdrop:bg-background/70"
+        onCancel={(event) => {
+          if (deleting.current) event.preventDefault();
+        }}
+      >
+        <div className="flex flex-col gap-4">
+          <h2
+            id={`trash-bucket-title-${bucket.id}`}
+            className="text-lg font-bold"
+          >
+            Move bucket to Trash?
+          </h2>
+          <p
+            id={`trash-bucket-description-${bucket.id}`}
+            className="text-sm text-white/60"
+          >
+            Its ideas, completed work, versions, and analyses will be kept.
+            Ideas in other buckets are unaffected. You can restore this bucket
+            from Trash. Sharing will be turned off and it will no longer be
+            marked as active.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              className="action-button"
+              disabled={isDeleting}
+              onClick={() => deleteDialog.current?.close()}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="action-button text-red-400 disabled:opacity-50"
+              disabled={isDeleting}
+              onClick={deleteBucket}
+            >
+              {isDeleting ? "Moving..." : "Move to Trash"}
+            </button>
+          </div>
+        </div>
+      </dialog>
 
       {/* Stacked and scrolled as one on small screens; side by side with
           independent scrolling from md up. */}

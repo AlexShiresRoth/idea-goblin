@@ -1,8 +1,8 @@
-import BucketDetail from "@/app/main/bucket-detail";
 import { ToastContext } from "@/app/context/toast.provider";
+import BucketDetail from "@/app/main/bucket-detail";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeBucket, makeIdea } from "./helpers";
 
 const refresh = vi.fn();
@@ -30,7 +30,43 @@ const refineIdeas = [
 ];
 
 describe("BucketDetail", () => {
+  const originalShowModal = Object.getOwnPropertyDescriptor(
+    HTMLDialogElement.prototype,
+    "showModal",
+  );
+  const originalClose = Object.getOwnPropertyDescriptor(
+    HTMLDialogElement.prototype,
+    "close",
+  );
+  afterEach(() => {
+    if (originalShowModal)
+      Object.defineProperty(
+        HTMLDialogElement.prototype,
+        "showModal",
+        originalShowModal,
+      );
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
+    if (originalClose)
+      Object.defineProperty(
+        HTMLDialogElement.prototype,
+        "close",
+        originalClose,
+      );
+    else Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
+  });
   beforeEach(() => {
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+      configurable: true,
+      value: function (this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+      },
+    });
+    Object.defineProperty(HTMLDialogElement.prototype, "close", {
+      configurable: true,
+      value: function (this: HTMLDialogElement) {
+        this.removeAttribute("open");
+      },
+    });
     vi.clearAllMocks();
     vi.stubGlobal(
       "fetch",
@@ -259,12 +295,29 @@ describe("BucketDetail", () => {
     expect(screen.getByText(/No ideas in here yet/)).toBeInTheDocument();
   });
 
+  it("explains recoverable deletion and lets the user cancel", async () => {
+    const user = userEvent.setup();
+    renderBucket();
+    await user.click(screen.getByText("Delete"));
+    expect(
+      screen.getByRole("dialog", { name: "Move bucket to Trash?" }),
+    ).toHaveTextContent("Ideas in other buckets are unaffected");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalledWith(
+      "/api/buckets/delete",
+      expect.anything(),
+    );
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it("toasts an error and stays on the page when delete fails", async () => {
     vi.mocked(fetch).mockResolvedValue({ ok: false } as Response);
     const user = userEvent.setup();
     renderBucket();
 
     await user.click(screen.getByText("Delete"));
+    await user.click(screen.getByRole("button", { name: "Move to Trash" }));
 
     expect(setToasts).toHaveBeenCalledWith([
       { id: 10, message: "Error deleting bucket", type: "error" },
@@ -289,11 +342,12 @@ describe("BucketDetail", () => {
     expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
   });
 
-  it("deletes the bucket, toasts success, and returns to the board", async () => {
+  it("moves the bucket to Trash, toasts recovery instructions, and returns to the board", async () => {
     const user = userEvent.setup();
     renderBucket();
 
     await user.click(screen.getByText("Delete"));
+    await user.click(screen.getByRole("button", { name: "Move to Trash" }));
 
     expect(fetch).toHaveBeenCalledWith("/api/buckets/delete", {
       method: "DELETE",
@@ -302,7 +356,7 @@ describe("BucketDetail", () => {
     expect(setToasts).toHaveBeenCalledWith([
       {
         id: 10,
-        message: 'Deleted "Launch ideas". Off to the rubbish heap.',
+        message: 'Moved "Launch ideas" to Trash. You can restore it there.',
         type: "success",
       },
     ]);
