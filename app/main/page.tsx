@@ -45,12 +45,12 @@ export default async function Main({ searchParams }: PageProps<"/main">) {
       limit={focusLimit}
     >
       <div className="flex flex-col h-full overflow-auto gap-4 flex-1">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-between">
           <FocusBar />
           {buckets.length > 0 && (
             <nav
               aria-label="Sort buckets"
-              className="flex flex-wrap items-center gap-1 px-4 py-2 text-sm"
+              className="flex flex-col items-stretch gap-1 px-4 py-2 text-sm md:flex-row md:flex-wrap md:items-center"
             >
               <span className="mr-1 text-white/50">Sort by</span>
               {(
