@@ -26,7 +26,13 @@ const inputClass =
 const linkClass = "underline hover:cursor-pointer";
 
 // `next` is where to land once signed in, including after confirming email.
-export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
+export default function EmailAuthForm({
+  next = "/main",
+  autoFocus = true,
+}: {
+  next?: string;
+  autoFocus?: boolean;
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +107,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
             required
             placeholder="Johnny Goblin"
             className={inputClass}
-            autoFocus
+            autoFocus={autoFocus}
           />
         </label>
       )}
@@ -115,7 +121,7 @@ export default function EmailAuthForm({ next = "/main" }: { next?: string }) {
           placeholder="johngoblins@example.com"
           required
           className={inputClass}
-          autoFocus
+          autoFocus={autoFocus}
         />
       </label>
       {mode !== "reset" && (

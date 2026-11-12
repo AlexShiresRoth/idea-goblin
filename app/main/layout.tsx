@@ -33,7 +33,7 @@ export default async function MainLayout({
   const session = await getSession();
 
   if (!session || !session.id) {
-    redirect("/");
+    redirect("/sign-in");
   }
 
   const [hasBuckets, plan] = await Promise.all([

@@ -122,7 +122,7 @@ describe("shared bucket page", () => {
 
     expect(
       screen.getByRole("link", { name: "Sign in to save a copy" }),
-    ).toHaveAttribute("href", "/?next=%2Fshare%2Ftok");
+    ).toHaveAttribute("href", "/sign-in?next=%2Fshare%2Ftok");
   });
 
   it("lets a signed-in visitor save a copy", async () => {

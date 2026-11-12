@@ -20,7 +20,7 @@ describe("SaveCopy", () => {
 
     expect(
       screen.getByRole("link", { name: "Sign in to save a copy" }),
-    ).toHaveAttribute("href", "/?next=%2Fshare%2Ftok");
+    ).toHaveAttribute("href", "/sign-in?next=%2Fshare%2Ftok");
   });
 
   it("saves a copy and opens it", async () => {

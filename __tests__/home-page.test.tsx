@@ -54,26 +54,20 @@ describe("landing page", () => {
     );
   });
 
-  it("passes where to go after signing in to every sign-in option", async () => {
-    const { getByTestId, getAllByTestId } = render(
-      await home({ next: "/share/tok" }),
-    );
-
-    expect(getByTestId("email-form")).toHaveAttribute(
-      "data-next",
-      "/share/tok",
-    );
-    for (const button of getAllByTestId("oauth")) {
-      expect(button).toHaveAttribute("data-next", "/share/tok");
+  it("links to the dedicated sign-in page and preserves the destination", async () => {
+    const { getAllByRole, queryByTestId } = render(await home({ next: "/share/tok" }));
+    expect(queryByTestId("email-form")).not.toBeInTheDocument();
+    expect(queryByTestId("oauth")).not.toBeInTheDocument();
+    for (const link of getAllByRole("link").filter((link) => link.textContent?.match(/Sign in|Find your next idea|Make room/))) {
+      expect(link).toHaveAttribute("href", "/sign-in?next=%2Fshare%2Ftok");
     }
   });
 
   it.each(["https://evil.com", "//evil.com", "/\\evil.com"])(
     "ignores an off-site destination %s",
     async (next) => {
-      const { getByTestId } = render(await home({ next }));
-
-      expect(getByTestId("email-form")).toHaveAttribute("data-next", "/main");
+      const { getByRole } = render(await home({ next }));
+      expect(getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
     },
   );
 });

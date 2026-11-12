@@ -27,7 +27,7 @@ export default async function AuthCodeError({
           </p>
         ) : null}
         <Link
-          href="/"
+          href="/sign-in"
           data-testid="auth-error-back"
           className="rounded-none border border-accent/40 px-4 py-2 text-accent hover:bg-accent/10"
         >

@@ -20,7 +20,7 @@ export default function SaveCopy({
   if (!signedIn) {
     return (
       <Link
-        href={`/?next=${encodeURIComponent(`/share/${token}`)}`}
+        href={`/sign-in?next=${encodeURIComponent(`/share/${token}`)}`}
         data-testid="save-copy-sign-in"
         className="action-button w-fit"
       >
