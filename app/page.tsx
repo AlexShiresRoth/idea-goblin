@@ -2,12 +2,20 @@ import { getSession } from "@/lib/auth";
 import { safeNext } from "@/lib/auth/safe-next";
 import { siteConfig } from "@/lib/site";
 import clsx from "clsx";
+import {
+  ArrowDown,
+  ArrowUpRight,
+  Check,
+  FolderOpen,
+  Lightbulb,
+  Sparkles,
+} from "lucide-react";
 import { Syne_Tactile } from "next/font/google";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import AuthButton from "./components/auth-button";
-import EmailAuthForm from "./components/email-auth-form";
 import Logo from "./components/logo";
+import MarketingPreview from "./components/marketing-preview";
+import styles from "./page.module.css";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +30,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const { code, error, error_description, next: rawNext } = await searchParams;
   // Set by links that need a sign-in first, like saving a shared bucket.
   const next = safeNext(rawNext);
+  const signInHref =
+    next === "/main" ? "/sign-in" : `/sign-in?next=${encodeURIComponent(next)}`;
 
   if (typeof error === "string" || typeof error_description === "string") {
     const reason =
@@ -59,86 +69,170 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           }),
         }}
       />
-      <main className="relative flex flex-1 w-full min-h-screen flex-col items-center justify-between sm:items-start bg-zinc-50 font-sans dark:bg-background decorative-bg overflow-clip">
-        <div className="absolute h-full w-full flex items-center justify-center">
-          <div className="relative flex items-center justify-center">
-            <div className="absolute flex-1 w-200 h-200 border-2 border-accent/10 flex items-center justify-center rounded-full">
-              <div className="border-2 border-accent/10 w-150 h-150 flex items-center justify-center">
-                <div className="border-2 border-accent/10 w-100 h-100 rounded-full"></div>
-              </div>
+      <main className={clsx(styles.page, "decorative-bg")}>
+        <header className={styles.header}>
+          <a href="#" aria-label="Idea Goblin home">
+            <Logo />
+          </a>
+          <nav aria-label="Main navigation">
+            <a href="#how-it-works">How it works</a>
+            <a href="#why-goblin">Why Goblin?</a>
+            <a href={signInHref} className={styles.navCta}>
+              Sign in <ArrowUpRight size={15} />
+            </a>
+          </nav>
+        </header>
+        <section className={styles.hero} aria-labelledby="hero-heading">
+          <div>
+            <p className={styles.eyebrow}>
+              <span /> A home for your all your ideas, big and small.
+            </p>
+            <h1
+              id="hero-heading"
+              className={clsx(syneTactile.className, styles.title)}
+            >
+              Too many ideas.
+              <br />
+              Meet your
+              <br />
+              <span>filter.</span>
+            </h1>
+            <p className={styles.intro}>
+              Get the ideas out of your head. Give them a little structure.
+              Figure out which ones are worth building.
+            </p>
+            <div className={styles.heroActions}>
+              <a href={signInHref} className={styles.cta}>
+                Find your next idea <ArrowUpRight size={20} />
+              </a>
+              <a href="#how-it-works" className={styles.textLink}>
+                Take a look around <ArrowDown size={16} />
+              </a>
             </div>
+            <p className={styles.small}>
+              For side-project starters. Serial brainstormers. Creative
+              ideators.
+            </p>
           </div>
+          <MarketingPreview />
+        </section>
+
+        <div className={styles.manifesto}>
+          Keep the spark. <span>Lose the spiral.</span>
         </div>
 
-        <div className="flex w-full flex-1 md:flex-row flex-col md:gap-0 gap-8">
-          <div className="flex-1 flex flex-col justify-center items-center relative px-4">
-            <div className="flex flex-col md:h-full justify-between py-12 w-11/12 md:w-2/3">
-              <div className="md:mb-0 mb-12">
-                <Logo />
-              </div>
-              <div className="flex flex-col gap-12">
-                <span className="text-accent uppercase md:text-xl">
-                  Stop collecting ideas.
-                </span>
-                <h1
-                  className={clsx(
-                    syneTactile.className,
-                    "text-5xl md:text-6xl font-bold text-primary",
-                  )}
-                >
-                  Start deciding which ideas are{` `}
-                  <span className="text-accent">worth building</span>.
-                </h1>
-                <p className="dark:text-white/70 md:text-base text-sm">
-                  Let the Idea Goblin help you focus or revise your ideas.
-                  Whether it&apos;s something you want to build, or something
-                  you just need out of your head.
-                </p>
-              </div>
-              <div className="md:mt-0 mt-8">
-                <p className="text-white/50 uppercase text-xs md:text-base">
-                  Built for folks with infinite ideas
-                </p>
-              </div>
-              <div className="md:hidden mt-12">
-                <a
-                  href="#sign-in"
-                  className="px-4 py-2 bg-accent text-zinc-900"
-                >
-                  Get Started
-                </a>
-              </div>
-            </div>
+        <section
+          id="how-it-works"
+          className={styles.section}
+          aria-labelledby="how-heading"
+        >
+          <div className={styles.sectionHeading}>
+            <p className={styles.eyebrow}>01 / FROM SCATTERED TO STARTED</p>
+            <h2 id="how-heading">Your brain has enough tabs open.</h2>
+            <p>
+              Give every thought a place to land, then give the promising ones a
+              way forward.
+            </p>
           </div>
-          <div
-            id="sign-in"
-            className="flex flex-1 flex-col items-center bg-foreground relative"
-          >
-            <div className="flex flex-col h-full items-center justify-center gap-8 w-11/12 px-4 py-8 md:py-0 md:w-2/3">
-              <div className="flex flex-col gap-2 w-full max-w-md">
-                <span className="text-lg text-zinc-600">Welcome Back</span>
-                <h2 className="text-4xl md:text-5xl text-zinc-800">
-                  Ready to think?
-                </h2>
-                <p className="text-zinc-400">
-                  Sign in to shaping your next great idea.
-                </p>
-              </div>
-              <EmailAuthForm next={next} />
-              <p className="text-zinc-500">or sign in with</p>
-              <div className="flex gap-2 md:flex-row flex-col mt-2 md:min-w-0 min-w-full max-w-md">
-                <AuthButton
-                  provider={{ value: "google", label: "Google" }}
-                  next={next}
-                />
-                <AuthButton
-                  provider={{ value: "github", label: "GitHub" }}
-                  next={next}
-                />
-              </div>
-            </div>
+          <div className={styles.steps}>
+            {[
+              {
+                number: "01",
+                icon: Lightbulb,
+                title: "Catch the spark.",
+                text: "The half-formed thought. The shower revelation. The project you keep coming back to. Capture it before it disappears.",
+              },
+              {
+                number: "02",
+                icon: FolderOpen,
+                title: "Find its people.",
+                text: "Group related ideas into buckets. Connect the dots, spot a theme, and keep the context together.",
+              },
+              {
+                number: "03",
+                icon: Sparkles,
+                title: "Give it a reality check.",
+                text: "Use AI analysis and refinement to explore an idea, challenge assumptions, and shape a clearer next step.",
+              },
+            ].map(({ number, icon: Icon, title, text }) => (
+              <article key={number} className={styles.step}>
+                <div className={styles.stepTop}>
+                  <Icon size={25} />
+                  <span>{number}</span>
+                </div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </article>
+            ))}
           </div>
-        </div>
+        </section>
+
+        <section
+          id="why-goblin"
+          className={styles.focusSection}
+          aria-labelledby="focus-heading"
+        >
+          <div>
+            <p className={styles.eyebrow}>02 / A LITTLE HEALTHY RESTRAINT</p>
+            <h2 id="focus-heading" className={syneTactile.className}>
+              You can do anything.
+              <br />
+              <span>Just not everything.</span>
+            </h2>
+          </div>
+          <div className={styles.focusCopy}>
+            <p>
+              Some ideas deserve your attention now. Others need a safe place to
+              wait. Idea Goblin helps you make room for both.
+            </p>
+            <ul>
+              <li>
+                <Check size={18} /> Choose which buckets get your focus.
+              </li>
+              <li>
+                <Check size={18} /> Park the rest without losing the thought.
+              </li>
+              <li>
+                <Check size={18} /> Revisit, refine, and change your mind.
+              </li>
+            </ul>
+            <a href={signInHref} className={styles.textLink}>
+              Make room for what matters <ArrowUpRight size={18} />
+            </a>
+          </div>
+        </section>
+
+        <section className={styles.signIn} aria-labelledby="final-heading">
+          <div className={styles.signInCopy}>
+            <p className={styles.eyebrow}>03 / LET IT OUT OF YOUR HEAD</p>
+            <h2 id="final-heading" className={syneTactile.className}>
+              Your next good idea
+              <br />
+              needs somewhere
+              <br />
+              <span>to start.</span>
+            </h2>
+            <p>
+              A messy first thought is more than enough.
+              <br />
+              Bring it. The Goblin can work with that.
+            </p>
+            <Logo />
+          </div>
+          <div>
+            <a href={signInHref} className={styles.cta}>
+              Find your next idea <ArrowUpRight size={20} />
+            </a>
+            <p className={styles.small}>
+              Sign in or create an account to get started.
+            </p>
+          </div>
+        </section>
+        <footer className={styles.footer}>
+          <span>© {new Date().getFullYear()} Idea Goblin</span>
+          <span>Built for folks who are always creating.</span>
+          <a href="#">Back to top ↑</a>
+        </footer>
       </main>
     </>
   );

@@ -13,7 +13,7 @@ export default async function UpdatePassword() {
   const session = await getSession();
 
   if (!session) {
-    redirect("/");
+    redirect("/sign-in");
   }
 
   return (

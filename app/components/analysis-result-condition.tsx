@@ -375,7 +375,6 @@ function RefinementSuggestions({
   if (isIdeaRefinement(result) || isBucketRefinement(result)) {
     return <RefinementCard result={result} />;
   }
-  console.log("result", result);
   return (
     <div
       data-testid="refinement-suggestions"
